@@ -12,8 +12,18 @@ type alias Service =
     , metaData : MetaData
     , operations : Operations
     , shapes : Shapes
-    , documentation : String
+    , documentation : Maybe String
     }
+
+
+serviceCodec =
+    Codec.object Service
+        |> Codec.field "version" .version Codec.string
+        |> Codec.field "metadata" .metaData metaDataCodec
+        |> Codec.field "operations" .operations operationsCodec
+        |> Codec.field "shapes" .shapes shapesCodec
+        |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.buildObject
 
 
 type alias MetaData =
