@@ -1,7 +1,10 @@
-module Service exposing (f)
+module Service exposing (Service)
 
 {-| AWS Service2 Descriptor. This module provides the data model and decoders.
 -}
+
+import Codec
+import Dict exposing (Dict)
 
 
 type alias Service =

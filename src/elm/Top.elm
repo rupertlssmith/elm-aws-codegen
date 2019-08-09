@@ -3,6 +3,7 @@ port module Top exposing (main)
 import AST exposing (AST, Block(..))
 import Dict exposing (Dict)
 import Random exposing (Seed)
+import Service
 import Task
 import Time exposing (Posix)
 
