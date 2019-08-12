@@ -1,4 +1,4 @@
-module Service exposing (Service)
+module Service exposing (Service, serviceCodec)
 
 {-| AWS Service2 Descriptor. This module provides the data model and decoders.
 -}

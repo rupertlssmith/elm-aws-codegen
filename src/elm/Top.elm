@@ -3,7 +3,7 @@ port module Top exposing (main)
 import Codec
 import Dict exposing (Dict)
 import Random exposing (Seed)
-import Service
+import Service exposing (Service)
 import Task
 import Time exposing (Posix)
 
@@ -45,7 +45,7 @@ subscriptions model =
 type Model
     = Initial
     | Seeded { seed : Seed }
-    | LoadedModel { seed : Seed, dataModel : AST }
+    | LoadedModel { seed : Seed, dataModel : Service }
     | ModelProcessed
     | TemplateProcessed
     | Done
@@ -74,12 +74,17 @@ update msg model =
 
         ( Seeded { seed }, ModelData val ) ->
             let
-                ( example, newSeed ) =
-                    AST.example 10000 seed
+                example =
+                    Codec.decodeString Service.serviceCodec val
             in
-            ( LoadedModel { seed = seed, dataModel = example }
-            , AST.pretty example |> codeOutPort
-            )
+            case example of
+                Ok service ->
+                    ( LoadedModel { seed = seed, dataModel = service }
+                    , Codec.encodeToString 4 Service.serviceCodec service |> codeOutPort
+                    )
+
+                Err _ ->
+                    ( Error "Could not decode.", Cmd.none )
 
         ( _, _ ) ->
             ( model, Cmd.none )
