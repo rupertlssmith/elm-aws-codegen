@@ -1,6 +1,6 @@
 port module Top exposing (main)
 
-import AST exposing (AST, Block(..))
+import Codec
 import Dict exposing (Dict)
 import Random exposing (Seed)
 import Service

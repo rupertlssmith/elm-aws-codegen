@@ -7,7 +7,9 @@ const {
 
 const app = Elm.Top.init();
 
-app.ports.modelInPort.send("model");
+fs.readFile('api/acm-2015-12-08.normal.json', 'utf8', function(err, contents) {
+  app.ports.modelInPort.send(contents);
+});
 
 app.ports.codeOutPort.subscribe(request => {
   console.log(request);

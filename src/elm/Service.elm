@@ -20,8 +20,8 @@ serviceCodec =
     Codec.object Service
         |> Codec.field "version" .version Codec.string
         |> Codec.field "metadata" .metaData metaDataCodec
-        |> Codec.field "operations" .operations operationsCodec
-        |> Codec.field "shapes" .shapes shapesCodec
+        |> Codec.field "operations" .operations (Codec.constant Dict.empty)
+        |> Codec.field "shapes" .shapes (Codec.constant Dict.empty)
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
 
@@ -38,6 +38,21 @@ type alias MetaData =
     , targetPrefix : String
     , uid : String
     }
+
+
+metaDataCodec =
+    Codec.object MetaData
+        |> Codec.field "apiVersion" .apiVersion Codec.string
+        |> Codec.field "endpointPrefix" .endpointPrefix Codec.string
+        |> Codec.field "jsonVersion" .jsonVersion Codec.string
+        |> Codec.field "protocol" .protocol Codec.string
+        |> Codec.field "serviceAbbreviation" .serviceAbbreviation Codec.string
+        |> Codec.field "serviceFullName" .serviceFullName Codec.string
+        |> Codec.field "serviceId" .serviceId Codec.string
+        |> Codec.field "signatureVersion" .signatureVersion Codec.string
+        |> Codec.field "targetPrefix" .targetPrefix Codec.string
+        |> Codec.field "uid" .uid Codec.string
+        |> Codec.buildObject
 
 
 type alias Operations =
