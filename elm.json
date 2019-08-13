@@ -13,6 +13,7 @@
             "elm/random": "1.0.0",
             "elm/time": "1.0.0",
             "miniBill/elm-codec": "1.1.0",
+            "the-sett/decode-generic": "1.0.0",
             "the-sett/elm-pretty-printer": "2.1.1"
         },
         "indirect": {

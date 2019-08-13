@@ -2,7 +2,9 @@ port module Top exposing (main)
 
 import Codec
 import Dict exposing (Dict)
+import Diff
 import Json.Decode as Decode
+import Json.Decode.Generic as Generic
 import Random exposing (Seed)
 import Service exposing (Service)
 import Task
@@ -83,6 +85,20 @@ update msg model =
                     let
                         _ =
                             Debug.log "Ok" name
+
+                        original =
+                            Decode.decodeString Generic.json val
+
+                        parsed =
+                            Decode.decodeString Generic.json (Codec.encodeToString 0 Service.serviceCodec service)
+
+                        diffs =
+                            case ( original, parsed ) of
+                                ( Ok jsonl, Ok jsonr ) ->
+                                    Diff.diff jsonl jsonr |> Diff.diffsToString |> Debug.log "Diffs"
+
+                                ( _, _ ) ->
+                                    "Failed to generic decode" |> Debug.log "Error"
                     in
                     ( model
                     , Codec.encodeToString 4 Service.serviceCodec service |> codeOutPort
