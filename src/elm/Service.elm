@@ -98,6 +98,7 @@ endpointCodec =
 type alias Http =
     { method : String
     , requestUri : Maybe String
+    , responseCode : Maybe Int
     }
 
 
@@ -105,6 +106,7 @@ httpCodec =
     Codec.object Http
         |> Codec.field "method" .method Codec.string
         |> Codec.optionalField "requestUri" .requestUri Codec.string
+        |> Codec.optionalField "responseCode" .responseCode Codec.int
         |> Codec.buildObject
 
 
@@ -112,6 +114,10 @@ type alias ShapeRef =
     { shape : String
     , documentation : Maybe String
     , idempotencyToken : Maybe String
+    , location : Maybe String
+    , locationName : Maybe String
+    , deprecated : Maybe Bool
+    , box : Maybe Bool
     }
 
 
@@ -120,6 +126,10 @@ shapeRefCodec =
         |> Codec.field "shape" .shape Codec.string
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.optionalField "idempotencyToken" .idempotencyToken Codec.string
+        |> Codec.optionalField "location" .location Codec.string
+        |> Codec.optionalField "locationName" .locationName Codec.string
+        |> Codec.optionalField "deprecated" .deprecated Codec.bool
+        |> Codec.optionalField "box" .box Codec.bool
         |> Codec.buildObject
 
 
