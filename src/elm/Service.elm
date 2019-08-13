@@ -37,6 +37,8 @@ type alias MetaData =
     , signatureVersion : Maybe String
     , targetPrefix : Maybe String
     , uid : Maybe String
+    , signingName : Maybe String
+    , globalEndpoint : Maybe String
     }
 
 
@@ -52,6 +54,8 @@ metaDataCodec =
         |> Codec.optionalField "signatureVersion" .signatureVersion Codec.string
         |> Codec.optionalField "targetPrefix" .targetPrefix Codec.string
         |> Codec.optionalField "uid" .uid Codec.string
+        |> Codec.optionalField "signingName" .signingName Codec.string
+        |> Codec.optionalField "globalEndpoint" .globalEndpoint Codec.string
         |> Codec.buildObject
 
 
@@ -62,6 +66,7 @@ type alias Operation =
     , output : Maybe ShapeRef
     , errors : Maybe (List ShapeRef)
     , idempotent : Maybe Bool
+    , endpoint : Maybe Endpoint
     , documentation : Maybe String
     }
 
@@ -74,7 +79,19 @@ operationCodec =
         |> Codec.optionalField "output" .output shapeRefCodec
         |> Codec.optionalField "errors" .errors (Codec.list shapeRefCodec)
         |> Codec.optionalField "idempotent" .idempotent Codec.bool
+        |> Codec.optionalField "endpoint" .endpoint endpointCodec
         |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.buildObject
+
+
+type alias Endpoint =
+    { hostPrefix : String
+    }
+
+
+endpointCodec =
+    Codec.object Endpoint
+        |> Codec.field "hostPrefix" .hostPrefix Codec.string
         |> Codec.buildObject
 
 
@@ -94,6 +111,7 @@ httpCodec =
 type alias ShapeRef =
     { shape : String
     , documentation : Maybe String
+    , idempotencyToken : Maybe String
     }
 
 
@@ -101,6 +119,7 @@ shapeRefCodec =
     Codec.object ShapeRef
         |> Codec.field "shape" .shape Codec.string
         |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.optionalField "idempotencyToken" .idempotencyToken Codec.string
         |> Codec.buildObject
 
 
@@ -115,6 +134,9 @@ type alias Shape =
     , key : Maybe ShapeRef
     , value : Maybe ShapeRef
     , enum : Maybe (List String)
+    , sensitive : Maybe Bool
+    , deprecated : Maybe Bool
+    , box : Maybe Bool
     , documentation : Maybe String
     }
 
@@ -131,6 +153,9 @@ shapeCodec =
         |> Codec.optionalField "key" .key shapeRefCodec
         |> Codec.optionalField "value" .value shapeRefCodec
         |> Codec.optionalField "enum" .enum (Codec.list Codec.string)
+        |> Codec.optionalField "sensitive" .sensitive Codec.bool
+        |> Codec.optionalField "deprecated" .deprecated Codec.bool
+        |> Codec.optionalField "box" .box Codec.bool
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
 
