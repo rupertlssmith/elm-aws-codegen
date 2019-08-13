@@ -95,7 +95,7 @@ update msg model =
                         diffs =
                             case ( original, parsed ) of
                                 ( Ok jsonl, Ok jsonr ) ->
-                                    Diff.diff jsonl jsonr |> Diff.diffsToString |> Debug.log "Diffs"
+                                    Diff.diff jsonl jsonr |> Diff.diffsToString |> logIfVal "Diffs"
 
                                 ( _, _ ) ->
                                     "Failed to generic decode" |> Debug.log "Error"
@@ -115,3 +115,12 @@ update msg model =
 
         ( _, _ ) ->
             ( model, Cmd.none )
+
+
+logIfVal : String -> String -> String
+logIfVal label val =
+    if val == "" then
+        val
+
+    else
+        Debug.log label val
