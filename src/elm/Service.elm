@@ -154,7 +154,11 @@ typesCodec =
                 "structure" ->
                     Structure
 
-                _ ->
+                str ->
+                    let
+                        _ =
+                            Debug.log "unkown" str
+                    in
                     Unknown
         )
         (\types ->
