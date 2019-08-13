@@ -8,7 +8,7 @@ import Dict exposing (Dict)
 
 
 type alias Service =
-    { version : String
+    { version : Maybe String
     , metaData : MetaData
     , operations : Dict String Operation
     , shapes : Dict String Shape
@@ -18,7 +18,7 @@ type alias Service =
 
 serviceCodec =
     Codec.object Service
-        |> Codec.field "version" .version Codec.string
+        |> Codec.optionalField "version" .version Codec.string
         |> Codec.field "metadata" .metaData metaDataCodec
         |> Codec.field "operations" .operations (Codec.dict operationCodec)
         |> Codec.field "shapes" .shapes (Codec.dict shapeCodec)
@@ -29,14 +29,14 @@ serviceCodec =
 type alias MetaData =
     { apiVersion : String
     , endpointPrefix : String
-    , jsonVersion : String
+    , jsonVersion : Maybe String
     , protocol : String
-    , serviceAbbreviation : String
-    , serviceFullName : String
+    , serviceAbbreviation : Maybe String
+    , serviceFullName : Maybe String
     , serviceId : String
-    , signatureVersion : String
-    , targetPrefix : String
-    , uid : String
+    , signatureVersion : Maybe String
+    , targetPrefix : Maybe String
+    , uid : Maybe String
     }
 
 
@@ -44,23 +44,23 @@ metaDataCodec =
     Codec.object MetaData
         |> Codec.field "apiVersion" .apiVersion Codec.string
         |> Codec.field "endpointPrefix" .endpointPrefix Codec.string
-        |> Codec.field "jsonVersion" .jsonVersion Codec.string
+        |> Codec.optionalField "jsonVersion" .jsonVersion Codec.string
         |> Codec.field "protocol" .protocol Codec.string
-        |> Codec.field "serviceAbbreviation" .serviceAbbreviation Codec.string
-        |> Codec.field "serviceFullName" .serviceFullName Codec.string
+        |> Codec.optionalField "serviceAbbreviation" .serviceAbbreviation Codec.string
+        |> Codec.optionalField "serviceFullName" .serviceFullName Codec.string
         |> Codec.field "serviceId" .serviceId Codec.string
-        |> Codec.field "signatureVersion" .signatureVersion Codec.string
-        |> Codec.field "targetPrefix" .targetPrefix Codec.string
-        |> Codec.field "uid" .uid Codec.string
+        |> Codec.optionalField "signatureVersion" .signatureVersion Codec.string
+        |> Codec.optionalField "targetPrefix" .targetPrefix Codec.string
+        |> Codec.optionalField "uid" .uid Codec.string
         |> Codec.buildObject
 
 
 type alias Operation =
     { name : String
     , http : Http
-    , input : ShapeRef
-    , errors : List ShapeRef
-    , documentation : String
+    , input : Maybe ShapeRef
+    , errors : Maybe (List ShapeRef)
+    , documentation : Maybe String
     }
 
 
@@ -68,22 +68,22 @@ operationCodec =
     Codec.object Operation
         |> Codec.field "name" .name Codec.string
         |> Codec.field "http" .http httpCodec
-        |> Codec.field "input" .input shapeRefCodec
-        |> Codec.field "errors" .errors (Codec.list shapeRefCodec)
-        |> Codec.field "documentation" .documentation Codec.string
+        |> Codec.optionalField "input" .input shapeRefCodec
+        |> Codec.optionalField "errors" .errors (Codec.list shapeRefCodec)
+        |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
 
 
 type alias Http =
     { method : String
-    , requestUri : String
+    , requestUri : Maybe String
     }
 
 
 httpCodec =
     Codec.object Http
         |> Codec.field "method" .method Codec.string
-        |> Codec.field "requestUri" .requestUri Codec.string
+        |> Codec.optionalField "requestUri" .requestUri Codec.string
         |> Codec.buildObject
 
 

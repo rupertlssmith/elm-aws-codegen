@@ -91,7 +91,7 @@ update msg model =
                 Err err ->
                     let
                         _ =
-                            Debug.log "Error" name
+                            Debug.log "Error" (name ++ " - " ++ Decode.errorToString err)
                     in
                     ( model
                     , Decode.errorToString err |> codeOutPort
