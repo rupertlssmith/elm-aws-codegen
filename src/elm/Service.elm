@@ -3,15 +3,15 @@ module Service exposing (Service, serviceCodec)
 {-| AWS Service2 Descriptor. This module provides the data model and decoders.
 -}
 
-import Codec
+import Codec exposing (Codec)
 import Dict exposing (Dict)
 
 
 type alias Service =
     { version : String
     , metaData : MetaData
-    , operations : Operations
-    , shapes : Shapes
+    , operations : Dict String Operation
+    , shapes : Dict String Shape
     , documentation : Maybe String
     }
 
@@ -20,8 +20,8 @@ serviceCodec =
     Codec.object Service
         |> Codec.field "version" .version Codec.string
         |> Codec.field "metadata" .metaData metaDataCodec
-        |> Codec.field "operations" .operations (Codec.constant Dict.empty)
-        |> Codec.field "shapes" .shapes (Codec.constant Dict.empty)
+        |> Codec.field "operations" .operations (Codec.dict operationCodec)
+        |> Codec.field "shapes" .shapes (Codec.dict shapeCodec)
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
 
@@ -55,10 +55,6 @@ metaDataCodec =
         |> Codec.buildObject
 
 
-type alias Operations =
-    Dict String Operation
-
-
 type alias Operation =
     { name : String
     , http : Http
@@ -68,10 +64,27 @@ type alias Operation =
     }
 
 
+operationCodec =
+    Codec.object Operation
+        |> Codec.field "name" .name Codec.string
+        |> Codec.field "http" .http httpCodec
+        |> Codec.field "input" .input shapeRefCodec
+        |> Codec.field "errors" .errors (Codec.list shapeRefCodec)
+        |> Codec.field "documentation" .documentation Codec.string
+        |> Codec.buildObject
+
+
 type alias Http =
     { method : String
     , requestUri : String
     }
+
+
+httpCodec =
+    Codec.object Http
+        |> Codec.field "method" .method Codec.string
+        |> Codec.field "requestUri" .requestUri Codec.string
+        |> Codec.buildObject
 
 
 type alias ShapeRef =
@@ -80,8 +93,11 @@ type alias ShapeRef =
     }
 
 
-type alias Shapes =
-    Dict String Shape
+shapeRefCodec =
+    Codec.object ShapeRef
+        |> Codec.field "shape" .shape Codec.string
+        |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.buildObject
 
 
 type alias Shape =
@@ -96,9 +112,50 @@ type alias Shape =
     }
 
 
+shapeCodec =
+    Codec.object Shape
+        |> Codec.field "type" .type_ typesCodec
+        |> Codec.field "required" .required (Codec.list Codec.string)
+        |> Codec.optionalField "max" .max Codec.int
+        |> Codec.optionalField "min" .min Codec.int
+        |> Codec.optionalField "pattern" .pattern Codec.string
+        |> Codec.field "members" .members (Codec.list shapeRefCodec)
+        |> Codec.field "enum" .enum (Codec.list Codec.string)
+        |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.buildObject
+
+
 type Types
     = Integer
     | String -- Enum
     | Blob
     | List
     | Structure
+
+
+typesCodec : Codec Types
+typesCodec =
+    Codec.custom
+        (\fInteger fString fBlob fList fStructure value ->
+            case value of
+                Integer ->
+                    fInteger
+
+                String ->
+                    fString
+
+                Blob ->
+                    fBlob
+
+                List ->
+                    fList
+
+                Structure ->
+                    fStructure
+        )
+        |> Codec.variant0 "integer" Integer
+        |> Codec.variant0 "string" String
+        |> Codec.variant0 "blob" Blob
+        |> Codec.variant0 "list" List
+        |> Codec.variant0 "structure" Structure
+        |> Codec.buildCustom

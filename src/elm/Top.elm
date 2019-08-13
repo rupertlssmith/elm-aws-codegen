@@ -2,6 +2,7 @@ port module Top exposing (main)
 
 import Codec
 import Dict exposing (Dict)
+import Json.Decode as Decode
 import Random exposing (Seed)
 import Service exposing (Service)
 import Task
@@ -83,8 +84,8 @@ update msg model =
                     , Codec.encodeToString 4 Service.serviceCodec service |> codeOutPort
                     )
 
-                Err _ ->
-                    ( Error "Could not decode.", Cmd.none )
+                Err err ->
+                    ( Error "Could not decode.", Decode.errorToString err |> codeOutPort )
 
         ( _, _ ) ->
             ( model, Cmd.none )
