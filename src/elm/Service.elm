@@ -110,6 +110,8 @@ type alias Shape =
     , pattern : Maybe String
     , members : Maybe (Dict String ShapeRef)
     , member : Maybe ShapeRef
+    , key : Maybe ShapeRef
+    , value : Maybe ShapeRef
     , enum : Maybe (List String)
     , documentation : Maybe String
     }
@@ -124,6 +126,8 @@ shapeCodec =
         |> Codec.optionalField "pattern" .pattern Codec.string
         |> Codec.optionalField "members" .members (Codec.dict shapeRefCodec)
         |> Codec.optionalField "member" .member shapeRefCodec
+        |> Codec.optionalField "key" .key shapeRefCodec
+        |> Codec.optionalField "value" .value shapeRefCodec
         |> Codec.optionalField "enum" .enum (Codec.list Codec.string)
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
