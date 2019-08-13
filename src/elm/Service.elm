@@ -118,6 +118,7 @@ type alias ShapeRef =
     , locationName : Maybe String
     , deprecated : Maybe Bool
     , box : Maybe Bool
+    , resultWrapper : Maybe String
     }
 
 
@@ -130,6 +131,7 @@ shapeRefCodec =
         |> Codec.optionalField "locationName" .locationName Codec.string
         |> Codec.optionalField "deprecated" .deprecated Codec.bool
         |> Codec.optionalField "box" .box Codec.bool
+        |> Codec.optionalField "resultWrapper" .resultWrapper Codec.string
         |> Codec.buildObject
 
 
@@ -147,6 +149,9 @@ type alias Shape =
     , sensitive : Maybe Bool
     , deprecated : Maybe Bool
     , box : Maybe Bool
+    , exception : Maybe Bool
+    , fault : Maybe Bool
+    , flattened : Maybe Bool
     , documentation : Maybe String
     }
 
@@ -166,6 +171,9 @@ shapeCodec =
         |> Codec.optionalField "sensitive" .sensitive Codec.bool
         |> Codec.optionalField "deprecated" .deprecated Codec.bool
         |> Codec.optionalField "box" .box Codec.bool
+        |> Codec.optionalField "exception" .exception Codec.bool
+        |> Codec.optionalField "fault" .fault Codec.bool
+        |> Codec.optionalField "flattened" .flattened Codec.bool
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
 
