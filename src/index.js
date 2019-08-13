@@ -1,4 +1,5 @@
 var fs = require('fs');
+var glob = require('glob');
 
 //const { Elm }  = require('./Top.elm'); -- do it this way if using webpack-loader
 const {
@@ -7,8 +8,13 @@ const {
 
 const app = Elm.Top.init();
 
-fs.readFile('api/acm-2015-12-08.normal.json', 'utf8', function(err, contents) {
-  app.ports.modelInPort.send(['api/acm-2015-12-08.normal.json', contents]);
+// options is optional
+glob("api/*.normal.json", function(er, files) {
+  files.forEach(function(file) {
+      fs.readFile(file, 'utf8', function(err, contents) {
+        app.ports.modelInPort.send([file, contents]);
+      });
+    });
 });
 
 app.ports.codeOutPort.subscribe(request => {
