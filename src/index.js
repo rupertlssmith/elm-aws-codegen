@@ -8,11 +8,10 @@ const {
 const app = Elm.Top.init();
 
 fs.readFile('api/acm-2015-12-08.normal.json', 'utf8', function(err, contents) {
-  app.ports.modelInPort.send(contents);
+  app.ports.modelInPort.send(['api/acm-2015-12-08.normal.json', contents]);
 });
 
 app.ports.codeOutPort.subscribe(request => {
-  console.log(request);
   fs.writeFile('example.txt', request, (err) => {
     if (err) throw err;
   })

@@ -22,7 +22,7 @@ main =
 -- Ports for data input and output
 
 
-port modelInPort : (String -> msg) -> Sub msg
+port modelInPort : (( String, String ) -> msg) -> Sub msg
 
 
 port codeOutPort : String -> Cmd msg
@@ -35,7 +35,7 @@ subscriptions model =
 
         _ ->
             Sub.batch
-                [ modelInPort ModelData
+                [ modelInPort (\( name, value ) -> ModelData name value)
                 ]
 
 
@@ -59,7 +59,7 @@ type Model
 
 type Msg
     = CreateSeed Posix
-    | ModelData String
+    | ModelData String String
 
 
 init _ =
@@ -73,19 +73,29 @@ update msg model =
         ( Initial, CreateSeed posix ) ->
             ( Seeded { seed = Random.initialSeed <| Time.posixToMillis posix }, Cmd.none )
 
-        ( Seeded { seed }, ModelData val ) ->
+        ( Seeded { seed }, ModelData name val ) ->
             let
                 example =
                     Codec.decodeString Service.serviceCodec val
             in
             case example of
                 Ok service ->
-                    ( LoadedModel { seed = seed, dataModel = service }
+                    let
+                        _ =
+                            Debug.log "Ok" name
+                    in
+                    ( model
                     , Codec.encodeToString 4 Service.serviceCodec service |> codeOutPort
                     )
 
                 Err err ->
-                    ( Error "Could not decode.", Decode.errorToString err |> codeOutPort )
+                    let
+                        _ =
+                            Debug.log "Error" name
+                    in
+                    ( model
+                    , Decode.errorToString err |> codeOutPort
+                    )
 
         ( _, _ ) ->
             ( model, Cmd.none )
