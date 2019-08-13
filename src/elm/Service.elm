@@ -126,11 +126,17 @@ shapeCodec =
 
 
 type Types
-    = Integer
-    | String -- Enum
+    = String -- Enum
+    | Boolean
+    | Integer
+    | Long
+    | Float
+    | Double
     | Blob
-    | List
     | Structure
+    | List
+    | Map
+    | Timestamp
     | Unknown
 
 
@@ -139,44 +145,80 @@ typesCodec =
     Codec.map
         (\val ->
             case val of
+                "string" ->
+                    String
+
+                "boolean" ->
+                    Boolean
+
                 "integer" ->
                     Integer
 
-                "string" ->
-                    String
+                "long" ->
+                    Long
+
+                "float" ->
+                    Float
+
+                "double" ->
+                    Double
 
                 "blob" ->
                     Blob
 
+                "structure" ->
+                    Structure
+
                 "list" ->
                     List
 
-                "structure" ->
-                    Structure
+                "map" ->
+                    Map
+
+                "timestamp" ->
+                    Timestamp
 
                 str ->
                     let
                         _ =
-                            Debug.log "unkown" str
+                            Debug.log "unknown" str
                     in
                     Unknown
         )
         (\types ->
             case types of
+                String ->
+                    "string"
+
+                Boolean ->
+                    "boolean"
+
                 Integer ->
                     "integer"
 
-                String ->
-                    "string"
+                Long ->
+                    "long"
+
+                Float ->
+                    "float"
+
+                Double ->
+                    "double"
 
                 Blob ->
                     "blob"
 
+                Structure ->
+                    "structure"
+
                 List ->
                     "list"
 
-                Structure ->
-                    "structure"
+                Map ->
+                    "map"
+
+                Timestamp ->
+                    "timestamp"
 
                 Unknown ->
                     "unknown"
