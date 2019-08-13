@@ -59,6 +59,7 @@ type alias Operation =
     { name : String
     , http : Http
     , input : Maybe ShapeRef
+    , output : Maybe ShapeRef
     , errors : Maybe (List ShapeRef)
     , documentation : Maybe String
     }
@@ -69,6 +70,7 @@ operationCodec =
         |> Codec.field "name" .name Codec.string
         |> Codec.field "http" .http httpCodec
         |> Codec.optionalField "input" .input shapeRefCodec
+        |> Codec.optionalField "output" .output shapeRefCodec
         |> Codec.optionalField "errors" .errors (Codec.list shapeRefCodec)
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
@@ -107,6 +109,7 @@ type alias Shape =
     , min : Maybe Int
     , pattern : Maybe String
     , members : Maybe (Dict String ShapeRef)
+    , member : Maybe ShapeRef
     , enum : Maybe (List String)
     , documentation : Maybe String
     }
@@ -120,6 +123,7 @@ shapeCodec =
         |> Codec.optionalField "min" .min Codec.int
         |> Codec.optionalField "pattern" .pattern Codec.string
         |> Codec.optionalField "members" .members (Codec.dict shapeRefCodec)
+        |> Codec.optionalField "member" .member shapeRefCodec
         |> Codec.optionalField "enum" .enum (Codec.list Codec.string)
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
