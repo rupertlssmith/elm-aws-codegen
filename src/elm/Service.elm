@@ -61,6 +61,7 @@ type alias Operation =
     , input : Maybe ShapeRef
     , output : Maybe ShapeRef
     , errors : Maybe (List ShapeRef)
+    , idempotent : Maybe Bool
     , documentation : Maybe String
     }
 
@@ -72,6 +73,7 @@ operationCodec =
         |> Codec.optionalField "input" .input shapeRefCodec
         |> Codec.optionalField "output" .output shapeRefCodec
         |> Codec.optionalField "errors" .errors (Codec.list shapeRefCodec)
+        |> Codec.optionalField "idempotent" .idempotent Codec.bool
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
 
