@@ -102,12 +102,12 @@ shapeRefCodec =
 
 type alias Shape =
     { type_ : Types
-    , required : List String
+    , required : Maybe (List String)
     , max : Maybe Int
     , min : Maybe Int
     , pattern : Maybe String
-    , members : List ShapeRef
-    , enum : List String
+    , members : Maybe (Dict String ShapeRef)
+    , enum : Maybe (List String)
     , documentation : Maybe String
     }
 
@@ -115,12 +115,12 @@ type alias Shape =
 shapeCodec =
     Codec.object Shape
         |> Codec.field "type" .type_ typesCodec
-        |> Codec.field "required" .required (Codec.list Codec.string)
+        |> Codec.optionalField "required" .required (Codec.list Codec.string)
         |> Codec.optionalField "max" .max Codec.int
         |> Codec.optionalField "min" .min Codec.int
         |> Codec.optionalField "pattern" .pattern Codec.string
-        |> Codec.field "members" .members (Codec.list shapeRefCodec)
-        |> Codec.field "enum" .enum (Codec.list Codec.string)
+        |> Codec.optionalField "members" .members (Codec.dict shapeRefCodec)
+        |> Codec.optionalField "enum" .enum (Codec.list Codec.string)
         |> Codec.optionalField "documentation" .documentation Codec.string
         |> Codec.buildObject
 
@@ -131,31 +131,50 @@ type Types
     | Blob
     | List
     | Structure
+    | Unknown
 
 
 typesCodec : Codec Types
 typesCodec =
-    Codec.custom
-        (\fInteger fString fBlob fList fStructure value ->
-            case value of
+    Codec.map
+        (\val ->
+            case val of
+                "integer" ->
+                    Integer
+
+                "string" ->
+                    String
+
+                "blob" ->
+                    Blob
+
+                "list" ->
+                    List
+
+                "structure" ->
+                    Structure
+
+                _ ->
+                    Unknown
+        )
+        (\types ->
+            case types of
                 Integer ->
-                    fInteger
+                    "integer"
 
                 String ->
-                    fString
+                    "string"
 
                 Blob ->
-                    fBlob
+                    "blob"
 
                 List ->
-                    fList
+                    "list"
 
                 Structure ->
-                    fStructure
+                    "structure"
+
+                Unknown ->
+                    "unknown"
         )
-        |> Codec.variant0 "integer" Integer
-        |> Codec.variant0 "string" String
-        |> Codec.variant0 "blob" Blob
-        |> Codec.variant0 "list" List
-        |> Codec.variant0 "structure" Structure
-        |> Codec.buildCustom
+        Codec.string
