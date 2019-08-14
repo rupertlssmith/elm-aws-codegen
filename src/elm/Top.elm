@@ -1,12 +1,12 @@
 port module Top exposing (main)
 
+import AWSService exposing (AWSService)
 import Codec
 import Dict exposing (Dict)
 import Diff
 import Json.Decode as Decode
 import Json.Decode.Generic as Generic
 import Random exposing (Seed)
-import Service exposing (Service)
 import Task
 import Time exposing (Posix)
 
@@ -48,7 +48,7 @@ subscriptions model =
 type Model
     = Initial
     | Seeded { seed : Seed }
-    | LoadedModel { seed : Seed, dataModel : Service }
+    | LoadedModel { seed : Seed, dataModel : AWSService }
     | ModelProcessed
     | TemplateProcessed
     | Done
@@ -78,7 +78,7 @@ update msg model =
         ( Seeded { seed }, ModelData name val ) ->
             let
                 example =
-                    Codec.decodeString Service.serviceCodec val
+                    Codec.decodeString AWSService.awsServiceCodec val
             in
             case example of
                 Ok service ->
@@ -90,7 +90,7 @@ update msg model =
                             Decode.decodeString Generic.json val
 
                         parsed =
-                            Decode.decodeString Generic.json (Codec.encodeToString 0 Service.serviceCodec service)
+                            Decode.decodeString Generic.json (Codec.encodeToString 0 AWSService.awsServiceCodec service)
 
                         diffs =
                             case ( original, parsed ) of
@@ -101,7 +101,7 @@ update msg model =
                                     "Failed to generic decode" |> Debug.log "Error"
                     in
                     ( model
-                    , Codec.encodeToString 4 Service.serviceCodec service |> codeOutPort
+                    , Codec.encodeToString 4 AWSService.awsServiceCodec service |> codeOutPort
                     )
 
                 Err err ->

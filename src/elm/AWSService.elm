@@ -1,4 +1,4 @@
-module Service exposing (Service, serviceCodec)
+module AWSService exposing (AWSService, awsServiceCodec)
 
 {-| AWS Service2 Descriptor. This module provides the data model and decoders.
 -}
@@ -7,7 +7,7 @@ import Codec exposing (Codec)
 import Dict exposing (Dict)
 
 
-type alias Service =
+type alias AWSService =
     { metaData : MetaData
     , operations : Dict String Operation
     , shapes : Dict String Shape
@@ -17,8 +17,8 @@ type alias Service =
     }
 
 
-serviceCodec =
-    Codec.object Service
+awsServiceCodec =
+    Codec.object AWSService
         |> Codec.field "metadata" .metaData metaDataCodec
         |> Codec.field "operations" .operations (Codec.dict operationCodec)
         |> Codec.field "shapes" .shapes (Codec.dict shapeCodec)
