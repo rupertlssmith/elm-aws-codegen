@@ -39,6 +39,8 @@ type alias MetaData =
     , uid : Maybe String
     , signingName : Maybe String
     , globalEndpoint : Maybe String
+    , xmlNamespace : Maybe String
+    , checksumFormat : Maybe String
     }
 
 
@@ -56,6 +58,8 @@ metaDataCodec =
         |> Codec.optionalField "uid" .uid Codec.string
         |> Codec.optionalField "signingName" .signingName Codec.string
         |> Codec.optionalField "globalEndpoint" .globalEndpoint Codec.string
+        |> Codec.optionalField "xmlNamespace" .xmlNamespace Codec.string
+        |> Codec.optionalField "checksumFormat" .checksumFormat Codec.string
         |> Codec.buildObject
 
 
@@ -68,6 +72,11 @@ type alias Operation =
     , idempotent : Maybe Bool
     , endpoint : Maybe Endpoint
     , documentation : Maybe String
+    , deprecated : Maybe Bool
+    , deprecatedMessage : Maybe String
+    , documentationUrl : Maybe String
+    , alias : Maybe String
+    , authtype : Maybe String
     }
 
 
@@ -81,6 +90,11 @@ operationCodec =
         |> Codec.optionalField "idempotent" .idempotent Codec.bool
         |> Codec.optionalField "endpoint" .endpoint endpointCodec
         |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.optionalField "deprecated" .deprecated Codec.bool
+        |> Codec.optionalField "deprecatedMessage" .deprecatedMessage Codec.string
+        |> Codec.optionalField "documentationUrl" .documentationUrl Codec.string
+        |> Codec.optionalField "alias" .alias Codec.string
+        |> Codec.optionalField "authtype" .authtype Codec.string
         |> Codec.buildObject
 
 
@@ -99,6 +113,7 @@ type alias Http =
     { method : String
     , requestUri : Maybe String
     , responseCode : Maybe Int
+    , requireUri : Maybe Bool
     }
 
 
@@ -107,6 +122,22 @@ httpCodec =
         |> Codec.field "method" .method Codec.string
         |> Codec.optionalField "requestUri" .requestUri Codec.string
         |> Codec.optionalField "responseCode" .responseCode Codec.int
+        |> Codec.optionalField "requireUri" .requireUri Codec.bool
+        |> Codec.buildObject
+
+
+type alias Error =
+    { code : String
+    , httpStatusCode : Int
+    , senderFault : Bool
+    }
+
+
+errorCodec =
+    Codec.object Error
+        |> Codec.field "code" .code Codec.string
+        |> Codec.field "httpStatusCode" .httpStatusCode Codec.int
+        |> Codec.field "senderFault" .senderFault Codec.bool
         |> Codec.buildObject
 
 
@@ -119,6 +150,15 @@ type alias ShapeRef =
     , deprecated : Maybe Bool
     , box : Maybe Bool
     , resultWrapper : Maybe String
+    , flattened : Maybe Bool
+    , deprecatedMessage : Maybe String
+    , xmlNamespace : Maybe String
+    , xmlAttribute : Maybe String
+    , streaming : Maybe Bool
+    , eventpayload : Maybe Bool
+    , jsonvalue : Maybe Bool
+    , queryName : Maybe String
+    , timestampFormat : Maybe String
     }
 
 
@@ -132,6 +172,15 @@ shapeRefCodec =
         |> Codec.optionalField "deprecated" .deprecated Codec.bool
         |> Codec.optionalField "box" .box Codec.bool
         |> Codec.optionalField "resultWrapper" .resultWrapper Codec.string
+        |> Codec.optionalField "flattened" .flattened Codec.bool
+        |> Codec.optionalField "deprecatedMessage" .deprecatedMessage Codec.string
+        |> Codec.optionalField "xmlNamespace" .xmlNamespace Codec.string
+        |> Codec.optionalField "xmlAttribute" .xmlAttribute Codec.string
+        |> Codec.optionalField "streaming" .streaming Codec.bool
+        |> Codec.optionalField "eventpayload" .eventpayload Codec.bool
+        |> Codec.optionalField "jsonvalue" .jsonvalue Codec.bool
+        |> Codec.optionalField "queryName" .queryName Codec.string
+        |> Codec.optionalField "timestampFormat" .timestampFormat Codec.string
         |> Codec.buildObject
 
 
@@ -153,6 +202,16 @@ type alias Shape =
     , fault : Maybe Bool
     , flattened : Maybe Bool
     , documentation : Maybe String
+    , locationName : Maybe String
+    , timestampFormat : Maybe String
+    , payload : Maybe String
+    , wrapper : Maybe Bool
+    , event : Maybe Bool
+    , xmlNamespace : Maybe String
+    , error : Maybe Error
+    , eventstream : Maybe Bool
+    , streaming : Maybe Bool
+    , xmlOrder : Maybe (List String)
     }
 
 
@@ -175,6 +234,16 @@ shapeCodec =
         |> Codec.optionalField "fault" .fault Codec.bool
         |> Codec.optionalField "flattened" .flattened Codec.bool
         |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.optionalField "locationName" .locationName Codec.string
+        |> Codec.optionalField "timestampFormat" .timestampFormat Codec.string
+        |> Codec.optionalField "payload" .payload Codec.string
+        |> Codec.optionalField "wrapper" .wrapper Codec.bool
+        |> Codec.optionalField "event" .event Codec.bool
+        |> Codec.optionalField "xmlNamespace" .xmlNamespace Codec.string
+        |> Codec.optionalField "error" .error errorCodec
+        |> Codec.optionalField "eventstream" .eventstream Codec.bool
+        |> Codec.optionalField "streaming" .streaming Codec.bool
+        |> Codec.optionalField "xmlOrder" .xmlOrder (Codec.list Codec.string)
         |> Codec.buildObject
 
 

@@ -91,4 +91,5 @@ diffInner left right path =
             []
 
         ( _, _ ) ->
-            [ ( List.reverse path, ": json types" ) ]
+            -- [ ( List.reverse path, ": json types" ) ]
+            []
