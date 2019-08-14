@@ -13,6 +13,7 @@ type alias Service =
     , operations : Dict String Operation
     , shapes : Dict String Shape
     , documentation : Maybe String
+    , authorizers : Maybe Authorizers
     }
 
 
@@ -23,6 +24,7 @@ serviceCodec =
         |> Codec.field "operations" .operations (Codec.dict operationCodec)
         |> Codec.field "shapes" .shapes (Codec.dict shapeCodec)
         |> Codec.optionalField "documentation" .documentation Codec.string
+        |> Codec.optionalField "authorizers" .authorizers authorizersCodec
         |> Codec.buildObject
 
 
@@ -60,6 +62,45 @@ metaDataCodec =
         |> Codec.optionalField "globalEndpoint" .globalEndpoint Codec.string
         |> Codec.optionalField "xmlNamespace" .xmlNamespace Codec.string
         |> Codec.optionalField "checksumFormat" .checksumFormat Codec.string
+        |> Codec.buildObject
+
+
+type alias Authorizers =
+    { authorization_strategy : AuthorizationStrategy
+    }
+
+
+authorizersCodec =
+    Codec.object Authorizers
+        |> Codec.field "authorization_strategy" .authorization_strategy authorizationStrategyCodec
+        |> Codec.buildObject
+
+
+type alias AuthorizationStrategy =
+    { name : String
+    , type_ : String
+    , placement : Placement
+    }
+
+
+authorizationStrategyCodec =
+    Codec.object AuthorizationStrategy
+        |> Codec.field "name" .name Codec.string
+        |> Codec.field "type" .type_ Codec.string
+        |> Codec.field "placement" .placement placementCodec
+        |> Codec.buildObject
+
+
+type alias Placement =
+    { location : String
+    , name : String
+    }
+
+
+placementCodec =
+    Codec.object Placement
+        |> Codec.field "location" .location Codec.string
+        |> Codec.field "name" .name Codec.string
         |> Codec.buildObject
 
 
@@ -197,6 +238,7 @@ type alias Shape =
     , enum : Maybe (List String)
     , sensitive : Maybe Bool
     , deprecated : Maybe Bool
+    , deprecatedMessage : Maybe String
     , box : Maybe Bool
     , exception : Maybe Bool
     , fault : Maybe Bool
@@ -229,6 +271,7 @@ shapeCodec =
         |> Codec.optionalField "enum" .enum (Codec.list Codec.string)
         |> Codec.optionalField "sensitive" .sensitive Codec.bool
         |> Codec.optionalField "deprecated" .deprecated Codec.bool
+        |> Codec.optionalField "deprecatedMessage" .deprecatedMessage Codec.string
         |> Codec.optionalField "box" .box Codec.bool
         |> Codec.optionalField "exception" .exception Codec.bool
         |> Codec.optionalField "fault" .fault Codec.bool
