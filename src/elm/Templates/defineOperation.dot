@@ -1,0 +1,71 @@
+{-| {{= it.doc }}
+{{? it.requiredParams }}
+__Required Parameters__
+
+{{~ it.requiredParams :p }}* `{{= p.key }}` __:__ `{{= p.value.type }}`
+{{~}}
+{{?}}
+-}
+
+{{= it.name }} :
+  {{~ it.requiredParams :p }}
+    {{= p.value.type }} ->
+  {{~}}
+  {{? it.optionalParams.length }}
+    ( {{= it.optionsName }} -> {{= it.optionsName }} ) ->
+  {{?}}
+    AWS.Core.Http.Request (AWS.Core.Decode.ResponseWrapper {{= it.output.type }})
+
+{{= it.name }} {{~ it.requiredParams :p }}{{= p.key }} {{~}}{{? it.optionalParams.length }}setOptions {{?}}=
+    {{? it.input }}
+    let
+        requestInput = {{= it.input.type }}
+            {{~ it.input.members :m }}
+            {{= m.required ? m.key : `options.${m.key}` }}
+            {{~}}
+        {{? it.optionalParams.length }}
+        options = setOptions ({{= it.optionsName }} {{= it.optionalParams.map(() => 'Nothing').join(' ') }})
+        {{?}}
+    in
+    {{?}}
+        AWS.Core.Http.request
+            AWS.Core.Http.{{= it.http.method }}
+            {{= it.requestPath }}
+
+            {{? it.protocol === 'query' }}
+            -- ([("Action", "{{= it.actionName }}")]
+            -- {{? it.input }}
+            --     |> {{= it.input.queryEncoder("") }} requestInput
+            -- {{?}}
+            -- )
+            {{?? true }}
+            -- []
+            {{?}}
+
+            {{? it.protocol === 'json' && it.input }}
+            (requestInput
+                |> {{= it.input.jsonEncoder }}
+                |> AWS.Core.Http.jsonBody
+            )
+            {{?? true }}
+            AWS.Core.Http.emptyBody
+            {{?}}
+
+            (AWS.Core.Decode.responseWrapperDecoder
+                "{{= it.actionName }}"
+                {{? it.outputResultWrapper === "()" }}
+                (AWS.Core.Decode.FixedResult ())
+                {{?? true }}
+                (AWS.Core.Decode.ResultDecoder "{{= it.outputResultWrapper }}" {{= it.output.decoder }})
+                {{?}}
+            )
+
+
+{{? it.optionalParams.length }}
+{-| Options for a {{= it.name }} request
+-}
+type alias {{= it.optionsName }} =
+    {
+    {{= it.optionalParams.map(p => `${p.key} : Maybe ${p.value.type}`).join(',') }}
+    }
+{{?}}

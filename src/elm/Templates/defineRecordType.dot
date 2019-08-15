@@ -1,0 +1,5 @@
+{-| {{= it.doc }}
+-}
+type alias {{= it.type }} =
+    { {{= it.members.map(it.memberType).join('\n    , ') }}
+    }

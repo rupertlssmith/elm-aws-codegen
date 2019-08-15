@@ -1,0 +1,13 @@
+{{= it.jsonEncoder }} : {{= it.type }} -> JE.Value
+{{= it.jsonEncoder }} data =
+    []
+        {{~ it.members :m }}
+        {{? m.required }}
+        |> (::) ("{{= m.rawKey }}", data.{{= m.key }} |> ({{= m.value.jsonEncoder }}))
+        {{?? true }}
+        |> AWS.Core.Encode.optionalMember
+            ({{= m.value.jsonEncoder }})
+            ("{{= m.rawKey }}", data.{{= m.key }})
+        {{?}}
+        {{~}}
+        |> JE.object

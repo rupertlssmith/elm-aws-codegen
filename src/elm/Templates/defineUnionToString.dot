@@ -1,0 +1,6 @@
+{{= it.toStringFn }} : {{= it.type }} -> String
+{{= it.toStringFn }} val =
+    case val of{{~ it.enum :val }}
+        {{= it.type }}_{{= val}} ->
+            "{{= val}}"
+{{~}}
