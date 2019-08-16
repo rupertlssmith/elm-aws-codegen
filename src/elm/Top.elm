@@ -116,7 +116,7 @@ processServiceModel name val seed =
                         |> Debug.log "codegen"
             in
             ( Seeded { seed = seed }
-            , Codec.encodeToString 4 AWSService.awsServiceCodec service |> codeOutPort
+            , codegen |> codeOutPort
             )
 
         Err err ->
