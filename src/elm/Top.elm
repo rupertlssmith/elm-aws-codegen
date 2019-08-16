@@ -4,10 +4,12 @@ import AWSService exposing (AWSService)
 import Codec
 import Dict exposing (Dict)
 import Diff
+import Elm.Writer
 import Json.Decode as Decode
 import Json.Decode.Generic as Generic
 import Random exposing (Seed)
 import Task
+import Templates.Api
 import Time exposing (Posix)
 
 
@@ -76,45 +78,55 @@ update msg model =
             ( Seeded { seed = Random.initialSeed <| Time.posixToMillis posix }, Cmd.none )
 
         ( Seeded { seed }, ModelData name val ) ->
-            let
-                example =
-                    Codec.decodeString AWSService.awsServiceCodec val
-            in
-            case example of
-                Ok service ->
-                    let
-                        _ =
-                            Debug.log "Ok" name
-
-                        original =
-                            Decode.decodeString Generic.json val
-
-                        parsed =
-                            Decode.decodeString Generic.json (Codec.encodeToString 0 AWSService.awsServiceCodec service)
-
-                        diffs =
-                            case ( original, parsed ) of
-                                ( Ok jsonl, Ok jsonr ) ->
-                                    Diff.diff jsonl jsonr |> Diff.diffsToString |> logIfVal "Diffs"
-
-                                ( _, _ ) ->
-                                    "Failed to generic decode" |> Debug.log "Error"
-                    in
-                    ( model
-                    , Codec.encodeToString 4 AWSService.awsServiceCodec service |> codeOutPort
-                    )
-
-                Err err ->
-                    let
-                        _ =
-                            Debug.log "Error" (name ++ " - " ++ Decode.errorToString err)
-                    in
-                    ( model
-                    , Decode.errorToString err |> codeOutPort
-                    )
+            processServiceModel name val seed
 
         ( _, _ ) ->
             ( model, Cmd.none )
+
+
+processServiceModel name val seed =
+    let
+        example =
+            Codec.decodeString AWSService.awsServiceCodec val
+    in
+    case example of
+        Ok service ->
+            let
+                _ =
+                    Debug.log "Ok" name
+
+                original =
+                    Decode.decodeString Generic.json val
+
+                parsed =
+                    Decode.decodeString Generic.json (Codec.encodeToString 0 AWSService.awsServiceCodec service)
+
+                diffs =
+                    case ( original, parsed ) of
+                        ( Ok jsonl, Ok jsonr ) ->
+                            Diff.diff jsonl jsonr |> Diff.diffsToString |> logIfVal "Diffs"
+
+                        ( _, _ ) ->
+                            "Failed to generic decode" |> Debug.log "Error"
+
+                codegen =
+                    Templates.Api.example
+                        |> Elm.Writer.writeFile
+                        |> Elm.Writer.write
+                        |> Debug.log "codegen"
+            in
+            ( Seeded { seed = seed }
+            , Codec.encodeToString 4 AWSService.awsServiceCodec service |> codeOutPort
+            )
+
+        Err err ->
+            let
+                _ =
+                    Debug.log "Error" (name ++ " - " ++ Decode.errorToString err)
+            in
+            ( Seeded { seed = seed }
+            , Decode.errorToString err |> codeOutPort
+            )
 
 
 logIfVal : String -> String -> String

@@ -1,16 +1,45 @@
 module Templates.Api exposing (..)
 
-import Elm.Syntax.Module
-import Elm.Syntax.ModuleName
+import Elm.Syntax.Exposing exposing (Exposing(..))
+import Elm.Syntax.File exposing (File)
+import Elm.Syntax.Module exposing (Module(..))
+import Elm.Syntax.ModuleName exposing (ModuleName)
+import Elm.Syntax.Node exposing (Node(..))
+import Elm.Syntax.Range exposing (Location, Range, emptyRange)
 
 
-type alias Module =
-    { name : String
+example : File
+example =
+    { moduleDefinition =
+        Node emptyRange <|
+            mod
+                { name = [ "Some", "Module" ]
+                , docs = ""
+                , imports = []
+                , operations = []
+                , types_ = []
+                }
+    , imports = []
+    , declarations = []
+    , comments = []
+    }
+
+
+type alias Model =
+    { name : List String
     , docs : String
     , imports : List ()
     , operations : List ()
     , types_ : List ()
     }
+
+
+mod : Model -> Module
+mod model =
+    NormalModule
+        { moduleName = Node emptyRange model.name
+        , exposingList = Node emptyRange <| All emptyRange
+        }
 
 
 
