@@ -1,15 +1,15 @@
 module Templates.Api exposing (..)
 
+import Elm.Syntax.Declaration exposing (Declaration)
 import Elm.Syntax.Exposing exposing (Exposing(..))
 import Elm.Syntax.File exposing (File)
+import Elm.Syntax.Import exposing (Import)
 import Elm.Syntax.Module exposing (Module(..))
 import Elm.Syntax.ModuleName exposing (ModuleName)
-import Elm.Syntax.Node exposing (Node(..))
-import Elm.Syntax.Range exposing (Location, Range, emptyRange)
 import ElmDSL
 
 
-type alias Model =
+type alias GenModel =
     { name : List String
     , docs : String
     , imports : List ()
@@ -18,7 +18,7 @@ type alias Model =
     }
 
 
-example : Model
+example : GenModel
 example =
     { name = [ "Some", "Module" ]
     , docs = ""
@@ -28,14 +28,9 @@ example =
     }
 
 
-file : File
-file =
-    ElmDSL.file (mod example) [] [] []
-
-
-mod : Model -> Module
-mod model =
-    ElmDSL.normalModule model.name []
+file : GenModel -> File
+file model =
+    ElmDSL.file (module_ model) (imports model) [] []
 
 
 
@@ -45,6 +40,14 @@ mod model =
 --         , {{= it.operationNames.join('\n        , ')}}
 --         , {{= it.types.filter(t => t.exposeAs).map(t => t.exposeAs).join('\n        , ')}}
 --         )
+
+
+module_ : GenModel -> Module
+module_ model =
+    ElmDSL.normalModule model.name []
+
+
+
 --
 -- {-| {{= it.documentation }}
 --
@@ -82,7 +85,40 @@ mod model =
 -- {{~ it.extraImports :importExtra }}{{= importExtra }}
 -- {{~}}
 --
+
+
+imports : GenModel -> List Import
+imports model =
+    [ ElmDSL.import_ [ "AWS", "Core", "Decode" ] Nothing Nothing
+    , ElmDSL.import_ [ "AWS", "Core", "Encode" ] Nothing Nothing
+    , ElmDSL.import_ [ "AWS", "Core", "Http" ] Nothing Nothing
+    , ElmDSL.import_ [ "AWS", "Core", "Service" ] Nothing Nothing
+    ]
+
+
+
 -- {{= it.serviceDefinition }}
+-- service : {{? it.isRegional }}AWS.Core.Service.Region -> {{?}}AWS.Core.Service.Service
+-- service ={{? it.isRegional }}
+--     AWS.Core.Service.defineRegional{{?? true }}
+--     AWS.Core.Service.defineGlobal{{?}}
+--         "{{= it.endpointPrefix }}"
+--         "{{= it.apiVersion }}"
+--         AWS.Core.Service.{{= it.protocol }}
+--         AWS.Core.Service.{{= it.signer }}
+--         {{= it.extra }}
+--service : GenModel -> Declaration
+
+
+service model =
+    let
+        signature =
+            ElmDSL.signature "service" ElmDSL.unit
+    in
+    ElmDSL.functionDeclaration Nothing (Just signature)
+
+
+
 --
 --
 -- -- OPERATIONS
