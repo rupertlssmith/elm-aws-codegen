@@ -6,6 +6,7 @@ import Elm.Syntax.Module exposing (Module(..))
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node exposing (Node(..))
 import Elm.Syntax.Range exposing (Location, Range, emptyRange)
+import ElmDSL
 
 
 example : File
@@ -36,10 +37,7 @@ type alias Model =
 
 mod : Model -> Module
 mod model =
-    NormalModule
-        { moduleName = Node emptyRange model.name
-        , exposingList = Node emptyRange <| All emptyRange
-        }
+    ElmDSL.normalModule model.name []
 
 
 
