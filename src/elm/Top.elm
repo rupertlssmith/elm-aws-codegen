@@ -110,7 +110,7 @@ processServiceModel name val seed =
                             "Failed to generic decode" |> Debug.log "Error"
 
                 codegen =
-                    Templates.Api.example
+                    Templates.Api.file
                         |> Elm.Writer.writeFile
                         |> Elm.Writer.write
                         |> Debug.log "codegen"

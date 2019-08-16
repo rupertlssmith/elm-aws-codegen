@@ -9,23 +9,6 @@ import Elm.Syntax.Range exposing (Location, Range, emptyRange)
 import ElmDSL
 
 
-example : File
-example =
-    { moduleDefinition =
-        Node emptyRange <|
-            mod
-                { name = [ "Some", "Module" ]
-                , docs = ""
-                , imports = []
-                , operations = []
-                , types_ = []
-                }
-    , imports = []
-    , declarations = []
-    , comments = []
-    }
-
-
 type alias Model =
     { name : List String
     , docs : String
@@ -33,6 +16,21 @@ type alias Model =
     , operations : List ()
     , types_ : List ()
     }
+
+
+example : Model
+example =
+    { name = [ "Some", "Module" ]
+    , docs = ""
+    , imports = []
+    , operations = []
+    , types_ = []
+    }
+
+
+file : File
+file =
+    ElmDSL.file (mod example) [] [] []
 
 
 mod : Model -> Module
