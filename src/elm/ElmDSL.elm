@@ -4,13 +4,14 @@ import Elm.Syntax.Comments exposing (Comment)
 import Elm.Syntax.Declaration exposing (Declaration(..))
 import Elm.Syntax.Documentation exposing (Documentation)
 import Elm.Syntax.Exposing exposing (Exposing(..), TopLevelExpose)
-import Elm.Syntax.Expression exposing (CaseBlock, Expression(..), Function, FunctionImplementation, Lambda, LetBlock, RecordSetter)
+import Elm.Syntax.Expression exposing (Case, CaseBlock, Cases, Expression(..), Function, FunctionImplementation, Lambda, LetBlock, LetDeclaration(..), RecordSetter)
 import Elm.Syntax.File exposing (File)
 import Elm.Syntax.Import exposing (Import)
-import Elm.Syntax.Infix exposing (InfixDirection)
+import Elm.Syntax.Infix exposing (InfixDirection(..))
 import Elm.Syntax.Module exposing (Module(..))
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node exposing (Node(..))
+import Elm.Syntax.Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Location, Range, emptyRange)
 import Elm.Syntax.Signature exposing (Signature)
 import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAnnotation(..))
@@ -233,15 +234,15 @@ parenthesizedExpression expr =
 {-| LetExpression LetBlock
 -}
 letExpression : LetBlock -> Expression
-letExpression letBlock =
-    LetExpression letBlock
+letExpression letBlk =
+    LetExpression letBlk
 
 
 {-| CaseExpression CaseBlock
 -}
 caseExpression : CaseBlock -> Expression
-caseExpression caseBlock =
-    CaseExpression caseBlock
+caseExpression caseBlk =
+    CaseExpression caseBlk
 
 
 {-| LambdaExpression Lambda
@@ -294,6 +295,68 @@ glslExpression expr =
 
 
 
+-- InfixDirection
+
+
+left : InfixDirection
+left =
+    Left
+
+
+right : InfixDirection
+right =
+    Right
+
+
+non : InfixDirection
+non =
+    Non
+
+
+
+-- LetBlock
+
+
+letBlock : List LetDeclaration -> Expression -> LetBlock
+letBlock decls expr =
+    { declarations = nodifyAll decls
+    , expression = nodify expr
+    }
+
+
+letFunction : Function -> LetDeclaration
+letFunction func =
+    letFunction func
+
+
+letDestructuring : Pattern -> Expression -> LetDeclaration
+letDestructuring pattern expr =
+    LetDestructuring (nodify pattern) (nodify expr)
+
+
+
+-- CaseBlock
+
+
+caseBlock : Expression -> List Case -> CaseBlock
+caseBlock expr cases =
+    { expression = nodify expr
+    , cases = cases
+    }
+
+
+type alias Cases =
+    List Case
+
+
+case_ : Pattern -> Expression -> Case
+case_ pattern expr =
+    ( nodify pattern, nodify expr )
+
+
+
+-- Lambda
+-- RecordSetter
 --== Helpers
 
 
