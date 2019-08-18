@@ -1,4 +1,53 @@
-module ElmDSL exposing (Cases, application, caseBlock, caseExpression, case_, charLiteral, file, floatable, functionDeclaration, functionOrValue, functionTypeAnnotation, genericRecord, genericType, glslExpression, hex, ifBlock, import_, integer, lambdaExpression, left, letBlock, letDestructuring, letExpression, letFunction, listExpr, literal, negation, nodify, nodifyAll, nodifyMaybe, non, normalModule, operator, operatorApplication, parenthesizedExpression, prefixOperator, record, recordAccess, recordAccessFunction, recordExpr, recordUpdateExpression, right, signature, tupled, tupledExpression, typed, unit, unitExpr)
+module ElmDSL exposing
+    ( Cases
+    , application
+    , caseBlock
+    , caseExpression
+    , case_
+    , charLiteral
+    , file
+    , floatable
+    , functionDeclaration
+    , functionOrValue
+    , functionTypeAnnotation
+    , genericRecord
+    , genericType
+    , glslExpression
+    , hex
+    , ifBlock
+    , import_
+    , integer
+    , lambdaExpression
+    , left
+    , letBlock
+    , letDestructuring
+    , letExpression
+    , letFunction
+    , listExpr
+    , literal
+    , negation
+    , nodify
+    , nodifyAll
+    , nodifyMaybe
+    , non
+    , normalModule
+    , operator
+    , operatorApplication
+    , parenthesizedExpression
+    , prefixOperator
+    , record
+    , recordAccess
+    , recordAccessFunction
+    , recordExpr
+    , recordUpdateExpression
+    , right
+    , signature
+    , tupled
+    , tupledExpression
+    , typed
+    , unit
+    , unitExpr
+    )
 
 import Elm.Syntax.Comments exposing (Comment)
 import Elm.Syntax.Declaration exposing (Declaration(..))
@@ -21,18 +70,9 @@ type alias Cases =
     List Case
 
 
-import_ : ModuleName -> Maybe ModuleName -> Maybe Exposing -> Import
-import_ name alias exposes =
-    { moduleName = nodify name
-    , moduleAlias = nodifyMaybe alias
-    , exposingList = nodifyMaybe exposes
-    }
-
-
-signature : String -> TypeAnnotation -> Signature
-signature name annotation =
-    { name = nodify name
-    , typeAnnotation = nodify annotation
+type alias QualifiedNameRef =
+    { moduleName : List String
+    , name : String
     }
 
 
@@ -80,6 +120,52 @@ infixDeclaration inf =
 destructuring : Pattern -> Expression -> Declaration
 destructuring pattern expr =
     Destructuring (nodify pattern) (nodify expr)
+
+
+
+--== Elm.Syntax.Exposing
+
+
+{-| All Range
+-}
+all : Range -> Exposing
+all range =
+    All range
+
+
+{-| Explicit (List (Node TopLevelExpose))
+-}
+explicit : List TopLevelExpose -> Exposing
+explicit topLevelExposes =
+    Explicit (nodifyAll topLevelExposes)
+
+
+{-| InfixExpose String
+-}
+infixExpose : String -> TopLevelExpose
+infixExpose sym =
+    InfixExpose (nodify sym)
+
+
+{-| FunctionExpose String
+-}
+functionExpose : String -> TopLevelExpose
+functionExpose fn =
+    FunctionExpose fn
+
+
+{-| TypeOrAliasExpose String
+-}
+typeOrAliasExpose : String -> TopLevelExpose
+typeOrAliasExpose name =
+    TypeOrAliasExpose name
+
+
+{-| TypeExpose ExposedType
+-}
+typeExpose : ExposedType -> TopLevelExpose
+typeExpose exposedType =
+    TypeExpose exposedType
 
 
 
@@ -345,6 +431,18 @@ file mod imports declarations comments =
 
 
 
+--== Elm.Syntax.Import
+
+
+import_ : ModuleName -> Maybe ModuleName -> Maybe Exposing -> Import
+import_ modName aliasName exposes =
+    { moduleName = nodify modName
+    , moduleAlias = nodifyMaybe aliasName
+    , exposingList = nodifyMaybe exposes
+    }
+
+
+
 --== Elm.Syntax.Infix
 
 
@@ -355,10 +453,6 @@ infix_ direction precedence symbol fn =
     , operator = nodify symbol
     , function = nodify fn
     }
-
-
-
--- InfixDirection
 
 
 {-| Left
@@ -405,9 +499,47 @@ normalModule name exposes =
         }
 
 
+{-| PortModule DefaultModuleData
+-}
+portModule : ModuleName -> List TopLevelExpose -> Module
+portModule name exposes =
+    let
+        exposingList =
+            case exposes of
+                [] ->
+                    All emptyRange
 
--- | PortModule DefaultModuleData
--- | EffectModule EffectModuleData
+                es ->
+                    Explicit <| nodifyAll exposes
+    in
+    PortModule
+        { moduleName = nodify name
+        , exposingList = nodify exposingList
+        }
+
+
+{-| EffectModule EffectModuleData
+-}
+effectModule : ModuleName -> List TopLevelExpose -> Maybe String -> Maybe String -> Module
+effectModule name exposes cmd sub =
+    let
+        exposingList =
+            case exposes of
+                [] ->
+                    All emptyRange
+
+                es ->
+                    Explicit <| nodifyAll exposes
+    in
+    PortModule
+        { moduleName = nodify name
+        , exposingList = nodify exposingList
+        , command = nodifyMaybe cmd
+        , subscription = nodifyMaybe sub
+        }
+
+
+
 --== Elm.Syntax.Pattern
 
 
@@ -516,9 +648,14 @@ paranthesizedPattern pattern =
     ParenthesizedPattern (nodify pattern)
 
 
-type alias QualifiedNameRef =
-    { moduleName : List String
-    , name : String
+
+--== Elm.Syntax.Signature
+
+
+signature : String -> TypeAnnotation -> Signature
+signature name annotation =
+    { name = nodify name
+    , typeAnnotation = nodify annotation
     }
 
 
