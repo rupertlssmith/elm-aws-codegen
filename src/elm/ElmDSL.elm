@@ -408,6 +408,121 @@ normalModule name exposes =
 
 -- | PortModule DefaultModuleData
 -- | EffectModule EffectModuleData
+--== Elm.Syntax.Pattern
+
+
+{-| AllPattern
+-}
+allPattern : Pattern
+allPattern =
+    AllPattern
+
+
+{-| UnitPattern
+-}
+unitPattern : Pattern
+unitPattern =
+    UnitPattern
+
+
+{-| CharPattern Char
+-}
+charPattern : Char -> Pattern
+charPattern char =
+    CharPattern char
+
+
+{-| StringPattern String
+-}
+stringPattern : String -> Pattern
+stringPattern val =
+    StringPattern val
+
+
+{-| IntPattern Int
+-}
+intPattern : Int -> Pattern
+intPattern val =
+    IntPattern val
+
+
+{-| HexPattern Int
+-}
+hexPattern : Int -> Pattern
+hexPattern val =
+    HexPattern val
+
+
+{-| FloatPattern Float
+-}
+floatPattern : float -> Pattern
+floatPattern val =
+    FloatPattern val
+
+
+{-| TuplePattern (List (Node Pattern))
+-}
+tuplePattern : List Pattern -> Pattern
+tuplePattern patterns =
+    TuplePattern (nodifyAll patterns)
+
+
+{-| RecordPattern (List (Node String))
+-}
+recordPattern : List String -> Pattern
+recordPattern fields =
+    RecordPattern (nodifyAll fields)
+
+
+{-| UnConsPattern (Node Pattern) (Node Pattern)
+-}
+unConsPattern : Pattern -> Pattern -> Pattern
+unConsPattern hd tl =
+    UnConsPattern (nodify hd) (nodify tl)
+
+
+{-| ListPattern (List (Node Pattern))
+-}
+listPattern : List Pattern -> Pattern
+listPattern seq =
+    ListPattern (nodifyAll seq)
+
+
+{-| VarPattern String
+-}
+varPattern : String -> Pattern
+varPattern name =
+    VarPattern name
+
+
+{-| NamedPattern QualifiedNameRef (List (Node Pattern))
+-}
+namedPattern : QualifiedNameRef -> List Pattern -> Pattern
+namedPattern qualName patterns =
+    NamedPattern qualName (nodifyAll patterns)
+
+
+{-| AsPattern (Node Pattern) (Node String)
+-}
+asPattern : Pattern -> String -> Pattern
+asPattern pattern name =
+    AsPattern (nodify pattern) (nodify name)
+
+
+{-| ParenthesizedPattern (Node Pattern)
+-}
+paranthesizedPattern : Pattern -> Pattern
+paranthesizedPattern pattern =
+    ParenthesizedPattern (nodify pattern)
+
+
+type alias QualifiedNameRef =
+    { moduleName : List String
+    , name : String
+    }
+
+
+
 --== Elm.Syntax.TypeAnnotation
 
 
