@@ -1,4 +1,4 @@
-module ElmDSL exposing (..)
+module ElmDSL exposing (Cases, application, caseBlock, caseExpression, case_, charLiteral, file, floatable, functionDeclaration, functionOrValue, functionTypeAnnotation, genericRecord, genericType, glslExpression, hex, ifBlock, import_, integer, lambdaExpression, left, letBlock, letDestructuring, letExpression, letFunction, listExpr, literal, negation, nodify, nodifyAll, nodifyMaybe, non, normalModule, operator, operatorApplication, parenthesizedExpression, prefixOperator, record, recordAccess, recordAccessFunction, recordExpr, recordUpdateExpression, right, signature, tupled, tupledExpression, typed, unit, unitExpr)
 
 import Elm.Syntax.Comments exposing (Comment)
 import Elm.Syntax.Declaration exposing (Declaration(..))
@@ -17,42 +17,8 @@ import Elm.Syntax.Signature exposing (Signature)
 import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAnnotation(..))
 
 
-
---== Files
-
-
-file : Module -> List Import -> List Declaration -> List Comment -> File
-file mod imports declarations comments =
-    { moduleDefinition = nodify mod
-    , imports = nodifyAll imports
-    , declarations = nodifyAll declarations
-    , comments = nodifyAll comments
-    }
-
-
-
---== Modules
-
-
-normalModule : ModuleName -> List TopLevelExpose -> Module
-normalModule name exposes =
-    let
-        exposingList =
-            case exposes of
-                [] ->
-                    All emptyRange
-
-                es ->
-                    Explicit <| nodifyAll exposes
-    in
-    NormalModule
-        { moduleName = nodify name
-        , exposingList = nodify exposingList
-        }
-
-
-
---== Imports
+type alias Cases =
+    List Case
 
 
 import_ : ModuleName -> Maybe ModuleName -> Maybe Exposing -> Import
@@ -63,49 +29,6 @@ import_ name alias exposes =
     }
 
 
-
---== Types
-
-
-genericType : String -> TypeAnnotation
-genericType name =
-    GenericType name
-
-
-typed : ModuleName -> String -> List TypeAnnotation -> TypeAnnotation
-typed moduleName name args =
-    Typed (nodify ( moduleName, name )) (nodifyAll args)
-
-
-unit : TypeAnnotation
-unit =
-    Unit
-
-
-tupled : List TypeAnnotation -> TypeAnnotation
-tupled args =
-    Tupled (nodifyAll args)
-
-
-record : RecordDefinition -> TypeAnnotation
-record recDef =
-    Record recDef
-
-
-genericRecord : String -> RecordDefinition -> TypeAnnotation
-genericRecord argName recDef =
-    GenericRecord (nodify argName) (nodify recDef)
-
-
-functionTypeAnnotation : TypeAnnotation -> TypeAnnotation -> TypeAnnotation
-functionTypeAnnotation arg result =
-    FunctionTypeAnnotation (nodify arg) (nodify result)
-
-
-
---== Functions (and Values)
-
-
 signature : String -> TypeAnnotation -> Signature
 signature name annotation =
     { name = nodify name
@@ -113,17 +36,54 @@ signature name annotation =
     }
 
 
-functionDeclaration : Maybe Documentation -> Maybe Signature -> FunctionImplementation -> Declaration
-functionDeclaration documentation sig implementation =
-    FunctionDeclaration
-        { documentation = nodifyMaybe documentation
-        , signature = nodifyMaybe sig
-        , declaration = nodify implementation
-        }
+
+--== Elm.Syntax.Declaration
+
+
+{-| FunctionDeclaration Function
+-}
+functionDeclaration : Function -> Declaration
+functionDeclaration fn =
+    FunctionDeclaration fn
+
+
+{-| AliasDeclaration TypeAlias
+-}
+aliasDeclaration : TypeAlias -> Declaration
+aliasDeclaration typeAlias =
+    AliasDeclaration typeAlias
+
+
+{-| CustomTypeDeclaration Type
+-}
+customTypeDeclaration : Type -> Declaration
+customTypeDeclaration type_ =
+    CustomTypeDeclaration type_
+
+
+{-| PortDeclaration Signature
+-}
+portDeclaration : Signature -> Declaration
+portDeclaration sig =
+    PortDeclaration sig
+
+
+{-| InfixDeclaration Infix
+-}
+infixDeclaration : Infix -> Declaration
+infixDeclaration inf =
+    InfixDeclaration inf
+
+
+{-| Destructuring (Node Pattern) (Node Expression)
+-}
+destructuring : Pattern -> Expression -> Declaration
+destructuring pattern expr =
+    Destructuring (nodify pattern) (nodify expr)
 
 
 
---== Expressions
+--== Elm.Syntax.Expression
 
 
 {-| UnitExpr
@@ -295,22 +255,14 @@ glslExpression expr =
 
 
 
--- InfixDirection
+-- Lambda
 
 
-left : InfixDirection
-left =
-    Left
-
-
-right : InfixDirection
-right =
-    Right
-
-
-non : InfixDirection
-non =
-    Non
+lambda : List Pattern -> Expression -> Lambda
+lambda args expr =
+    { args = nodifyAll args
+    , expression = nodify expr
+    }
 
 
 
@@ -324,14 +276,27 @@ letBlock decls expr =
     }
 
 
+{-| LetFunction Function
+-}
 letFunction : Function -> LetDeclaration
 letFunction func =
-    letFunction func
+    LetFunction func
 
 
+{-| LetDestructuring (Node Pattern) (Node Expression)
+-}
 letDestructuring : Pattern -> Expression -> LetDeclaration
 letDestructuring pattern expr =
     LetDestructuring (nodify pattern) (nodify expr)
+
+
+
+-- RecordSetter
+
+
+recordSetter : String -> Expression -> RecordSetter
+recordSetter field expr =
+    ( nodify field, nodify expr )
 
 
 
@@ -345,18 +310,171 @@ caseBlock expr cases =
     }
 
 
-type alias Cases =
-    List Case
-
-
 case_ : Pattern -> Expression -> Case
 case_ pattern expr =
     ( nodify pattern, nodify expr )
 
 
+function : Documentation -> Signature -> FunctionImplementation
+function docs sig decl =
+    { documentation = nodifyMaybe docs
+    , signature = nodifyMaybe sig
+    , declaration = nodify decl
+    }
 
--- Lambda
--- RecordSetter
+
+functionImplementation : String -> List Pattern -> Expression
+functionImplementation name args expr =
+    { name = nodify name
+    , arguments = nodifyAll args
+    , expression = nodify expr
+    }
+
+
+
+--== Elm.Syntax.File
+
+
+file : Module -> List Import -> List Declaration -> List Comment -> File
+file mod imports declarations comments =
+    { moduleDefinition = nodify mod
+    , imports = nodifyAll imports
+    , declarations = nodifyAll declarations
+    , comments = nodifyAll comments
+    }
+
+
+
+--== Elm.Syntax.Infix
+
+
+infix_ : InfixDirection -> Int -> String -> String -> Infix
+infix_ direction precedence symbol fn =
+    { direction = nodify direction
+    , precedence = nodify precedence
+    , operator = nodify symbol
+    , function = nodify fn
+    }
+
+
+
+-- InfixDirection
+
+
+{-| Left
+-}
+left : InfixDirection
+left =
+    Left
+
+
+{-| Right
+-}
+right : InfixDirection
+right =
+    Right
+
+
+{-| Non
+-}
+non : InfixDirection
+non =
+    Non
+
+
+
+--== Elm.Syntax.Module
+
+
+{-| NormalModule DefaultModuleData
+-}
+normalModule : ModuleName -> List TopLevelExpose -> Module
+normalModule name exposes =
+    let
+        exposingList =
+            case exposes of
+                [] ->
+                    All emptyRange
+
+                es ->
+                    Explicit <| nodifyAll exposes
+    in
+    NormalModule
+        { moduleName = nodify name
+        , exposingList = nodify exposingList
+        }
+
+
+
+-- | PortModule DefaultModuleData
+-- | EffectModule EffectModuleData
+--== Elm.Syntax.TypeAnnotation
+
+
+{-| GenericType String
+-}
+genericType : String -> TypeAnnotation
+genericType name =
+    GenericType name
+
+
+{-| Typed (Node ( ModuleName, String )) (List (Node TypeAnnotation))
+-}
+typed : ModuleName -> String -> List TypeAnnotation -> TypeAnnotation
+typed moduleName name args =
+    Typed (nodify ( moduleName, name )) (nodifyAll args)
+
+
+{-| Unit
+-}
+unit : TypeAnnotation
+unit =
+    Unit
+
+
+{-| Tupled (List (Node TypeAnnotation))
+-}
+tupled : List TypeAnnotation -> TypeAnnotation
+tupled args =
+    Tupled (nodifyAll args)
+
+
+{-| Record RecordDefinition
+-}
+record : RecordDefinition -> TypeAnnotation
+record recDef =
+    Record recDef
+
+
+{-| GenericRecord (Node String) (Node RecordDefinition)
+-}
+genericRecord : String -> RecordDefinition -> TypeAnnotation
+genericRecord argName recDef =
+    GenericRecord (nodify argName) (nodify recDef)
+
+
+{-| FunctionTypeAnnotation (Node TypeAnnotation) (Node TypeAnnotation)
+-}
+functionTypeAnnotation : TypeAnnotation -> TypeAnnotation -> TypeAnnotation
+functionTypeAnnotation arg result =
+    FunctionTypeAnnotation (nodify arg) (nodify result)
+
+
+{-| RecordDefinition
+-}
+recordDefinition : List RecordField -> RecordDefinition
+recordDefinition fields =
+    nodifyAll fields
+
+
+{-| RecordField
+-}
+recordField : String -> TypeAnnotation -> RecordField
+recordField field typeAnnotation =
+    ( nodify field, nodify typeAnnotation )
+
+
+
 --== Helpers
 
 
