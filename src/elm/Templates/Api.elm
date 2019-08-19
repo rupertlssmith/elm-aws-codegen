@@ -1,16 +1,27 @@
 module Templates.Api exposing (..)
 
-import Elm.Syntax.Declaration exposing (Declaration)
-import Elm.Syntax.Exposing exposing (Exposing(..))
-import Elm.Syntax.File exposing (File)
-import Elm.Syntax.Import exposing (Import)
-import Elm.Syntax.Module exposing (Module(..))
-import Elm.Syntax.ModuleName exposing (ModuleName)
 import ElmDSL
+    exposing
+        ( Declaration
+        , File
+        , Import
+        , Module
+        , file
+        , functionDeclaration
+        , functionOrValue
+        , functionTypeAnnotation
+        , import_
+        , normalModule
+        , signature
+        , typed
+        , unit
+        , varPattern
+        )
 
 
 type alias GenModel =
     { name : List String
+    , isRegional : Bool
     , docs : String
     , imports : List ()
     , operations : List ()
@@ -21,6 +32,7 @@ type alias GenModel =
 example : GenModel
 example =
     { name = [ "Some", "Module" ]
+    , isRegional = True
     , docs = ""
     , imports = []
     , operations = []
@@ -28,9 +40,9 @@ example =
     }
 
 
-file : GenModel -> File
-file model =
-    ElmDSL.file (module_ model) (imports model) [ service model ] []
+serviceFile : GenModel -> File
+serviceFile model =
+    file (module_ model) (imports model) [ service model ] []
 
 
 
@@ -44,7 +56,7 @@ file model =
 
 module_ : GenModel -> Module
 module_ model =
-    ElmDSL.normalModule model.name []
+    normalModule model.name []
 
 
 
@@ -89,10 +101,10 @@ module_ model =
 
 imports : GenModel -> List Import
 imports model =
-    [ ElmDSL.import_ [ "AWS", "Core", "Decode" ] Nothing Nothing
-    , ElmDSL.import_ [ "AWS", "Core", "Encode" ] Nothing Nothing
-    , ElmDSL.import_ [ "AWS", "Core", "Http" ] Nothing Nothing
-    , ElmDSL.import_ [ "AWS", "Core", "Service" ] Nothing Nothing
+    [ import_ [ "AWS", "Core", "Decode" ] Nothing Nothing
+    , import_ [ "AWS", "Core", "Encode" ] Nothing Nothing
+    , import_ [ "AWS", "Core", "Http" ] Nothing Nothing
+    , import_ [ "AWS", "Core", "Service" ] Nothing Nothing
     ]
 
 
@@ -111,16 +123,44 @@ imports model =
 
 service : GenModel -> Declaration
 service model =
+    if model.isRegional then
+        regionalService model
+
+    else
+        globalService model
+
+
+regionalService : GenModel -> Declaration
+regionalService model =
     let
-        signature =
-            ElmDSL.signature "service" ElmDSL.unit
+        sig =
+            signature "service"
+                (functionTypeAnnotation
+                    (typed [ "AWS", "Core", "Service" ] "Region" [])
+                    (typed [ "AWS", "Core", "Service" ] "Service" [])
+                )
     in
-    ElmDSL.functionDeclaration
+    functionDeclaration
         Nothing
-        Nothing
+        (Just sig)
         "service"
-        [ ElmDSL.varPattern "x" ]
-        (ElmDSL.functionOrValue [] "x")
+        [ varPattern "x" ]
+        (functionOrValue [] "x")
+
+
+globalService : GenModel -> Declaration
+globalService model =
+    let
+        sig =
+            signature "service"
+                (typed [ "AWS", "Core", "Service" ] "Service" [])
+    in
+    functionDeclaration
+        Nothing
+        (Just sig)
+        "service"
+        [ varPattern "x" ]
+        (functionOrValue [] "x")
 
 
 

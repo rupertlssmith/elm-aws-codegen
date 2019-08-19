@@ -39,6 +39,26 @@ type alias ModuleName =
     List String
 
 
+type alias Module =
+    Elm.Syntax.Module.Module
+
+
+type alias File =
+    Elm.Syntax.File.File
+
+
+type alias Declaration =
+    Elm.Syntax.Declaration.Declaration
+
+
+type alias Import =
+    Elm.Syntax.Import.Import
+
+
+type alias TypeAnnotation =
+    Elm.Syntax.TypeAnnotation.TypeAnnotation
+
+
 
 --== Elm.Syntax.Declaration
 
