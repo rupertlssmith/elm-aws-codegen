@@ -1,53 +1,4 @@
-module ElmDSL exposing
-    ( Cases
-    , application
-    , caseBlock
-    , caseExpression
-    , case_
-    , charLiteral
-    , file
-    , floatable
-    , functionDeclaration
-    , functionOrValue
-    , functionTypeAnnotation
-    , genericRecord
-    , genericType
-    , glslExpression
-    , hex
-    , ifBlock
-    , import_
-    , integer
-    , lambdaExpression
-    , left
-    , letBlock
-    , letDestructuring
-    , letExpression
-    , letFunction
-    , listExpr
-    , literal
-    , negation
-    , nodify
-    , nodifyAll
-    , nodifyMaybe
-    , non
-    , normalModule
-    , operator
-    , operatorApplication
-    , parenthesizedExpression
-    , prefixOperator
-    , record
-    , recordAccess
-    , recordAccessFunction
-    , recordExpr
-    , recordUpdateExpression
-    , right
-    , signature
-    , tupled
-    , tupledExpression
-    , typed
-    , unit
-    , unitExpr
-    )
+module ElmDSL exposing (..)
 
 import Elm.Syntax.Comments exposing (Comment)
 import Elm.Syntax.Declaration exposing (Declaration(..))
@@ -66,17 +17,45 @@ import Elm.Syntax.Signature exposing (Signature)
 import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAnnotation(..))
 
 
-type alias Cases =
-    List Case
 
-
-type alias QualifiedNameRef =
-    { moduleName : List String
-    , name : String
-    }
-
-
-
+-- type alias Comment =
+--     String
+--
+--
+-- type alias Documentation =
+--     String
+--
+--
+-- type alias Cases =
+--     List Case
+--
+--
+-- type alias ModuleName =
+--     List String
+--
+--
+-- type alias QualifiedNameRef =
+--     { moduleName : List String
+--     , name : String
+--     }
+--
+--
+-- type alias Range =
+--     { start : Location
+--     , end : Location
+--     }
+--
+--
+-- type alias Location =
+--     { row : Int
+--     , column : Int
+--     }
+--
+--
+-- type alias ExposedType =
+--     { name : String
+--     , open : Maybe Range
+--     }
 --== Elm.Syntax.Declaration
 
 
@@ -484,59 +463,37 @@ non =
 -}
 normalModule : ModuleName -> List TopLevelExpose -> Module
 normalModule name exposes =
-    let
-        exposingList =
-            case exposes of
-                [] ->
-                    All emptyRange
-
-                es ->
-                    Explicit <| nodifyAll exposes
-    in
-    NormalModule
-        { moduleName = nodify name
-        , exposingList = nodify exposingList
-        }
+    NormalModule <| defaultModuleData name (exposing_ exposes)
 
 
 {-| PortModule DefaultModuleData
 -}
 portModule : ModuleName -> List TopLevelExpose -> Module
 portModule name exposes =
-    let
-        exposingList =
-            case exposes of
-                [] ->
-                    All emptyRange
-
-                es ->
-                    Explicit <| nodifyAll exposes
-    in
-    PortModule
-        { moduleName = nodify name
-        , exposingList = nodify exposingList
-        }
+    PortModule <| defaultModuleData name (exposing_ exposes)
 
 
 {-| EffectModule EffectModuleData
 -}
 effectModule : ModuleName -> List TopLevelExpose -> Maybe String -> Maybe String -> Module
 effectModule name exposes cmd sub =
-    let
-        exposingList =
-            case exposes of
-                [] ->
-                    All emptyRange
+    EffectModule <| effectModuleData name (exposing_ exposes) cmd sub
 
-                es ->
-                    Explicit <| nodifyAll exposes
-    in
-    PortModule
-        { moduleName = nodify name
-        , exposingList = nodify exposingList
-        , command = nodifyMaybe cmd
-        , subscription = nodifyMaybe sub
-        }
+
+defaultModuleData : ModuleName -> Exposing -> DefaultModuleData
+defaultModuleData name exposes cmd sub =
+    { moduleName = nodify name
+    , exposingList = nodify exposes
+    }
+
+
+effectModuleData : ModuleName -> Exposing -> Maybe String -> Maybe String -> EffectModuleData
+effectModuleData name exposes cmd sub =
+    { moduleName = nodify name
+    , exposingList = nodify exposes
+    , command = nodifyMaybe cmd
+    , subscription = nodifyMaybe sub
+    }
 
 
 
@@ -660,6 +617,39 @@ signature name annotation =
 
 
 
+--== Elm.Syntax.Type
+
+
+type_ : Maybe Documentation -> String -> List String -> List ValueConstructor -> Type
+type_ docs name args constructors =
+    { documentation = nodifyMaybe docs
+    , name = nodify name
+    , generics = nodifyAll args
+    , constructors = nodifyAll constructors
+    }
+
+
+valueConstructor : String -> List TypeAnnotation -> ValueConstructor
+valueConstructor name annotations =
+    { name = nodify name
+    , arguments = nodifyAll annotations
+    }
+
+
+
+--== Elm.Syntax.TypeAlias
+
+
+typeAlias : Maybe Documentation -> String -> List String -> TypeAnnotation -> TypeAlias
+typeAlias docs name args annotation =
+    { documentation = nodifyMaybe docs
+    , name = nodify name
+    , generics = nodifyAll args
+    , typeAnnotation = nodify annotation
+    }
+
+
+
 --== Elm.Syntax.TypeAnnotation
 
 
@@ -743,3 +733,17 @@ nodifyMaybe =
 nodifyAll : List a -> List (Node a)
 nodifyAll =
     List.map nodify
+
+
+{-| Creates an `exposing` section for a module or an import. If the list is empty
+`exposing (..)` will be created, otherwise an explicit list of `TopLevelExpose`s
+is created.
+-}
+exposing_ : List TopLevelExpose -> Exposing
+exposing_ exposes =
+    case exposes of
+        [] ->
+            All emptyRange
+
+        es ->
+            Explicit <| nodifyAll exposes
