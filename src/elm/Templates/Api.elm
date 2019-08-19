@@ -100,7 +100,14 @@ module_ model =
 -- @docs {{= c.types.filter(t => t.exposeAs).map(t => t.type).join(',') }}
 -- {{~}}
 -- -}
---
+
+
+docs =
+    ""
+
+
+
+--== Imports
 -- import AWS.Core.Decode
 -- import AWS.Core.Encode
 -- import AWS.Core.Http
@@ -124,16 +131,7 @@ imports model =
 
 
 
--- {{= it.serviceDefinition }}
--- service : {{? it.isRegional }}AWS.Core.Service.Region -> {{?}}AWS.Core.Service.Service
--- service ={{? it.isRegional }}
---     AWS.Core.Service.defineRegional{{?? true }}
---     AWS.Core.Service.defineGlobal{{?}}
---         "{{= it.endpointPrefix }}"
---         "{{= it.apiVersion }}"
---         AWS.Core.Service.{{= it.protocol }}
---         AWS.Core.Service.{{= it.signer }}
---         {{= it.extra }}
+--== Service Definition
 
 
 service : GenModel -> Declaration
@@ -197,7 +195,7 @@ globalService model =
 
 
 
---
+--== Operations
 --
 -- -- OPERATIONS
 --
