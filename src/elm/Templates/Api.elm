@@ -38,12 +38,12 @@ serviceFile model =
         moduleSpec =
             module_ model
 
-        ( functions, fullImports ) =
+        ( functions, fullImportsAndExposing ) =
             List.unzip
                 [ service model ]
 
-        deDupedImports =
-            List.concat fullImports
+        ( deDupedImports, deDupedExposing ) =
+            deDupeImportsAndExposing fullImportsAndExposing
     in
     file moduleSpec deDupedImports functions []
 
@@ -104,7 +104,7 @@ docs =
 --== Service Definition
 
 
-service : GenModel -> ( Declaration, List Import )
+service : GenModel -> ( Declaration, ImportsAndExposing )
 service model =
     if model.isRegional then
         regionalService model
@@ -113,7 +113,7 @@ service model =
         globalService model
 
 
-regionalService : GenModel -> ( Declaration, List Import )
+regionalService : GenModel -> ( Declaration, ImportsAndExposing )
 regionalService model =
     let
         sig =
@@ -138,11 +138,12 @@ regionalService model =
         "service"
         []
         impl
-    , [ import_ coreServiceMod Nothing Nothing ]
+    , emptyImportsAndExposing
+        |> addImport (import_ coreServiceMod Nothing Nothing)
     )
 
 
-globalService : GenModel -> ( Declaration, List Import )
+globalService : GenModel -> ( Declaration, ImportsAndExposing )
 globalService model =
     let
         sig =
@@ -164,7 +165,8 @@ globalService model =
         "service"
         []
         impl
-    , [ import_ coreServiceMod Nothing Nothing ]
+    , emptyImportsAndExposing
+        |> addImport (import_ coreServiceMod Nothing Nothing)
     )
 
 

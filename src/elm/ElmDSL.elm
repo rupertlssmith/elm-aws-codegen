@@ -30,9 +30,9 @@ type alias ImportsAndExposing =
     }
 
 
-deDupeImportsAndExposing : List ImportsAndExposing -> ( Exposing, List Import )
+deDupeImportsAndExposing : List ImportsAndExposing -> ( List Import, Exposing )
 deDupeImportsAndExposing list =
-    ( All emptyRange, [] )
+    ( [], All emptyRange )
 
 
 emptyImportsAndExposing : ImportsAndExposing
