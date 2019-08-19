@@ -8,13 +8,16 @@ const {
 
 const app = Elm.Top.init();
 
-// options is optional
-glob("api/*.normal.json", function(er, files) {
-  files.forEach(function(file) {
-      fs.readFile(file, 'utf8', function(err, contents) {
-        app.ports.modelInPort.send([file, contents]);
-      });
-    });
+// glob("api/*.normal.json", function(er, files) {
+//   files.forEach(function(file) {
+//       fs.readFile(file, 'utf8', function(err, contents) {
+//         app.ports.modelInPort.send([file, contents]);
+//       });
+//     });
+// });
+
+fs.readFile('api/dynamodb-2012-08-10.normal.json', 'utf8', function(err, contents) {
+  app.ports.modelInPort.send(['api/dynamodb-2012-08-10.normal.json', contents]);
 });
 
 app.ports.codeOutPort.subscribe(request => {

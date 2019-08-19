@@ -104,8 +104,9 @@ processServiceModel name val seed =
                 diffs =
                     case ( original, parsed ) of
                         ( Ok jsonl, Ok jsonr ) ->
-                            Diff.diff jsonl jsonr |> Diff.diffsToString |> logIfVal "Diffs"
+                            Diff.diff jsonl jsonr |> Diff.diffsToString
 
+                        --|> logIfVal "Diffs"
                         ( _, _ ) ->
                             "Failed to generic decode" |> Debug.log "Error"
 
@@ -113,7 +114,6 @@ processServiceModel name val seed =
                     Templates.Api.serviceFile Templates.Api.example
                         |> Elm.Writer.writeFile
                         |> Elm.Writer.write
-                        |> Debug.log "codegen"
             in
             ( Seeded { seed = seed }
             , codegen |> codeOutPort
