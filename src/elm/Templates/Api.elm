@@ -52,7 +52,18 @@ example =
 
 serviceFile : GenModel -> File
 serviceFile model =
-    file (module_ model) (imports model) [ service model ] []
+    let
+        moduleSpec =
+            module_ model
+
+        ( functions, fullImports ) =
+            List.unzip
+                [ service model ]
+
+        deDupedImports =
+            List.concat fullImports
+    in
+    file moduleSpec deDupedImports functions []
 
 
 coreServiceMod : List String
@@ -107,34 +118,10 @@ docs =
 
 
 
---== Imports
--- import AWS.Core.Decode
--- import AWS.Core.Encode
--- import AWS.Core.Http
--- import AWS.Core.Service
--- import Json.Decode as JD
--- import Json.Decode.Pipeline as JDP
--- {{? it.metadata.protocol === 'json' }}import Json.Encode as JE
--- {{?}}
--- {{~ it.extraImports :importExtra }}{{= importExtra }}
--- {{~}}
---
-
-
-imports : GenModel -> List Import
-imports model =
-    [ import_ [ "AWS", "Core", "Decode" ] Nothing Nothing
-    , import_ [ "AWS", "Core", "Encode" ] Nothing Nothing
-    , import_ [ "AWS", "Core", "Http" ] Nothing Nothing
-    , import_ coreServiceMod Nothing Nothing
-    ]
-
-
-
 --== Service Definition
 
 
-service : GenModel -> Declaration
+service : GenModel -> ( Declaration, List Import )
 service model =
     if model.isRegional then
         regionalService model
@@ -143,7 +130,7 @@ service model =
         globalService model
 
 
-regionalService : GenModel -> Declaration
+regionalService : GenModel -> ( Declaration, List Import )
 regionalService model =
     let
         sig =
@@ -162,15 +149,17 @@ regionalService model =
                 , functionOrValue coreServiceMod model.signer
                 ]
     in
-    functionDeclaration
+    ( functionDeclaration
         (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
         impl
+    , [ import_ coreServiceMod Nothing Nothing ]
+    )
 
 
-globalService : GenModel -> Declaration
+globalService : GenModel -> ( Declaration, List Import )
 globalService model =
     let
         sig =
@@ -186,12 +175,14 @@ globalService model =
                 , functionOrValue coreServiceMod model.signer
                 ]
     in
-    functionDeclaration
+    ( functionDeclaration
         (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
         impl
+    , [ import_ coreServiceMod Nothing Nothing ]
+    )
 
 
 

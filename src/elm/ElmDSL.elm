@@ -21,10 +21,7 @@ import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAn
 
 
 
--- type alias QualifiedNameRef =
--- type alias Range =
--- type alias Location =
--- type alias ExposedType =
+--== Re-Export of Types
 
 
 type alias Comment =
@@ -57,6 +54,26 @@ type alias Import =
 
 type alias TypeAnnotation =
     Elm.Syntax.TypeAnnotation.TypeAnnotation
+
+
+type alias Exposing =
+    Elm.Syntax.Exposing.Exposing
+
+
+type alias TopLevelExpose =
+    Elm.Syntax.Exposing.TopLevelExpose
+
+
+type alias Expression =
+    Elm.Syntax.Expression.Expression
+
+
+type alias InfixDirection =
+    Elm.Syntax.Infix.InfixDirection
+
+
+type alias Pattern =
+    Elm.Syntax.Pattern.Pattern
 
 
 
