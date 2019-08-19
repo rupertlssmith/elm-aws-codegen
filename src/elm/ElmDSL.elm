@@ -3,17 +3,19 @@ module ElmDSL exposing (..)
 import Elm.Syntax.Comments exposing (Comment)
 import Elm.Syntax.Declaration exposing (Declaration(..))
 import Elm.Syntax.Documentation exposing (Documentation)
-import Elm.Syntax.Exposing exposing (Exposing(..), TopLevelExpose)
+import Elm.Syntax.Exposing exposing (ExposedType, Exposing(..), TopLevelExpose(..))
 import Elm.Syntax.Expression exposing (Case, CaseBlock, Cases, Expression(..), Function, FunctionImplementation, Lambda, LetBlock, LetDeclaration(..), RecordSetter)
 import Elm.Syntax.File exposing (File)
 import Elm.Syntax.Import exposing (Import)
-import Elm.Syntax.Infix exposing (InfixDirection(..))
-import Elm.Syntax.Module exposing (Module(..))
+import Elm.Syntax.Infix exposing (Infix, InfixDirection(..))
+import Elm.Syntax.Module exposing (DefaultModuleData, EffectModuleData, Module(..))
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node exposing (Node(..))
-import Elm.Syntax.Pattern exposing (Pattern)
+import Elm.Syntax.Pattern exposing (Pattern(..), QualifiedNameRef)
 import Elm.Syntax.Range exposing (Location, Range, emptyRange)
 import Elm.Syntax.Signature exposing (Signature)
+import Elm.Syntax.Type exposing (Type, ValueConstructor)
+import Elm.Syntax.TypeAlias exposing (TypeAlias)
 import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAnnotation(..))
 
 
@@ -69,15 +71,15 @@ functionDeclaration fn =
 {-| AliasDeclaration TypeAlias
 -}
 aliasDeclaration : TypeAlias -> Declaration
-aliasDeclaration typeAlias =
-    AliasDeclaration typeAlias
+aliasDeclaration tAlias =
+    AliasDeclaration tAlias
 
 
 {-| CustomTypeDeclaration Type
 -}
 customTypeDeclaration : Type -> Declaration
-customTypeDeclaration type_ =
-    CustomTypeDeclaration type_
+customTypeDeclaration typ =
+    CustomTypeDeclaration typ
 
 
 {-| PortDeclaration Signature
@@ -123,7 +125,7 @@ explicit topLevelExposes =
 -}
 infixExpose : String -> TopLevelExpose
 infixExpose sym =
-    InfixExpose (nodify sym)
+    InfixExpose sym
 
 
 {-| FunctionExpose String
@@ -273,8 +275,8 @@ caseExpression caseBlk =
 {-| LambdaExpression Lambda
 -}
 lambdaExpression : Lambda -> Expression
-lambdaExpression lambda =
-    LambdaExpression lambda
+lambdaExpression lambd =
+    LambdaExpression lambd
 
 
 {-| RecordExpr (List (Node RecordSetter))
@@ -319,19 +321,11 @@ glslExpression expr =
     GLSLExpression expr
 
 
-
--- Lambda
-
-
 lambda : List Pattern -> Expression -> Lambda
 lambda args expr =
     { args = nodifyAll args
     , expression = nodify expr
     }
-
-
-
--- LetBlock
 
 
 letBlock : List LetDeclaration -> Expression -> LetBlock
@@ -355,17 +349,9 @@ letDestructuring pattern expr =
     LetDestructuring (nodify pattern) (nodify expr)
 
 
-
--- RecordSetter
-
-
 recordSetter : String -> Expression -> RecordSetter
 recordSetter field expr =
     ( nodify field, nodify expr )
-
-
-
--- CaseBlock
 
 
 caseBlock : Expression -> List Case -> CaseBlock
@@ -380,7 +366,7 @@ case_ pattern expr =
     ( nodify pattern, nodify expr )
 
 
-function : Documentation -> Signature -> FunctionImplementation
+function : Maybe Documentation -> Maybe Signature -> FunctionImplementation -> Function
 function docs sig decl =
     { documentation = nodifyMaybe docs
     , signature = nodifyMaybe sig
@@ -388,7 +374,7 @@ function docs sig decl =
     }
 
 
-functionImplementation : String -> List Pattern -> Expression
+functionImplementation : String -> List Pattern -> Expression -> FunctionImplementation
 functionImplementation name args expr =
     { name = nodify name
     , arguments = nodifyAll args
@@ -481,7 +467,7 @@ effectModule name exposes cmd sub =
 
 
 defaultModuleData : ModuleName -> Exposing -> DefaultModuleData
-defaultModuleData name exposes cmd sub =
+defaultModuleData name exposes =
     { moduleName = nodify name
     , exposingList = nodify exposes
     }
@@ -544,7 +530,7 @@ hexPattern val =
 
 {-| FloatPattern Float
 -}
-floatPattern : float -> Pattern
+floatPattern : Float -> Pattern
 floatPattern val =
     FloatPattern val
 
