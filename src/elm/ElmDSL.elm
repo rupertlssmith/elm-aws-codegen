@@ -1,4 +1,4 @@
-module ElmDSL exposing (..)
+module ElmDSL exposing (Comment, Declaration, Documentation, Exposing, Expression, File, Import, ImportsAndExposing, InfixDirection, Module, ModuleName, Pattern, TopLevelExpose, TypeAnnotation, addExposing, addImport, aliasDeclaration, all, allPattern, application, asPattern, caseBlock, caseExpression, case_, charLiteral, charPattern, closedExposedType, customTypeDeclaration, deDupeImportsAndExposing, defaultModuleData, destructuring, effectModule, effectModuleData, emptyImportsAndExposing, explicit, exposing_, file, floatPattern, floatable, function, functionDeclaration, functionExpose, functionImplementation, functionOrValue, functionTypeAnnotation, genericRecord, genericType, glslExpression, hex, hexPattern, ifBlock, import_, infixDeclaration, infixExpose, infix_, intPattern, integer, lambda, lambdaExpression, left, letBlock, letDestructuring, letExpression, letFunction, listExpr, listPattern, literal, namedPattern, negation, nodify, nodifyAll, nodifyMaybe, non, normalModule, openExposedType, operator, operatorApplication, paranthesizedPattern, parenthesizedExpression, portDeclaration, portModule, prefixOperator, record, recordAccess, recordAccessFunction, recordDefinition, recordExpr, recordField, recordPattern, recordSetter, recordUpdateExpression, right, signature, stringPattern, tuplePattern, tupled, tupledExpression, typeAlias, typeExpose, typeOrAliasExpose, type_, typed, unConsPattern, unit, unitExpr, unitPattern, valueConstructor, varPattern)
 
 --import Elm.Syntax.Comments exposing (Comment)
 --import Elm.Syntax.Documentation exposing (Documentation)
@@ -25,29 +25,35 @@ import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAn
 
 
 type alias ImportsAndExposing =
-    { imports : List Import
-    , exposing_ : List TopLevelExpose
-    }
+    ( List Import, List TopLevelExpose )
 
 
-deDupeImportsAndExposing : List ImportsAndExposing -> ( List Import, Exposing )
+deDupeImportsAndExposing : List ImportsAndExposing -> ImportsAndExposing
 deDupeImportsAndExposing list =
-    ( [], All emptyRange )
+    let
+        ( imports, exposings ) =
+            List.unzip list
+    in
+    ( List.concat imports
+    , List.concat exposings
+    )
 
 
 emptyImportsAndExposing : ImportsAndExposing
 emptyImportsAndExposing =
-    { imports = [], exposing_ = [] }
+    ( [], [] )
 
 
 addImport : Import -> ImportsAndExposing -> ImportsAndExposing
 addImport imp iande =
-    { iande | imports = imp :: iande.imports }
+    Tuple.mapFirst ((::) imp)
+        iande
 
 
-addExport : TopLevelExpose -> ImportsAndExposing -> ImportsAndExposing
-addExport tlExpose iande =
-    { iande | exposing_ = tlExpose :: iande.exposing_ }
+addExposing : TopLevelExpose -> ImportsAndExposing -> ImportsAndExposing
+addExposing tlExpose iande =
+    Tuple.mapSecond ((::) tlExpose)
+        iande
 
 
 

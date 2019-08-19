@@ -1,4 +1,4 @@
-module Templates.Api exposing (..)
+module Templates.Api exposing (GenModel, coreServiceMod, docs, example, globalService, module_, regionalService, service, serviceFile)
 
 import ElmDSL exposing (..)
 
@@ -35,15 +35,15 @@ example =
 serviceFile : GenModel -> File
 serviceFile model =
     let
-        moduleSpec =
-            module_ model
-
         ( functions, fullImportsAndExposing ) =
             List.unzip
                 [ service model ]
 
         ( deDupedImports, deDupedExposing ) =
             deDupeImportsAndExposing fullImportsAndExposing
+
+        moduleSpec =
+            module_ model deDupedExposing
     in
     file moduleSpec deDupedImports functions []
 
@@ -55,17 +55,11 @@ coreServiceMod =
 
 
 --== Module Specification (with exposing).
--- module AWS.{{= it.mod }}
---     exposing
---         ( service
---         , {{= it.operationNames.join('\n        , ')}}
---         , {{= it.types.filter(t => t.exposeAs).map(t => t.exposeAs).join('\n        , ')}}
---         )
 
 
-module_ : GenModel -> Module
-module_ model =
-    normalModule model.name []
+module_ : GenModel -> List TopLevelExpose -> Module
+module_ model exposings =
+    normalModule model.name exposings
 
 
 
@@ -140,6 +134,7 @@ regionalService model =
         impl
     , emptyImportsAndExposing
         |> addImport (import_ coreServiceMod Nothing Nothing)
+        |> addExposing (functionExpose "service")
     )
 
 
@@ -167,6 +162,7 @@ globalService model =
         impl
     , emptyImportsAndExposing
         |> addImport (import_ coreServiceMod Nothing Nothing)
+        |> addExposing (functionExpose "service")
     )
 
 
