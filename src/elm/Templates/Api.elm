@@ -72,6 +72,7 @@ coreServiceMod =
 
 
 
+--== Module Specification (with exposing).
 -- module AWS.{{= it.mod }}
 --     exposing
 --         ( service
@@ -86,7 +87,7 @@ module_ model =
 
 
 
---
+--== Module Documentation
 -- {-| {{= it.documentation }}
 --
 -- @docs service
