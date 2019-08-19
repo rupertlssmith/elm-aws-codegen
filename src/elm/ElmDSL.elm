@@ -21,6 +21,36 @@ import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAn
 
 
 
+--== Dynamic import and export lists.
+
+
+type alias ImportsAndExposing =
+    { imports : List Import
+    , exposing_ : List TopLevelExpose
+    }
+
+
+deDupeImportsAndExposing : List ImportsAndExposing -> ( Exposing, List Import )
+deDupeImportsAndExposing list =
+    ( All emptyRange, [] )
+
+
+emptyImportsAndExposing : ImportsAndExposing
+emptyImportsAndExposing =
+    { imports = [], exposing_ = [] }
+
+
+addImport : Import -> ImportsAndExposing -> ImportsAndExposing
+addImport imp iande =
+    { iande | imports = imp :: iande.imports }
+
+
+addExport : TopLevelExpose -> ImportsAndExposing -> ImportsAndExposing
+addExport tlExpose iande =
+    { iande | exposing_ = tlExpose :: iande.exposing_ }
+
+
+
 --== Re-Export of Types
 
 

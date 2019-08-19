@@ -1,24 +1,6 @@
 module Templates.Api exposing (..)
 
-import ElmDSL
-    exposing
-        ( Declaration
-        , File
-        , Import
-        , Module
-        , application
-        , file
-        , functionDeclaration
-        , functionOrValue
-        , functionTypeAnnotation
-        , import_
-        , literal
-        , normalModule
-        , signature
-        , typed
-        , unit
-        , varPattern
-        )
+import ElmDSL exposing (..)
 
 
 type alias GenModel =
