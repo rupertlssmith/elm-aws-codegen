@@ -30,7 +30,7 @@ example =
 
 file : GenModel -> File
 file model =
-    ElmDSL.file (module_ model) (imports model) [] []
+    ElmDSL.file (module_ model) (imports model) [ service model ] []
 
 
 
@@ -107,15 +107,20 @@ imports model =
 --         AWS.Core.Service.{{= it.protocol }}
 --         AWS.Core.Service.{{= it.signer }}
 --         {{= it.extra }}
---service : GenModel -> Declaration
 
 
+service : GenModel -> Declaration
 service model =
     let
         signature =
             ElmDSL.signature "service" ElmDSL.unit
     in
-    ElmDSL.functionDeclaration Nothing (Just signature)
+    ElmDSL.functionDeclaration
+        Nothing
+        Nothing
+        "service"
+        [ ElmDSL.varPattern "x" ]
+        (ElmDSL.functionOrValue [] "x")
 
 
 

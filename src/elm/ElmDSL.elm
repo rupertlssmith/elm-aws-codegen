@@ -45,9 +45,11 @@ type alias ModuleName =
 
 {-| FunctionDeclaration Function
 -}
-functionDeclaration : Function -> Declaration
-functionDeclaration fn =
-    FunctionDeclaration fn
+functionDeclaration : Maybe Documentation -> Maybe Signature -> String -> List Pattern -> Expression -> Declaration
+functionDeclaration docs sig name args expr =
+    functionImplementation name args expr
+        |> function docs sig
+        |> FunctionDeclaration
 
 
 {-| AliasDeclaration TypeAlias
