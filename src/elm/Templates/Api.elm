@@ -39,10 +39,10 @@ example : GenModel
 example =
     { name = [ "Some", "Module" ]
     , isRegional = True
-    , endpointPrefix = ""
+    , endpointPrefix = "dynamodb"
     , apiVersion = "2012-08-10"
     , protocol = "json"
-    , signer = "v4"
+    , signer = "signV4"
     , docs = ""
     , imports = []
     , operations = []
@@ -165,7 +165,7 @@ regionalService model =
                 ]
     in
     functionDeclaration
-        Nothing
+        (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
@@ -189,7 +189,7 @@ globalService model =
                 ]
     in
     functionDeclaration
-        Nothing
+        (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
