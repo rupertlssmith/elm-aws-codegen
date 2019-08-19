@@ -6,11 +6,13 @@ import ElmDSL
         , File
         , Import
         , Module
+        , application
         , file
         , functionDeclaration
         , functionOrValue
         , functionTypeAnnotation
         , import_
+        , literal
         , normalModule
         , signature
         , typed
@@ -22,6 +24,10 @@ import ElmDSL
 type alias GenModel =
     { name : List String
     , isRegional : Bool
+    , endpointPrefix : String
+    , apiVersion : String
+    , protocol : String
+    , signer : String
     , docs : String
     , imports : List ()
     , operations : List ()
@@ -33,6 +39,10 @@ example : GenModel
 example =
     { name = [ "Some", "Module" ]
     , isRegional = True
+    , endpointPrefix = ""
+    , apiVersion = "2012-08-10"
+    , protocol = "json"
+    , signer = "v4"
     , docs = ""
     , imports = []
     , operations = []
@@ -43,6 +53,11 @@ example =
 serviceFile : GenModel -> File
 serviceFile model =
     file (module_ model) (imports model) [ service model ] []
+
+
+coreServiceMod : List String
+coreServiceMod =
+    [ "AWS", "Core", "Service" ]
 
 
 
@@ -104,7 +119,7 @@ imports model =
     [ import_ [ "AWS", "Core", "Decode" ] Nothing Nothing
     , import_ [ "AWS", "Core", "Encode" ] Nothing Nothing
     , import_ [ "AWS", "Core", "Http" ] Nothing Nothing
-    , import_ [ "AWS", "Core", "Service" ] Nothing Nothing
+    , import_ coreServiceMod Nothing Nothing
     ]
 
 
@@ -136,16 +151,25 @@ regionalService model =
         sig =
             signature "service"
                 (functionTypeAnnotation
-                    (typed [ "AWS", "Core", "Service" ] "Region" [])
-                    (typed [ "AWS", "Core", "Service" ] "Service" [])
+                    (typed coreServiceMod "Region" [])
+                    (typed coreServiceMod "Service" [])
                 )
+
+        impl =
+            application
+                [ functionOrValue coreServiceMod "defineRegional"
+                , literal model.endpointPrefix
+                , literal model.apiVersion
+                , functionOrValue coreServiceMod model.protocol
+                , functionOrValue coreServiceMod model.signer
+                ]
     in
     functionDeclaration
         Nothing
         (Just sig)
         "service"
-        [ varPattern "x" ]
-        (functionOrValue [] "x")
+        []
+        impl
 
 
 globalService : GenModel -> Declaration
@@ -153,14 +177,23 @@ globalService model =
     let
         sig =
             signature "service"
-                (typed [ "AWS", "Core", "Service" ] "Service" [])
+                (typed coreServiceMod "Service" [])
+
+        impl =
+            application
+                [ functionOrValue coreServiceMod "defineGlobal"
+                , literal model.endpointPrefix
+                , literal model.apiVersion
+                , functionOrValue coreServiceMod model.protocol
+                , functionOrValue coreServiceMod model.signer
+                ]
     in
     functionDeclaration
         Nothing
         (Just sig)
         "service"
-        [ varPattern "x" ]
-        (functionOrValue [] "x")
+        []
+        impl
 
 
 
