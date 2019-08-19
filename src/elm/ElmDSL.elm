@@ -1,10 +1,11 @@
 module ElmDSL exposing (..)
 
-import Elm.Syntax.Comments exposing (Comment)
+--import Elm.Syntax.Comments exposing (Comment)
+--import Elm.Syntax.Documentation exposing (Documentation)
+
 import Elm.Syntax.Declaration exposing (Declaration(..))
-import Elm.Syntax.Documentation exposing (Documentation)
 import Elm.Syntax.Exposing exposing (ExposedType, Exposing(..), TopLevelExpose(..))
-import Elm.Syntax.Expression exposing (Case, CaseBlock, Cases, Expression(..), Function, FunctionImplementation, Lambda, LetBlock, LetDeclaration(..), RecordSetter)
+import Elm.Syntax.Expression exposing (Case, CaseBlock, Expression(..), Function, FunctionImplementation, Lambda, LetBlock, LetDeclaration(..), RecordSetter)
 import Elm.Syntax.File exposing (File)
 import Elm.Syntax.Import exposing (Import)
 import Elm.Syntax.Infix exposing (Infix, InfixDirection(..))
@@ -20,44 +21,25 @@ import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAn
 
 
 
--- type alias Comment =
---     String
---
---
--- type alias Documentation =
---     String
---
---
--- type alias Cases =
---     List Case
---
---
--- type alias ModuleName =
---     List String
---
---
 -- type alias QualifiedNameRef =
---     { moduleName : List String
---     , name : String
---     }
---
---
 -- type alias Range =
---     { start : Location
---     , end : Location
---     }
---
---
 -- type alias Location =
---     { row : Int
---     , column : Int
---     }
---
---
 -- type alias ExposedType =
---     { name : String
---     , open : Maybe Range
---     }
+
+
+type alias Comment =
+    String
+
+
+type alias Documentation =
+    String
+
+
+type alias ModuleName =
+    List String
+
+
+
 --== Elm.Syntax.Declaration
 
 
@@ -147,6 +129,20 @@ typeOrAliasExpose name =
 typeExpose : ExposedType -> TopLevelExpose
 typeExpose exposedType =
     TypeExpose exposedType
+
+
+openExposedType : String -> ExposedType
+openExposedType name =
+    { name = name
+    , open = Just emptyRange
+    }
+
+
+closedExposedType : String -> ExposedType
+closedExposedType name =
+    { name = name
+    , open = Nothing
+    }
 
 
 
