@@ -75,11 +75,7 @@ serviceFile model =
             service model
 
         ( typeDecls, linkage2 ) =
-            Dict.foldl
-                (\name decl accum -> Templates.L1.typeDecl name decl :: accum)
-                []
-                model.declarations
-                |> List.unzip
+            typeDeclarations model
 
         declarations =
             serviceFn :: typeDecls
@@ -233,31 +229,13 @@ globalService model =
 -- {{~}}
 
 
-t =
-    ()
-
-
-
--- {-| {{= it.doc }}
--- -}
--- type {{= it.type }}
---     = {{= it.type }}_{{= it.enum.join(`\n    | ${it.type}_`) }}
-
-
-unionType =
-    ()
-
-
-
--- {-| {{= it.doc }}
--- -}
--- type alias {{= it.type }} =
---     { {{= it.members.map(it.memberType).join('\n    , ') }}
---     }
-
-
-recordType =
-    ()
+typeDeclarations : GenModel -> ( List Declaration, List ImportsAndExposing )
+typeDeclarations model =
+    Dict.foldl
+        (\name decl accum -> Templates.L1.typeDecl name decl :: accum)
+        []
+        model.declarations
+        |> List.unzip
 
 
 

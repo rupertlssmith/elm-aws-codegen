@@ -5,9 +5,8 @@ import LevelOne exposing (..)
 import String.Case as Case
 
 
-dummy : String -> ( Declaration, ImportsAndExposing )
-dummy name =
-    ( functionDeclaration Nothing Nothing (Case.toCamelCaseUpper name) [] unitExpr, emptyImportsAndExposing )
+
+--== Type Declarations
 
 
 typeDecl : String -> Declarable -> ( Declaration, ImportsAndExposing )
@@ -103,3 +102,14 @@ lowerContainer container =
 
         COptional l1Type ->
             typed [] "Maybe" [ lowerType l1Type ]
+
+
+
+--== Decoders
+--== Encoders
+--== Helper Functions
+
+
+dummy : String -> ( Declaration, ImportsAndExposing )
+dummy name =
+    ( functionDeclaration Nothing Nothing (Case.toCamelCaseUpper name) [] unitExpr, emptyImportsAndExposing )
