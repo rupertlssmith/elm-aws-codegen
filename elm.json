@@ -15,7 +15,8 @@
             "miniBill/elm-codec": "1.1.0",
             "stil4m/elm-syntax": "7.1.0",
             "the-sett/decode-generic": "1.0.0",
-            "the-sett/elm-pretty-printer": "2.1.1"
+            "the-sett/elm-pretty-printer": "2.1.1",
+            "the-sett/elm-string-case": "1.0.2"
         },
         "indirect": {
             "elm/parser": "1.1.0",
