@@ -1,6 +1,7 @@
 module Templates.Api exposing (GenModel, coreServiceMod, docs, example, globalService, module_, regionalService, service, serviceFile)
 
 import ElmDSL exposing (..)
+import Templates.L1 exposing (..)
 
 
 type alias GenModel =
@@ -167,12 +168,7 @@ globalService model =
 
 
 
---== Operations
---
--- -- OPERATIONS
---
--- {{= it.operations.join('\n\n') }}
---
+--== Types and Codecs
 -- {{~ it.types.filter(t => t.exposeAs) :t }}
 -- {{= t.typeDef }}
 --
@@ -185,11 +181,40 @@ globalService model =
 -- {{?}}
 -- {{~}}
 --
---
 -- {{~ it.types.filter(t => t.category === 'request') :t }}
 -- {{= t.typeDef }}
 -- {{~}}
---
+
+
+t =
+    ()
+
+
+
+-- {-| {{= it.doc }}
+-- -}
+-- type {{= it.type }}
+--     = {{= it.type }}_{{= it.enum.join(`\n    | ${it.type}_`) }}
+
+
+unionType =
+    ()
+
+
+
+-- {-| {{= it.doc }}
+-- -}
+-- type alias {{= it.type }} =
+--     { {{= it.members.map(it.memberType).join('\n    , ') }}
+--     }
+
+
+recordType =
+    ()
+
+
+
+--== Operations
 --
 -- {{~ it.types.filter(t => t.exposeAs || t.category === 'request') :t }}
 -- {{? it.metadata.protocol === 'json' && t.jsonEncoderDef }}
