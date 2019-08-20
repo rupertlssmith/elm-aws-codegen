@@ -1,6 +1,8 @@
 module Templates.Api exposing (GenModel, coreServiceMod, docs, example, globalService, module_, regionalService, service, serviceFile)
 
+import Dict exposing (Dict)
 import ElmDSL exposing (..)
+import LevelOne exposing (..)
 import Templates.L1 exposing (..)
 
 
@@ -12,9 +14,9 @@ type alias GenModel =
     , protocol : String
     , signer : String
     , docs : String
+    , declarations : Declarations
     , imports : List ()
     , operations : List ()
-    , types_ : List ()
     }
 
 
@@ -27,26 +29,65 @@ example =
     , protocol = "json"
     , signer = "signV4"
     , docs = ""
+    , declarations =
+        Dict.fromList
+            [ ( "record", exampleRecord )
+            , ( "custom", exampleCustom )
+            ]
     , imports = []
     , operations = []
-    , types_ = []
     }
+
+
+exampleRecord : Declarable
+exampleRecord =
+    TProduct
+        [ ( "a", TBasic BInt )
+        , ( "b", TBasic BBool )
+        , ( "c", TBasic BReal )
+        , ( "d", TBasic BString )
+        , ( "e", TBasic BString |> COptional |> TContainer )
+        ]
+        |> DAlias
+
+
+exampleCustom : Declarable
+exampleCustom =
+    DSum
+        [ ( "a", TBasic BInt )
+        , ( "b", TBasic BBool )
+        , ( "c", TBasic BReal )
+        , ( "d", TBasic BString )
+        , ( "e", TBasic BString |> COptional |> TContainer )
+        ]
 
 
 serviceFile : GenModel -> File
 serviceFile model =
     let
-        ( functions, fullImportsAndExposing ) =
-            List.unzip
-                [ service model ]
+        ( serviceFn, linkage ) =
+            service model
 
-        ( deDupedImports, deDupedExposing ) =
-            deDupeImportsAndExposing fullImportsAndExposing
+        ( typeDecls, linkage2 ) =
+            Dict.foldl
+                (\name decl accum -> Templates.L1.typeDecl name decl :: accum)
+                []
+                model.declarations
+                |> List.unzip
+
+        declarations =
+            serviceFn :: typeDecls
+
+        linkages =
+            linkage :: linkage2
+
+        ( imports, exposings ) =
+            deDupeImportsAndExposing linkages
 
         moduleSpec =
-            module_ model deDupedExposing
+            module_ model exposings
     in
-    file moduleSpec deDupedImports functions []
+    file moduleSpec imports declarations []
 
 
 coreServiceMod : List String

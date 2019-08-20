@@ -11,7 +11,7 @@ unit name =
 
 typeDecl : String -> Declarable -> ( Declaration, ImportsAndExposing )
 typeDecl name decl =
-    case decl of
+    case Debug.log "decl" decl of
         DAlias _ ->
             unit name
 
