@@ -745,16 +745,21 @@ tupled args =
 
 {-| Record RecordDefinition
 -}
-record : RecordDefinition -> TypeAnnotation
-record recDef =
-    Record recDef
+record : List ( String, TypeAnnotation ) -> TypeAnnotation
+record fields =
+    List.map (uncurry recordField) fields
+        |> recordDefinition
+        |> Record
 
 
 {-| GenericRecord (Node String) (Node RecordDefinition)
 -}
-genericRecord : String -> RecordDefinition -> TypeAnnotation
-genericRecord argName recDef =
-    GenericRecord (nodify argName) (nodify recDef)
+genericRecord : String -> List ( String, TypeAnnotation ) -> TypeAnnotation
+genericRecord argName fields =
+    List.map (uncurry recordField) fields
+        |> recordDefinition
+        |> nodify
+        |> GenericRecord (nodify argName)
 
 
 {-| FunctionTypeAnnotation (Node TypeAnnotation) (Node TypeAnnotation)
@@ -795,6 +800,11 @@ nodifyMaybe =
 nodifyAll : List a -> List (Node a)
 nodifyAll =
     List.map nodify
+
+
+uncurry : (a -> b -> c) -> ( a, b ) -> c
+uncurry fn ( a, b ) =
+    fn a b
 
 
 {-| Creates an `exposing` section for a module or an import. If the list is empty

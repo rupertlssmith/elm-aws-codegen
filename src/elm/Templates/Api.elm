@@ -46,7 +46,10 @@ exampleRecord =
         , ( "b", TBasic BBool )
         , ( "c", TBasic BReal )
         , ( "d", TBasic BString )
-        , ( "e", TBasic BString |> COptional |> TContainer )
+        , ( "e", TBasic BString |> CList |> TContainer )
+        , ( "f", TBasic BString |> CSet |> TContainer )
+        , ( "g", CDict (TBasic BString) (TBasic BString) |> TContainer )
+        , ( "h", TBasic BString |> COptional |> TContainer )
         ]
         |> DAlias
 
@@ -58,7 +61,10 @@ exampleCustom =
         , ( "b", TBasic BBool )
         , ( "c", TBasic BReal )
         , ( "d", TBasic BString )
-        , ( "e", TBasic BString |> COptional |> TContainer )
+        , ( "e", TBasic BString |> CList |> TContainer )
+        , ( "f", TBasic BString |> CSet |> TContainer )
+        , ( "g", CDict (TBasic BString) (TBasic BString) |> TContainer )
+        , ( "h", TBasic BString |> COptional |> TContainer )
         ]
 
 
