@@ -74,14 +74,21 @@ serviceFile model =
         ( serviceFn, linkage ) =
             service model
 
-        ( typeDecls, linkage2 ) =
+        ( types, linkage2 ) =
             typeDeclarations model
 
+        ( codecs, linkage3 ) =
+            jsonCodecs model
+
         declarations =
-            serviceFn :: typeDecls
+            codecs
+                |> List.append types
+                |> (::) serviceFn
 
         linkages =
-            linkage :: linkage2
+            linkage3
+                |> List.append linkage2
+                |> (::) linkage
 
         ( imports, exposings ) =
             deDupeImportsAndExposing linkages
@@ -233,6 +240,15 @@ typeDeclarations : GenModel -> ( List Declaration, List ImportsAndExposing )
 typeDeclarations model =
     Dict.foldl
         (\name decl accum -> Templates.L1.typeDecl name decl :: accum)
+        []
+        model.declarations
+        |> List.unzip
+
+
+jsonCodecs : GenModel -> ( List Declaration, List ImportsAndExposing )
+jsonCodecs model =
+    Dict.foldl
+        (\name decl accum -> Templates.L1.codec name decl :: accum)
         []
         model.declarations
         |> List.unzip
