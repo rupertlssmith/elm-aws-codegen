@@ -127,30 +127,35 @@ functionDeclaration docs sig name args expr =
 
 {-| AliasDeclaration TypeAlias
 -}
-aliasDeclaration : TypeAlias -> Declaration
-aliasDeclaration tAlias =
-    AliasDeclaration tAlias
+aliasDeclaration : Maybe Documentation -> String -> List String -> TypeAnnotation -> Declaration
+aliasDeclaration docs name args annotation =
+    typeAlias docs name args annotation
+        |> AliasDeclaration
 
 
 {-| CustomTypeDeclaration Type
 -}
-customTypeDeclaration : Type -> Declaration
-customTypeDeclaration typ =
-    CustomTypeDeclaration typ
+customTypeDeclaration : Maybe Documentation -> String -> List String -> List ( String, List TypeAnnotation ) -> Declaration
+customTypeDeclaration docs name args constructors =
+    List.map (\( consName, annotation ) -> valueConstructor consName annotation) constructors
+        |> type_ docs name args
+        |> CustomTypeDeclaration
 
 
 {-| PortDeclaration Signature
 -}
-portDeclaration : Signature -> Declaration
-portDeclaration sig =
-    PortDeclaration sig
+portDeclaration : String -> TypeAnnotation -> Declaration
+portDeclaration name annotation =
+    signature name annotation
+        |> PortDeclaration
 
 
 {-| InfixDeclaration Infix
 -}
-infixDeclaration : Infix -> Declaration
-infixDeclaration inf =
-    InfixDeclaration inf
+infixDeclaration : InfixDirection -> Int -> String -> String -> Declaration
+infixDeclaration direction precedence symbol fn =
+    infix_ direction precedence symbol fn
+        |> InfixDeclaration
 
 
 {-| Destructuring (Node Pattern) (Node Expression)
