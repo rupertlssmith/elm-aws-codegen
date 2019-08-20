@@ -171,9 +171,9 @@ destructuring pattern expr =
 
 {-| All Range
 -}
-all : Range -> Exposing
-all range =
-    All range
+all : Exposing
+all =
+    All emptyRange
 
 
 {-| Explicit (List (Node TopLevelExpose))
