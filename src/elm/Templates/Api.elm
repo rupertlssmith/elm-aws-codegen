@@ -1,7 +1,7 @@
 module Templates.Api exposing (GenModel, coreServiceMod, docs, example, globalService, module_, regionalService, service, serviceFile)
 
 import Dict exposing (Dict)
-import ElmDSL exposing (..)
+import Elm.CodeGen exposing (..)
 import LevelOne exposing (..)
 import Templates.L1 exposing (..)
 

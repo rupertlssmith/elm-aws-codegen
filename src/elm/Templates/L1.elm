@@ -7,7 +7,7 @@ module Templates.L1 exposing (typeDecl, codec)
 -}
 
 import Codec
-import ElmDSL exposing (..)
+import Elm.CodeGen exposing (..)
 import LevelOne exposing (..)
 import String.Case as Case
 
