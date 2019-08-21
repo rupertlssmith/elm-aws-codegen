@@ -1,6 +1,67 @@
 module ElmDSL exposing (..)
 
 {-| ElmDSL is a DSL designed to make it easier to write Elm code that generates Elm code.
+
+
+# Types describing parts of the Elm AST.
+
+@docs Comment, Documentation, ModuleName, Module, File, Declaration, Import, TypeAnnotation
+@docs Exposing, TopLevelExpose, Expression, Pattern
+
+
+# Functions for building Elm source files.
+
+@docs file
+
+
+# Functions for building module declarations.
+
+@docs normalModule, portModule
+
+
+# Functions for building an exposing statement.
+
+@docs all, explicit, infixExpose, functionExpose, typeOrAliasExpose, typeExpose, openExposedType, closedExposedType
+
+
+# Functions for building import statements.
+
+@docs import_
+
+
+# Incrementally build up import and export lists.
+
+This is useful during code generation where the exact imports and exports are not known in advance
+but depend on what code is actually generated. Each section of code generation can declare the imports and
+exposings that it needs and they can be combined and de-duplicated to produce a final list.
+
+@docs ImportsAndExposing, deDupeImportsAndExposing, emptyImportsAndExposing, addImport, addExposing
+
+
+# Functions for building top-level declarations.
+
+@docs functionDeclaration, aliasDeclaration, customTypeDeclaration, portDeclaration, destructuring
+
+
+# Functions for building Elm expressions.
+
+@docs pipe, chain, unitExpr, application, operatorApplication, functionOrValue, simpleVal, ifBlock, prefixOperator
+@docs operator, integer, hex, floatable, negation, literal, charLiteral, tupledExpression, parenthesizedExpression
+@docs letExpression, caseExpression, lambdaExpression, recordExpr, listExpr, recordAccess, recordAccessFunction
+@docs recordUpdateExpression, glslExpression
+
+
+# Functions for building de-structuring pattern matchings.
+
+@docs allPattern, unitPattern, charPattern, stringPattern, intPattern, hexPattern, floatPattern
+@docs tuplePattern, recordPattern, unConsPattern, listPattern, varPattern, namedPattern, asPattern
+@docs paranthesizedPattern
+
+
+# Functions for building Elm type annotations.
+
+@docs genericType, typed, unit, tupled, record, genericRecord, functionTypeAnnotation
+
 -}
 
 import Elm.Syntax.Declaration exposing (Declaration(..))
