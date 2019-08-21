@@ -1,4 +1,4 @@
-module ElmDSL exposing (Comment, Declaration, Documentation, Exposing, Expression, File, Import, ImportsAndExposing, InfixDirection, Module, ModuleName, Pattern, TopLevelExpose, TypeAnnotation, addExposing, addImport, aliasDeclaration, all, allPattern, application, asPattern, caseBlock, caseExpression, case_, charLiteral, charPattern, closedExposedType, customTypeDeclaration, deDupeImportsAndExposing, defaultModuleData, destructuring, effectModule, effectModuleData, emptyImportsAndExposing, explicit, exposing_, file, floatPattern, floatable, function, functionDeclaration, functionExpose, functionImplementation, functionOrValue, functionTypeAnnotation, genericRecord, genericType, glslExpression, hex, hexPattern, ifBlock, import_, infixDeclaration, infixExpose, infix_, intPattern, integer, lambda, lambdaExpression, left, letBlock, letDestructuring, letExpression, letFunction, listExpr, listPattern, literal, namedPattern, negation, nodify, nodifyAll, nodifyMaybe, non, normalModule, openExposedType, operator, operatorApplication, paranthesizedPattern, parenthesizedExpression, portDeclaration, portModule, prefixOperator, record, recordAccess, recordAccessFunction, recordDefinition, recordExpr, recordField, recordPattern, recordSetter, recordUpdateExpression, right, signature, stringPattern, tuplePattern, tupled, tupledExpression, typeAlias, typeExpose, typeOrAliasExpose, type_, typed, unConsPattern, unit, unitExpr, unitPattern, valueConstructor, varPattern)
+module ElmDSL exposing (..)
 
 --import Elm.Syntax.Comments exposing (Comment)
 --import Elm.Syntax.Documentation exposing (Documentation)
@@ -227,6 +227,20 @@ closedExposedType name =
 
 
 --== Elm.Syntax.Expression
+
+
+{-| Joins multiple expressions together with the pipe operator `|>`. An
+expression `a` combined with a list of expressions `[b, c, d]` results in:
+
+    a |> b |> c |> d
+
+-}
+pipe : Expression -> List Expression -> Expression
+pipe head expressions =
+    List.foldl
+        (\expr accum -> operatorApplication "|>" left accum expr)
+        head
+        expressions
 
 
 {-| UnitExpr

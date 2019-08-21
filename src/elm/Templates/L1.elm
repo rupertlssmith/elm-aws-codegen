@@ -136,17 +136,7 @@ typeAliasCodec name l1Type =
                 (typed [] "Codec" [ typed [] typeName [] ])
 
         impl =
-            operatorApplication "|>"
-                left
-                (application
-                    [ functionOrValue [ "Codec" ] "object"
-                    , functionOrValue [] typeName
-                    ]
-                )
-                (application
-                    [ functionOrValue [ "Codec" ] "buildObject"
-                    ]
-                )
+            codecNamedType name l1Type
     in
     ( functionDeclaration
         (Just <| "{-| Codec for " ++ typeName ++ ". -}")
@@ -174,24 +164,81 @@ customTypeCodec name constructors =
     dummy name
 
 
+codecNamedType : String -> Type -> Expression
+codecNamedType name l1Type =
+    case l1Type of
+        TBasic basic ->
+            codecType l1Type
+
+        TNamed named ->
+            -- genericType (Case.toCamelCaseUpper name)
+            unitExpr
+
+        TProduct fields ->
+            codecNamedProduct name fields
+
+        TContainer container ->
+            codecType l1Type
+
+        TFunction arg res ->
+            unitExpr
+
+
 codecType : Type -> Expression
 codecType l1Type =
     case l1Type of
         TBasic basic ->
             codecBasic basic
 
-        TNamed name ->
+        TNamed named ->
             -- genericType (Case.toCamelCaseUpper name)
             unitExpr
 
         TProduct fields ->
             codecProduct fields
 
+        _ ->
+            unitExpr
+
+
+codecTypeField : String -> Type -> Expression
+codecTypeField name l1Type =
+    case l1Type of
+        TBasic basic ->
+            codecBasic basic
+                |> codecField name
+
+        TNamed named ->
+            -- genericType (Case.toCamelCaseUpper name)
+            unitExpr
+
+        TProduct fields ->
+            codecProduct fields
+                |> codecField name
+
         TContainer container ->
-            codecContainer container
+            codecContainerField name container
 
         TFunction arg res ->
             unitExpr
+
+
+codecField name expr =
+    application
+        [ functionOrValue [] "Codec.field"
+        , literal (Case.toCamelCaseLower name)
+        , recordAccessFunction (Case.toCamelCaseLower name)
+        , expr
+        ]
+
+
+codecOptionalField name expr =
+    application
+        [ functionOrValue [] "Codec.optionalField"
+        , literal (Case.toCamelCaseLower name)
+        , recordAccessFunction (Case.toCamelCaseLower name)
+        , expr
+        ]
 
 
 codecBasic : Basic -> Expression
@@ -210,6 +257,33 @@ codecBasic basic =
             functionOrValue [ "Codec" ] "string"
 
 
+codecNamedProduct : String -> List ( String, Type ) -> Expression
+codecNamedProduct name fields =
+    let
+        typeName =
+            Case.toCamelCaseUpper name
+
+        impl =
+            codecFields fields
+                |> pipe
+                    (application
+                        [ functionOrValue [ "Codec" ] "object"
+                        , functionOrValue [] typeName
+                        ]
+                    )
+    in
+    impl
+
+
+codecFields fields =
+    List.foldl (\( fieldName, l1Type ) accum -> codecTypeField fieldName l1Type :: accum)
+        [ application
+            [ functionOrValue [ "Codec" ] "buildObject"
+            ]
+        ]
+        fields
+
+
 codecProduct : List ( String, Type ) -> Expression
 codecProduct fields =
     let
@@ -222,20 +296,24 @@ codecProduct fields =
     unitExpr
 
 
-codecContainer : Container -> Expression
-codecContainer container =
+codecContainerField : String -> Container -> Expression
+codecContainerField name container =
     case container of
         CList l1Type ->
             application [ functionOrValue [ "Codec" ] "list", codecType l1Type ]
+                |> codecField name
 
         CSet l1Type ->
             application [ functionOrValue [ "Codec" ] "set", codecType l1Type ]
+                |> codecField name
 
         CDict l1keyType l1valType ->
             application [ functionOrValue [ "Codec" ] "dict", codecType l1keyType, codecType l1valType ]
+                |> codecField name
 
         COptional l1Type ->
-            application [ functionOrValue [ "Codec" ] "maybe", codecType l1Type ]
+            codecType l1Type
+                |> codecOptionalField name
 
 
 
