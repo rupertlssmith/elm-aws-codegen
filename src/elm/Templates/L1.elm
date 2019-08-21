@@ -336,7 +336,7 @@ codecContainerField name container =
 Helper function useful when building record codecs.
 -}
 codecFields fields =
-    List.foldl (\( fieldName, l1Type ) accum -> codecTypeField fieldName l1Type :: accum)
+    List.foldr (\( fieldName, l1Type ) accum -> codecTypeField fieldName l1Type :: accum)
         [ application
             [ functionOrValue [ "Codec" ] "buildObject"
             ]
