@@ -332,6 +332,10 @@ codecContainerField name container =
                 |> codecOptionalField name
 
 
+
+--== Helper Functions
+
+
 {-| Outputs codecs for a list of fields and terminates the list with `Codec.buildObject`.
 Helper function useful when building record codecs.
 -}
@@ -366,10 +370,6 @@ codecOptionalField name expr =
         , recordAccessFunction (Case.toCamelCaseLower name)
         , expr
         ]
-
-
-
---== Helper Functions
 
 
 dummy : String -> ( Declaration, ImportsAndExposing )
