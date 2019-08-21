@@ -1,7 +1,7 @@
 module ElmDSL exposing (..)
 
---import Elm.Syntax.Comments exposing (Comment)
---import Elm.Syntax.Documentation exposing (Documentation)
+{-| ElmDSL is a DSL designed to make it easier to write Elm code that generates Elm code.
+-}
 
 import Elm.Syntax.Declaration exposing (Declaration(..))
 import Elm.Syntax.Exposing exposing (ExposedType, Exposing(..), TopLevelExpose(..))
@@ -24,10 +24,15 @@ import Elm.Syntax.TypeAnnotation exposing (RecordDefinition, RecordField, TypeAn
 --== Dynamic import and export lists.
 
 
+{-| Captures lists of imports and exposings of a module, allowing these to be built up
+dynamically as code generation progresses.
+-}
 type alias ImportsAndExposing =
     ( List Import, List TopLevelExpose )
 
 
+{-| Simplifies the imports and exposings by removing any duplicates.
+-}
 deDupeImportsAndExposing : List ImportsAndExposing -> ImportsAndExposing
 deDupeImportsAndExposing list =
     let
@@ -39,17 +44,23 @@ deDupeImportsAndExposing list =
     )
 
 
+{-| Creates empty imports and exposings lists.
+-}
 emptyImportsAndExposing : ImportsAndExposing
 emptyImportsAndExposing =
     ( [], [] )
 
 
+{-| Adds an import to the list.
+-}
 addImport : Import -> ImportsAndExposing -> ImportsAndExposing
 addImport imp iande =
     Tuple.mapFirst ((::) imp)
         iande
 
 
+{-| Adds an exposing to the list.
+-}
 addExposing : TopLevelExpose -> ImportsAndExposing -> ImportsAndExposing
 addExposing tlExpose iande =
     Tuple.mapSecond ((::) tlExpose)
@@ -60,54 +71,84 @@ addExposing tlExpose iande =
 --== Re-Export of Types
 
 
+{-| Comments are just Strings.
+-}
 type alias Comment =
     String
 
 
+{-| Documentation is just Strings.
+-}
 type alias Documentation =
     String
 
 
+{-| A module name can consist of mulitple Stirngs separated with '.'.
+-}
 type alias ModuleName =
     List String
 
 
+{-| The AST for an Elm module.
+-}
 type alias Module =
     Elm.Syntax.Module.Module
 
 
+{-| The AST for an Elm file.
+-}
 type alias File =
     Elm.Syntax.File.File
 
 
+{-| The AST for a top-level Elm declaration; a function, a value, a type or a
+type alias.
+-}
 type alias Declaration =
     Elm.Syntax.Declaration.Declaration
 
 
+{-| The AST for an Elm import statement.
+-}
 type alias Import =
     Elm.Syntax.Import.Import
 
 
+{-| The AST for an Elm type annotation.
+-}
 type alias TypeAnnotation =
     Elm.Syntax.TypeAnnotation.TypeAnnotation
 
 
+{-| The AST for an Elm exposing statement.
+-}
 type alias Exposing =
     Elm.Syntax.Exposing.Exposing
 
 
+{-| The AST for a member of an Elm exposing statement.
+-}
 type alias TopLevelExpose =
     Elm.Syntax.Exposing.TopLevelExpose
 
 
+{-| The AST for an Elm expression.
+-}
 type alias Expression =
     Elm.Syntax.Expression.Expression
 
 
+{-| The possible infix operator associativities.
+
+Deprecated in Elm 0.19.
+
+-}
 type alias InfixDirection =
     Elm.Syntax.Infix.InfixDirection
 
 
+{-| The AST for a de-structuring Elm pattern matching expression.
+-}
 type alias Pattern =
     Elm.Syntax.Pattern.Pattern
 
@@ -211,6 +252,8 @@ typeExpose exposedType =
     TypeExpose exposedType
 
 
+{-| Creates an exposing member for a type, exposing all of the types constructors.
+-}
 openExposedType : String -> ExposedType
 openExposedType name =
     { name = name
@@ -218,6 +261,8 @@ openExposedType name =
     }
 
 
+{-| Creates an exposing member for an opaque type, exposing none of its constructors.
+-}
 closedExposedType : String -> ExposedType
 closedExposedType name =
     { name = name
@@ -497,6 +542,9 @@ functionImplementation name args expr =
 --== Elm.Syntax.File
 
 
+{-| Assembles all the components of an Elm file; the module declaration, the
+comments, the imports and the top-level declarations.
+-}
 file : Module -> List Import -> List Declaration -> List Comment -> File
 file mod imports declarations comments =
     { moduleDefinition = nodify mod
@@ -510,6 +558,9 @@ file mod imports declarations comments =
 --== Elm.Syntax.Import
 
 
+{-| Creates an Elm import statement; the name of the module, an optional alias
+name for the module, and an optional list of exposings from the module.
+-}
 import_ : ModuleName -> Maybe ModuleName -> Maybe Exposing -> Import
 import_ modName aliasName exposes =
     { moduleName = nodify modName
@@ -522,6 +573,9 @@ import_ modName aliasName exposes =
 --== Elm.Syntax.Infix
 
 
+{-| Defines an infix operator.
+Deprecated in Elm 0.19.
+-}
 infix_ : InfixDirection -> Int -> String -> String -> Infix
 infix_ direction precedence symbol fn =
     { direction = nodify direction
@@ -531,21 +585,21 @@ infix_ direction precedence symbol fn =
     }
 
 
-{-| Left
+{-| Left associative.
 -}
 left : InfixDirection
 left =
     Left
 
 
-{-| Right
+{-| Right assosiative.
 -}
 right : InfixDirection
 right =
     Right
 
 
-{-| Non
+{-| Non associative.
 -}
 non : InfixDirection
 non =
@@ -842,10 +896,6 @@ uncurry fn ( a, b ) =
     fn a b
 
 
-{-| Creates an `exposing` section for a module or an import. If the list is empty
-`exposing (..)` will be created, otherwise an explicit list of `TopLevelExpose`s
-is created.
--}
 exposing_ : List TopLevelExpose -> Exposing
 exposing_ exposes =
     case exposes of
