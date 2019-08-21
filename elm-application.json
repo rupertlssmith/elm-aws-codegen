@@ -3,6 +3,7 @@
   "summary": "Generate Elm code to call AWS services.",
   "version": "1.0.0",
   "exposed-modules": [
-    "Templates.L1"
+    "Templates.L1",
+    "Top"
   ]
 }
