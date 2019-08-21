@@ -190,6 +190,8 @@ customTypeCodec name constructors =
     dummy name
 
 
+{-| Generates a Codec for an L1 type that has been named as an alias.
+-}
 codecNamedType : String -> Type -> Expression
 codecNamedType name l1Type =
     case l1Type of
@@ -210,6 +212,8 @@ codecNamedType name l1Type =
             unitExpr
 
 
+{-| Generates a Codec for an L1 type.
+-}
 codecType : Type -> Expression
 codecType l1Type =
     case l1Type of
@@ -227,6 +231,8 @@ codecType l1Type =
             unitExpr
 
 
+{-| Generates a field codec for a named field with an L1 type.
+-}
 codecTypeField : String -> Type -> Expression
 codecTypeField name l1Type =
     case l1Type of
@@ -249,24 +255,8 @@ codecTypeField name l1Type =
             unitExpr
 
 
-codecField name expr =
-    application
-        [ functionOrValue [] "Codec.field"
-        , literal (Case.toCamelCaseLower name)
-        , recordAccessFunction (Case.toCamelCaseLower name)
-        , expr
-        ]
-
-
-codecOptionalField name expr =
-    application
-        [ functionOrValue [] "Codec.optionalField"
-        , literal (Case.toCamelCaseLower name)
-        , recordAccessFunction (Case.toCamelCaseLower name)
-        , expr
-        ]
-
-
+{-| Generates a codec for a basic L1 type.
+-}
 codecBasic : Basic -> Expression
 codecBasic basic =
     case basic of
@@ -283,6 +273,9 @@ codecBasic basic =
             functionOrValue [ "Codec" ] "string"
 
 
+{-| Generates a codec for an L1 product type that has been named as an alias.
+The alias name is also the constructor function for the type.
+-}
 codecNamedProduct : String -> List ( String, Type ) -> Expression
 codecNamedProduct name fields =
     let
@@ -301,15 +294,10 @@ codecNamedProduct name fields =
     impl
 
 
-codecFields fields =
-    List.foldl (\( fieldName, l1Type ) accum -> codecTypeField fieldName l1Type :: accum)
-        [ application
-            [ functionOrValue [ "Codec" ] "buildObject"
-            ]
-        ]
-        fields
-
-
+{-| Generates a codec for an L1 product type that does not have a name.
+Without a name there is no constructor function for the product, so it must be
+built explicitly by its fields.
+-}
 codecProduct : List ( String, Type ) -> Expression
 codecProduct fields =
     let
@@ -318,10 +306,12 @@ codecProduct fields =
                 (Tuple.mapBoth Case.toCamelCaseUpper codecType)
                 fields
     in
-    --record mappedFields
     unitExpr
 
 
+{-| Generates a field codec for an L1 container type. The 'optional' type is mapped
+onto `Maybe` and makes use of `Codec.optionalField`.
+-}
 codecContainerField : String -> Container -> Expression
 codecContainerField name container =
     case container of
@@ -340,6 +330,42 @@ codecContainerField name container =
         COptional l1Type ->
             codecType l1Type
                 |> codecOptionalField name
+
+
+{-| Outputs codecs for a list of fields and terminates the list with `Codec.buildObject`.
+Helper function useful when building record codecs.
+-}
+codecFields fields =
+    List.foldl (\( fieldName, l1Type ) accum -> codecTypeField fieldName l1Type :: accum)
+        [ application
+            [ functionOrValue [ "Codec" ] "buildObject"
+            ]
+        ]
+        fields
+
+
+{-| Helper function for building field codecs.
+-}
+codecField : String -> Expression -> Expression
+codecField name expr =
+    application
+        [ functionOrValue [] "Codec.field"
+        , literal (Case.toCamelCaseLower name)
+        , recordAccessFunction (Case.toCamelCaseLower name)
+        , expr
+        ]
+
+
+{-| Helper function for building optional field codecs.
+-}
+codecOptionalField : String -> Expression -> Expression
+codecOptionalField name expr =
+    application
+        [ functionOrValue [] "Codec.optionalField"
+        , literal (Case.toCamelCaseLower name)
+        , recordAccessFunction (Case.toCamelCaseLower name)
+        , expr
+        ]
 
 
 
