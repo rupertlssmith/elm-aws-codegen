@@ -177,16 +177,6 @@ typeAliasCodec name l1Type =
 -}
 customTypeCodec : String -> List ( String, Type ) -> ( Declaration, ImportsAndExposing )
 customTypeCodec name constructors =
-    -- let
-    --     mappedConstructors =
-    --         List.map
-    --             (Tuple.mapBoth Case.toCamelCaseUpper (\l1Type -> [ lowerType l1Type ]))
-    --             constructors
-    -- in
-    -- ( customTypeDeclaration Nothing (Case.toCamelCaseUpper name) [] mappedConstructors
-    -- , emptyImportsAndExposing
-    --     |> addImport (import_ codecMod Nothing (Just <| explicit [ typeOrAliasExpose "Codec" ]))
-    -- )
     dummy name
 
 
@@ -199,7 +189,6 @@ codecNamedType name l1Type =
             codecType l1Type
 
         TNamed named ->
-            -- genericType (Case.toCamelCaseUpper name)
             unitExpr
 
         TProduct fields ->
@@ -221,7 +210,6 @@ codecType l1Type =
             codecBasic basic
 
         TNamed named ->
-            -- genericType (Case.toCamelCaseUpper name)
             unitExpr
 
         TProduct fields ->
@@ -241,7 +229,6 @@ codecTypeField name l1Type =
                 |> codecField name
 
         TNamed named ->
-            -- genericType (Case.toCamelCaseUpper name)
             unitExpr
 
         TProduct fields ->
@@ -300,12 +287,6 @@ built explicitly by its fields.
 -}
 codecProduct : List ( String, Type ) -> Expression
 codecProduct fields =
-    let
-        mappedFields =
-            List.map
-                (Tuple.mapBoth Case.toCamelCaseUpper codecType)
-                fields
-    in
     unitExpr
 
 
