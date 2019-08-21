@@ -1,8 +1,8 @@
-module Templates.L1 exposing (typeDecl)
+module Templates.L1 exposing (typeDecl, codec)
 
 {-| Elm code generation from LevelOne models.
 
-@docs typeDecl
+@docs typeDecl, codec
 
 -}
 
