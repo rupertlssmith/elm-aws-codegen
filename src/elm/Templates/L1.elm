@@ -287,7 +287,7 @@ codecNamedProduct name fields =
                 |> pipe
                     (application
                         [ functionOrValue [ "Codec" ] "object"
-                        , functionOrValue [] typeName
+                        , simpleVal typeName
                         ]
                     )
     in
@@ -349,7 +349,7 @@ codecFields fields =
 codecField : String -> Expression -> Expression
 codecField name expr =
     application
-        [ functionOrValue [] "Codec.field"
+        [ functionOrValue [ "Codec" ] "field"
         , literal (Case.toCamelCaseLower name)
         , recordAccessFunction (Case.toCamelCaseLower name)
         , expr
@@ -361,7 +361,7 @@ codecField name expr =
 codecOptionalField : String -> Expression -> Expression
 codecOptionalField name expr =
     application
-        [ functionOrValue [] "Codec.optionalField"
+        [ functionOrValue [ "Codec" ] "optionalField"
         , literal (Case.toCamelCaseLower name)
         , recordAccessFunction (Case.toCamelCaseLower name)
         , expr

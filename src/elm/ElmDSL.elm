@@ -271,6 +271,13 @@ functionOrValue moduleName name =
     FunctionOrValue moduleName name
 
 
+{-| Creates a FunctionOrValue with no qualifiying module.
+-}
+simpleVal : String -> Expression
+simpleVal name =
+    functionOrValue [] name
+
+
 {-| IfBlock (Node Expression) (Node Expression) (Node Expression)
 -}
 ifBlock : Expression -> Expression -> Expression -> Expression
