@@ -243,6 +243,20 @@ pipe head expressions =
         expressions
 
 
+{-| Joins multiple expressions together with the function chain operator `>>`. An
+expression `a` combined with a list of expressions `[b, c, d]` results in:
+
+    a >> b >> c >> d
+
+-}
+chain : Expression -> List Expression -> Expression
+chain head expressions =
+    List.foldl
+        (\expr accum -> operatorApplication ">>" left accum expr)
+        head
+        expressions
+
+
 {-| UnitExpr
 -}
 unitExpr : Expression
