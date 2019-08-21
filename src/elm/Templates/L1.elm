@@ -261,16 +261,16 @@ codecBasic : Basic -> Expression
 codecBasic basic =
     case basic of
         BBool ->
-            functionOrValue [ "Codec" ] "bool"
+            codecFn "bool"
 
         BInt ->
-            functionOrValue [ "Codec" ] "int"
+            codecFn "int"
 
         BReal ->
-            functionOrValue [ "Codec" ] "float"
+            codecFn "float"
 
         BString ->
-            functionOrValue [ "Codec" ] "string"
+            codecFn "string"
 
 
 {-| Generates a codec for an L1 product type that has been named as an alias.
@@ -286,7 +286,7 @@ codecNamedProduct name fields =
             codecFields fields
                 |> pipe
                     (application
-                        [ functionOrValue [ "Codec" ] "object"
+                        [ codecFn "object"
                         , simpleVal typeName
                         ]
                     )
@@ -316,15 +316,15 @@ codecContainerField : String -> Container -> Expression
 codecContainerField name container =
     case container of
         CList l1Type ->
-            application [ functionOrValue [ "Codec" ] "list", codecType l1Type ]
+            application [ codecFn "list", codecType l1Type ]
                 |> codecField name
 
         CSet l1Type ->
-            application [ functionOrValue [ "Codec" ] "set", codecType l1Type ]
+            application [ codecFn "set", codecType l1Type ]
                 |> codecField name
 
         CDict l1keyType l1valType ->
-            application [ functionOrValue [ "Codec" ] "dict", codecType l1keyType, codecType l1valType ]
+            application [ codecFn "dict", codecType l1keyType, codecType l1valType ]
                 |> codecField name
 
         COptional l1Type ->
@@ -338,7 +338,7 @@ Helper function useful when building record codecs.
 codecFields fields =
     List.foldr (\( fieldName, l1Type ) accum -> codecTypeField fieldName l1Type :: accum)
         [ application
-            [ functionOrValue [ "Codec" ] "buildObject"
+            [ codecFn "buildObject"
             ]
         ]
         fields
@@ -349,7 +349,7 @@ codecFields fields =
 codecField : String -> Expression -> Expression
 codecField name expr =
     application
-        [ functionOrValue [ "Codec" ] "field"
+        [ codecFn "field"
         , literal (Case.toCamelCaseLower name)
         , recordAccessFunction (Case.toCamelCaseLower name)
         , expr
@@ -361,7 +361,7 @@ codecField name expr =
 codecOptionalField : String -> Expression -> Expression
 codecOptionalField name expr =
     application
-        [ functionOrValue [ "Codec" ] "optionalField"
+        [ codecFn "optionalField"
         , literal (Case.toCamelCaseLower name)
         , recordAccessFunction (Case.toCamelCaseLower name)
         , expr
@@ -380,3 +380,8 @@ dummy name =
 codecMod : List String
 codecMod =
     [ "Codec" ]
+
+
+codecFn : String -> Expression
+codecFn =
+    functionOrValue codecMod
