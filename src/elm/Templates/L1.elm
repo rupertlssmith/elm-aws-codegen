@@ -1,4 +1,10 @@
-module Templates.L1 exposing (..)
+module Templates.L1 exposing (typeDecl)
+
+{-| Elm code generation from LevelOne models.
+
+@docs typeDecl
+
+-}
 
 import Codec
 import ElmDSL exposing (..)
@@ -10,6 +16,8 @@ import String.Case as Case
 --== Type Declarations
 
 
+{-| Turns an L1 type declaration into Elm code.
+-}
 typeDecl : String -> Declarable -> ( Declaration, ImportsAndExposing )
 typeDecl name decl =
     case decl of
@@ -23,6 +31,8 @@ typeDecl name decl =
             dummy name
 
 
+{-| Turns an L1 `Type` into a type alias in Elm code.
+-}
 typeAlias : String -> Type -> ( Declaration, ImportsAndExposing )
 typeAlias name l1Type =
     ( aliasDeclaration Nothing (Case.toCamelCaseUpper name) [] (lowerType l1Type)
@@ -30,6 +40,8 @@ typeAlias name l1Type =
     )
 
 
+{-| Turns an L1 sum type into a custom type in Elm code.
+-}
 customType : String -> List ( String, Type ) -> ( Declaration, ImportsAndExposing )
 customType name constructors =
     let
@@ -43,6 +55,8 @@ customType name constructors =
     )
 
 
+{-| Lowers an L1 type into an Elm type annotation.
+-}
 lowerType : Type -> TypeAnnotation
 lowerType l1Type =
     case l1Type of
@@ -62,6 +76,8 @@ lowerType l1Type =
             unit
 
 
+{-| Lowers an L1 basic type into an Elm type annotation.
+-}
 lowerBasic : Basic -> TypeAnnotation
 lowerBasic basic =
     case basic of
@@ -78,6 +94,8 @@ lowerBasic basic =
             genericType "String"
 
 
+{-| Lowers an L1 product type into an Elm type annotation.
+-}
 lowerProduct : List ( String, Type ) -> TypeAnnotation
 lowerProduct fields =
     let
@@ -89,6 +107,8 @@ lowerProduct fields =
     record mappedFields
 
 
+{-| Lowers an L1 container type into an Elm type annotation.
+-}
 lowerContainer : Container -> TypeAnnotation
 lowerContainer container =
     case container of
@@ -109,6 +129,8 @@ lowerContainer container =
 --== Decoders and Encoders
 
 
+{-| Generates a Codec for an L1 type declaration.
+-}
 codec : String -> Declarable -> ( Declaration, ImportsAndExposing )
 codec name decl =
     case decl of
@@ -122,6 +144,8 @@ codec name decl =
             dummy (name ++ "Codec")
 
 
+{-| Generates a Codec for an L1 type alias.
+-}
 typeAliasCodec : String -> Type -> ( Declaration, ImportsAndExposing )
 typeAliasCodec name l1Type =
     let
@@ -149,6 +173,8 @@ typeAliasCodec name l1Type =
     )
 
 
+{-| Generates a Codec for an L1 sum type.
+-}
 customTypeCodec : String -> List ( String, Type ) -> ( Declaration, ImportsAndExposing )
 customTypeCodec name constructors =
     -- let

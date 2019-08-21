@@ -1,10 +1,10 @@
-# elm-codegen-spike
+# elm-aws-codegen
 
-Trying out codegen and pretty printing in Elm.
+Amazon Web Services publish service API definitions for all AWS services. These are in JSON format
+and similar to Swagger definitions although the contents are not Swagger but a specification
+that is specific to AWS. They play a similar role to Swagger files in that they describe the
+URLs for all the service endpoints, and the data models that can be sent to and received from
+these endpoints.
 
-The aim here was to come up with an AST for some imaginary programming language (not a useful one), generate around 10K 
-lines of code and pretty print them into a file. The purpose of this being to check that this kind of thing can run in 
-Elm without being too slow, and without blowing up the stack on deeply recursive algorithms.
-
-There are some slides for an associated talk under `/slides`. These slides are best viewed with 
-[Elm Dive SVG](https://myrho.github.io/dive-svg/).
+This code generation takes an AWS service definition and outputs Elm code with the data models
+and functions to construct HTTP requests against these services.
