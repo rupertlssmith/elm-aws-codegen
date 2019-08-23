@@ -4,9 +4,11 @@ import AWSService exposing (AWSService)
 import Codec
 import Dict exposing (Dict)
 import Diff
+import Elm.Pretty
 import Elm.Writer
 import Json.Decode as Decode
 import Json.Decode.Generic as Generic
+import Pretty
 import Random exposing (Seed)
 import Task
 import Templates.Api
@@ -112,8 +114,8 @@ processServiceModel name val seed =
 
                 codegen =
                     Templates.Api.serviceFile Templates.Api.example
-                        |> Elm.Writer.writeFile
-                        |> Elm.Writer.write
+                        |> Elm.Pretty.pretty
+                        |> Pretty.pretty 4
             in
             ( Seeded { seed = seed }
             , codegen |> codeOutPort
