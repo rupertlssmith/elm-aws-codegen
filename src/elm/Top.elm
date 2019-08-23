@@ -115,7 +115,7 @@ processServiceModel name val seed =
                 codegen =
                     Templates.Api.serviceFile Templates.Api.example
                         |> Elm.Pretty.pretty
-                        |> Pretty.pretty 4
+                        |> Pretty.pretty 120
             in
             ( Seeded { seed = seed }
             , codegen |> codeOutPort
