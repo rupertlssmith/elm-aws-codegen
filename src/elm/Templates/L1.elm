@@ -101,7 +101,7 @@ lowerProduct fields =
     let
         mappedFields =
             List.map
-                (Tuple.mapBoth Case.toCamelCaseUpper lowerType)
+                (Tuple.mapBoth Case.toCamelCaseLower lowerType)
                 fields
     in
     record mappedFields
