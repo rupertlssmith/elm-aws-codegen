@@ -298,14 +298,17 @@ codecContainerField name container =
     case container of
         CList l1Type ->
             application [ codecFn "list", codecType l1Type ]
+                |> parenthesizedExpression
                 |> codecField name
 
         CSet l1Type ->
             application [ codecFn "set", codecType l1Type ]
+                |> parenthesizedExpression
                 |> codecField name
 
         CDict l1keyType l1valType ->
             application [ codecFn "dict", codecType l1keyType, codecType l1valType ]
+                |> parenthesizedExpression
                 |> codecField name
 
         COptional l1Type ->
