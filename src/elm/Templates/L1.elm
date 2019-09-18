@@ -177,7 +177,29 @@ typeAliasCodec name l1Type =
 -}
 customTypeCodec : String -> List ( String, Type ) -> ( Declaration, ImportsAndExposing )
 customTypeCodec name constructors =
-    dummy name
+    let
+        codecFnName =
+            Case.toCamelCaseLower (name ++ "Codec")
+
+        typeName =
+            Case.toCamelCaseUpper name
+
+        sig =
+            signature codecFnName
+                (typed [] "Codec" [ typed [] typeName [] ])
+
+        impl =
+            unitExpr
+    in
+    ( functionDeclaration
+        (Just <| "{-| Codec for " ++ typeName ++ ". -}")
+        (Just sig)
+        codecFnName
+        []
+        impl
+    , emptyImportsAndExposing
+        |> addImport (import_ codecMod Nothing (Just <| explicit [ typeOrAliasExpose "Codec" ]))
+    )
 
 
 {-| Generates a Codec for an L1 type that has been named as an alias.
