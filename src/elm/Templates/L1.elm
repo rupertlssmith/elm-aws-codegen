@@ -218,6 +218,11 @@ codecCustomType constructors =
             (application [ codecFn "custom" ])
 
 
+codecMatchFn : List (String -> Type) -> Expression
+codecMatchFn constructors =
+    unitExpr
+
+
 {-| Generates a Codec for an L1 type that has been named as an alias.
 -}
 codecNamedType : String -> Type -> Expression
