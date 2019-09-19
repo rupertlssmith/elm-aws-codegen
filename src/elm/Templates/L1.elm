@@ -189,7 +189,7 @@ customTypeCodec name constructors =
                 (typed [] "Codec" [ typed [] typeName [] ])
 
         impl =
-            unitExpr
+            codecCustomType constructors
     in
     ( functionDeclaration
         (Just <| "{-| Codec for " ++ typeName ++ ". -}")
@@ -200,6 +200,22 @@ customTypeCodec name constructors =
     , emptyImportsAndExposing
         |> addImport codecImport
     )
+
+
+codecCustomType : List ( String, Type ) -> Expression
+codecCustomType constructors =
+    let
+        codecVariant name l1Type =
+            codecFn "variantX"
+    in
+    List.foldr (\( name, l1Type ) accum -> codecVariant name l1Type :: accum)
+        [ application
+            [ codecFn "buildCustom"
+            ]
+        ]
+        constructors
+        |> pipe
+            (application [ codecFn "custom" ])
 
 
 {-| Generates a Codec for an L1 type that has been named as an alias.
