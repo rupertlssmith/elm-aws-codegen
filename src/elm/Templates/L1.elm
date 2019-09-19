@@ -215,12 +215,32 @@ codecCustomType constructors =
         ]
         constructors
         |> pipe
-            (application [ codecFn "custom" ])
+            (application
+                [ codecFn "custom"
+                , codecMatchFn constructors
+                ]
+            )
 
 
-codecMatchFn : List (String -> Type) -> Expression
+codecMatchFn : List ( String, Type ) -> Expression
 codecMatchFn constructors =
-    unitExpr
+    let
+        consFnName name =
+            "f" ++ Case.toCamelCaseLower name
+
+        args =
+            List.foldr (\( name, _ ) accum -> (consFnName name |> varPattern) :: accum)
+                [ varPattern "value" ]
+                constructors
+
+        matchCase ( name, l1type ) =
+            ( varPattern name, unitExpr )
+
+        matchFnBody =
+            List.map matchCase constructors
+                |> caseExpression (simpleVal "value")
+    in
+    lambdaExpression args matchFnBody
 
 
 {-| Generates a Codec for an L1 type that has been named as an alias.
