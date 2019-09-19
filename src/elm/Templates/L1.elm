@@ -169,7 +169,7 @@ typeAliasCodec name l1Type =
         []
         impl
     , emptyImportsAndExposing
-        |> addImport (import_ codecMod Nothing (Just <| explicit [ typeOrAliasExpose "Codec" ]))
+        |> addImport codecImport
     )
 
 
@@ -198,7 +198,7 @@ customTypeCodec name constructors =
         []
         impl
     , emptyImportsAndExposing
-        |> addImport (import_ codecMod Nothing (Just <| explicit [ typeOrAliasExpose "Codec" ]))
+        |> addImport codecImport
     )
 
 
@@ -391,3 +391,8 @@ codecMod =
 codecFn : String -> Expression
 codecFn =
     functionOrValue codecMod
+
+
+codecImport : Import
+codecImport =
+    import_ codecMod Nothing (Just <| explicit [ typeOrAliasExpose "Codec" ])
