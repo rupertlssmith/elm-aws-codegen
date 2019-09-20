@@ -32,7 +32,7 @@ type Restricted
 
 type Declarable
     = DAlias Type
-    | DSum (List ( String, Type ))
+    | DSum (List ( String, List ( String, Type ) ))
     | DRestricted Restricted
 
 

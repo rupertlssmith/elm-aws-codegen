@@ -42,12 +42,15 @@ typeAlias name l1Type =
 
 {-| Turns an L1 sum type into a custom type in Elm code.
 -}
-customType : String -> List ( String, Type ) -> ( Declaration, ImportsAndExposing )
+customType : String -> List ( String, List ( String, Type ) ) -> ( Declaration, ImportsAndExposing )
 customType name constructors =
     let
+        lowerArgs ( _, l1Type ) =
+            lowerType l1Type
+
         mappedConstructors =
             List.map
-                (Tuple.mapBoth Case.toCamelCaseUpper (\l1Type -> [ lowerType l1Type ]))
+                (Tuple.mapBoth Case.toCamelCaseUpper (List.map lowerArgs))
                 constructors
     in
     ( customTypeDeclaration Nothing (Case.toCamelCaseUpper name) [] mappedConstructors
@@ -175,7 +178,7 @@ typeAliasCodec name l1Type =
 
 {-| Generates a Codec for an L1 sum type.
 -}
-customTypeCodec : String -> List ( String, Type ) -> ( Declaration, ImportsAndExposing )
+customTypeCodec : String -> List ( String, List ( String, Type ) ) -> ( Declaration, ImportsAndExposing )
 customTypeCodec name constructors =
     let
         codecFnName =
@@ -202,7 +205,7 @@ customTypeCodec name constructors =
     )
 
 
-codecCustomType : List ( String, Type ) -> Expression
+codecCustomType : List ( String, List ( String, Type ) ) -> Expression
 codecCustomType constructors =
     let
         codecVariant name l1Type =
@@ -222,7 +225,7 @@ codecCustomType constructors =
             )
 
 
-codecMatchFn : List ( String, Type ) -> Expression
+codecMatchFn : List ( String, List ( String, Type ) ) -> Expression
 codecMatchFn constructors =
     let
         consFnName name =

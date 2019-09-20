@@ -57,14 +57,14 @@ exampleRecord =
 exampleCustom : Declarable
 exampleCustom =
     DSum
-        [ ( "a", TBasic BInt )
-        , ( "b", TBasic BBool )
-        , ( "c", TBasic BReal )
-        , ( "d", TBasic BString )
-        , ( "e", TBasic BString |> CList |> TContainer )
-        , ( "f", TBasic BString |> CSet |> TContainer )
-        , ( "g", CDict (TBasic BString) (TBasic BString) |> TContainer )
-        , ( "h", TBasic BString |> COptional |> TContainer )
+        [ ( "a", [ ( "val", TBasic BInt ) ] )
+        , ( "b", [ ( "val", TBasic BBool ) ] )
+        , ( "c", [ ( "val", TBasic BReal ) ] )
+        , ( "d", [ ( "val", TBasic BString ) ] )
+        , ( "e", [ ( "val", TBasic BString |> CList |> TContainer ) ] )
+        , ( "f", [ ( "val", TBasic BString |> CSet |> TContainer ) ] )
+        , ( "g", [ ( "vals", CDict (TBasic BString) (TBasic BString) |> TContainer ) ] )
+        , ( "h", [ ( "maybeVal", TBasic BString |> COptional |> TContainer ) ] )
         ]
 
 
