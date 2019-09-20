@@ -236,11 +236,18 @@ codecMatchFn constructors =
                 [ varPattern "value" ]
                 constructors
 
-        matchCase ( name, l1type ) =
-            ( varPattern name, unitExpr )
+        consPattern ( name, consArgs ) =
+            ( namedPattern (Case.toCamelCaseUpper name)
+                (List.map (\( argName, _ ) -> varPattern argName) consArgs)
+            , List.foldr (\( argName, _ ) accum -> simpleVal argName :: accum)
+                [ consFnName name |> simpleVal ]
+                consArgs
+                |> List.reverse
+                |> application
+            )
 
         matchFnBody =
-            List.map matchCase constructors
+            List.map consPattern constructors
                 |> caseExpression (simpleVal "value")
     in
     lambdaExpression args matchFnBody
