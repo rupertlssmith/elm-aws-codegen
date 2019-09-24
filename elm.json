@@ -1,8 +1,7 @@
 {
     "type": "application",
     "source-directories": [
-        "src/elm",
-        "/home/rupert/sc/github/the-sett/elm-syntax-dsl/src"
+        "src/elm"
     ],
     "elm-version": "0.19.0",
     "dependencies": {
@@ -20,7 +19,8 @@
             "stil4m/elm-syntax": "7.1.0",
             "the-sett/decode-generic": "1.0.0",
             "the-sett/elm-pretty-printer": "2.2.2",
-            "the-sett/elm-string-case": "1.0.2"
+            "the-sett/elm-string-case": "1.0.2",
+            "the-sett/elm-syntax-dsl": "2.1.0"
         },
         "indirect": {
             "elm/parser": "1.1.0",
