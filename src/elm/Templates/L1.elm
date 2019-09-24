@@ -18,7 +18,7 @@ import String.Case as Case
 
 {-| Turns an L1 type declaration into Elm code.
 -}
-typeDecl : String -> Declarable -> ( Declaration, ImportsAndExposing )
+typeDecl : String -> Declarable -> ( Declaration, Linkage )
 typeDecl name decl =
     case decl of
         DAlias l1Type ->
@@ -33,16 +33,16 @@ typeDecl name decl =
 
 {-| Turns an L1 `Type` into a type alias in Elm code.
 -}
-typeAlias : String -> Type -> ( Declaration, ImportsAndExposing )
+typeAlias : String -> Type -> ( Declaration, Linkage )
 typeAlias name l1Type =
-    ( aliasDeclaration Nothing (Case.toCamelCaseUpper name) [] (lowerType l1Type)
-    , emptyImportsAndExposing
+    ( aliasDecl Nothing (Case.toCamelCaseUpper name) [] (lowerType l1Type)
+    , emptyLinkage
     )
 
 
 {-| Turns an L1 sum type into a custom type in Elm code.
 -}
-customType : String -> List ( String, List ( String, Type ) ) -> ( Declaration, ImportsAndExposing )
+customType : String -> List ( String, List ( String, Type ) ) -> ( Declaration, Linkage )
 customType name constructors =
     let
         lowerArgs ( _, l1Type ) =
@@ -53,8 +53,8 @@ customType name constructors =
                 (Tuple.mapBoth Case.toCamelCaseUpper (List.map lowerArgs))
                 constructors
     in
-    ( customTypeDeclaration Nothing (Case.toCamelCaseUpper name) [] mappedConstructors
-    , emptyImportsAndExposing
+    ( customTypeDecl Nothing (Case.toCamelCaseUpper name) [] mappedConstructors
+    , emptyLinkage
     )
 
 
@@ -67,7 +67,7 @@ lowerType l1Type =
             lowerBasic basic
 
         TNamed name ->
-            genericType (Case.toCamelCaseUpper name)
+            typed (Case.toCamelCaseUpper name) []
 
         TProduct fields ->
             lowerProduct fields
@@ -76,7 +76,7 @@ lowerType l1Type =
             lowerContainer container
 
         TFunction arg res ->
-            unitType
+            unitAnn
 
 
 {-| Lowers an L1 basic type into an Elm type annotation.
@@ -85,16 +85,16 @@ lowerBasic : Basic -> TypeAnnotation
 lowerBasic basic =
     case basic of
         BBool ->
-            genericType "Bool"
+            typed "Bool" []
 
         BInt ->
-            genericType "Int"
+            typed "Int" []
 
         BReal ->
-            genericType "Float"
+            typed "Float" []
 
         BString ->
-            genericType "String"
+            typed "String" []
 
 
 {-| Lowers an L1 product type into an Elm type annotation.
@@ -107,7 +107,7 @@ lowerProduct fields =
                 (Tuple.mapBoth Case.toCamelCaseLower lowerType)
                 fields
     in
-    record mappedFields
+    recordAnn mappedFields
 
 
 {-| Lowers an L1 container type into an Elm type annotation.
@@ -116,16 +116,16 @@ lowerContainer : Container -> TypeAnnotation
 lowerContainer container =
     case container of
         CList l1Type ->
-            typed [] "List" [ lowerType l1Type ]
+            typed "List" [ lowerType l1Type ]
 
         CSet l1Type ->
-            typed [] "Set" [ lowerType l1Type ]
+            typed "Set" [ lowerType l1Type ]
 
         CDict l1keyType l1valType ->
-            typed [] "Dict" [ lowerType l1keyType, lowerType l1valType ]
+            typed "Dict" [ lowerType l1keyType, lowerType l1valType ]
 
         COptional l1Type ->
-            typed [] "Maybe" [ lowerType l1Type ]
+            typed "Maybe" [ lowerType l1Type ]
 
 
 
@@ -134,7 +134,7 @@ lowerContainer container =
 
 {-| Generates a Codec for an L1 type declaration.
 -}
-codec : String -> Declarable -> ( Declaration, ImportsAndExposing )
+codec : String -> Declarable -> ( Declaration, Linkage )
 codec name decl =
     case decl of
         DAlias l1Type ->
@@ -149,7 +149,7 @@ codec name decl =
 
 {-| Generates a Codec for an L1 type alias.
 -}
-typeAliasCodec : String -> Type -> ( Declaration, ImportsAndExposing )
+typeAliasCodec : String -> Type -> ( Declaration, Linkage )
 typeAliasCodec name l1Type =
     let
         codecFnName =
@@ -160,25 +160,25 @@ typeAliasCodec name l1Type =
 
         sig =
             signature codecFnName
-                (typed [] "Codec" [ typed [] typeName [] ])
+                (typed "Codec" [ typed typeName [] ])
 
         impl =
             codecNamedType name l1Type
     in
-    ( functionDeclaration
+    ( funDecl
         (Just <| "{-| Codec for " ++ typeName ++ ". -}")
         (Just sig)
         codecFnName
         []
         impl
-    , emptyImportsAndExposing
+    , emptyLinkage
         |> addImport codecImport
     )
 
 
 {-| Generates a Codec for an L1 sum type.
 -}
-customTypeCodec : String -> List ( String, List ( String, Type ) ) -> ( Declaration, ImportsAndExposing )
+customTypeCodec : String -> List ( String, List ( String, Type ) ) -> ( Declaration, Linkage )
 customTypeCodec name constructors =
     let
         codecFnName =
@@ -189,18 +189,18 @@ customTypeCodec name constructors =
 
         sig =
             signature codecFnName
-                (typed [] "Codec" [ typed [] typeName [] ])
+                (typed "Codec" [ typed typeName [] ])
 
         impl =
             codecCustomType constructors
     in
-    ( functionDeclaration
+    ( funDecl
         (Just <| "{-| Codec for " ++ typeName ++ ". -}")
         (Just sig)
         codecFnName
         []
         impl
-    , emptyImportsAndExposing
+    , emptyLinkage
         |> addImport codecImport
     )
 
@@ -212,13 +212,13 @@ codecCustomType constructors =
             codecFn "variantX"
     in
     List.foldr (\( name, l1Type ) accum -> codecVariant name l1Type :: accum)
-        [ application
+        [ apply
             [ codecFn "buildCustom"
             ]
         ]
         constructors
         |> pipe
-            (application
+            (apply
                 [ codecFn "custom"
                 , codecMatchFn constructors
                 ]
@@ -239,18 +239,18 @@ codecMatchFn constructors =
         consPattern ( name, consArgs ) =
             ( namedPattern (Case.toCamelCaseUpper name)
                 (List.map (\( argName, _ ) -> varPattern argName) consArgs)
-            , List.foldr (\( argName, _ ) accum -> simpleVal argName :: accum)
-                [ consFnName name |> simpleVal ]
+            , List.foldr (\( argName, _ ) accum -> val argName :: accum)
+                [ consFnName name |> fun ]
                 consArgs
                 |> List.reverse
-                |> application
+                |> apply
             )
 
         matchFnBody =
             List.map consPattern constructors
-                |> caseExpression (simpleVal "value")
+                |> caseExpr (val "value")
     in
-    lambdaExpression args matchFnBody
+    lambda args matchFnBody
 
 
 {-| Generates a Codec for an L1 type that has been named as an alias.
@@ -262,7 +262,7 @@ codecNamedType name l1Type =
             codecType l1Type
 
         TNamed named ->
-            unitExpr
+            unit
 
         TProduct fields ->
             codecNamedProduct name fields
@@ -271,7 +271,7 @@ codecNamedType name l1Type =
             codecType l1Type
 
         TFunction arg res ->
-            unitExpr
+            unit
 
 
 {-| Generates a Codec for an L1 type.
@@ -283,13 +283,13 @@ codecType l1Type =
             codecBasic basic
 
         TNamed named ->
-            unitExpr
+            unit
 
         TProduct fields ->
             codecProduct fields
 
         _ ->
-            unitExpr
+            unit
 
 
 {-| Generates a field codec for a named field with an L1 type.
@@ -302,7 +302,7 @@ codecTypeField name l1Type =
                 |> codecField name
 
         TNamed named ->
-            unitExpr
+            unit
 
         TProduct fields ->
             codecProduct fields
@@ -312,7 +312,7 @@ codecTypeField name l1Type =
             codecContainerField name container
 
         TFunction arg res ->
-            unitExpr
+            unit
 
 
 {-| Generates a codec for a basic L1 type.
@@ -345,9 +345,9 @@ codecNamedProduct name fields =
         impl =
             codecFields fields
                 |> pipe
-                    (application
+                    (apply
                         [ codecFn "object"
-                        , simpleVal typeName
+                        , fun typeName
                         ]
                     )
     in
@@ -360,7 +360,7 @@ built explicitly by its fields.
 -}
 codecProduct : List ( String, Type ) -> Expression
 codecProduct fields =
-    unitExpr
+    unit
 
 
 {-| Generates a field codec for an L1 container type. The 'optional' type is mapped
@@ -370,18 +370,18 @@ codecContainerField : String -> Container -> Expression
 codecContainerField name container =
     case container of
         CList l1Type ->
-            application [ codecFn "list", codecType l1Type ]
-                |> parenthesizedExpression
+            apply [ codecFn "list", codecType l1Type ]
+                |> parens
                 |> codecField name
 
         CSet l1Type ->
-            application [ codecFn "set", codecType l1Type ]
-                |> parenthesizedExpression
+            apply [ codecFn "set", codecType l1Type ]
+                |> parens
                 |> codecField name
 
         CDict l1keyType l1valType ->
-            application [ codecFn "dict", codecType l1keyType, codecType l1valType ]
-                |> parenthesizedExpression
+            apply [ codecFn "dict", codecType l1keyType, codecType l1valType ]
+                |> parens
                 |> codecField name
 
         COptional l1Type ->
@@ -398,7 +398,7 @@ Helper function useful when building record codecs.
 -}
 codecFields fields =
     List.foldr (\( fieldName, l1Type ) accum -> codecTypeField fieldName l1Type :: accum)
-        [ application
+        [ apply
             [ codecFn "buildObject"
             ]
         ]
@@ -409,10 +409,10 @@ codecFields fields =
 -}
 codecField : String -> Expression -> Expression
 codecField name expr =
-    application
+    apply
         [ codecFn "field"
-        , literal (Case.toCamelCaseLower name)
-        , recordAccessFunction (Case.toCamelCaseLower name)
+        , string (Case.toCamelCaseLower name)
+        , accessFun (Case.toCamelCaseLower name)
         , expr
         ]
 
@@ -421,17 +421,17 @@ codecField name expr =
 -}
 codecOptionalField : String -> Expression -> Expression
 codecOptionalField name expr =
-    application
+    apply
         [ codecFn "optionalField"
-        , literal (Case.toCamelCaseLower name)
-        , recordAccessFunction (Case.toCamelCaseLower name)
+        , string (Case.toCamelCaseLower name)
+        , accessFun (Case.toCamelCaseLower name)
         , expr
         ]
 
 
-dummy : String -> ( Declaration, ImportsAndExposing )
+dummy : String -> ( Declaration, Linkage )
 dummy name =
-    ( functionDeclaration Nothing Nothing name [] unitExpr, emptyImportsAndExposing )
+    ( funDecl Nothing Nothing name [] unit, emptyLinkage )
 
 
 codecMod : List String
@@ -441,9 +441,9 @@ codecMod =
 
 codecFn : String -> Expression
 codecFn =
-    functionOrValue codecMod
+    fqFun codecMod
 
 
 codecImport : Import
 codecImport =
-    import_ codecMod Nothing (Just <| explicit [ typeOrAliasExpose "Codec" ])
+    importStmt codecMod Nothing (Just <| exposeExplicit [ typeOrAliasExpose "Codec" ])

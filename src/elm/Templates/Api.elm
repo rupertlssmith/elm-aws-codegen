@@ -91,7 +91,7 @@ serviceFile model =
                 |> (::) linkage
 
         ( imports, exposings ) =
-            deDupeImportsAndExposing linkages
+            combineLinkage linkages
 
         moduleSpec =
             module_ model exposings
@@ -149,7 +149,7 @@ docs =
 --== Service Definition
 
 
-service : GenModel -> ( Declaration, ImportsAndExposing )
+service : GenModel -> ( Declaration, Linkage )
 service model =
     if model.isRegional then
         regionalService model
@@ -158,62 +158,62 @@ service model =
         globalService model
 
 
-regionalService : GenModel -> ( Declaration, ImportsAndExposing )
+regionalService : GenModel -> ( Declaration, Linkage )
 regionalService model =
     let
         sig =
             signature "service"
-                (functionTypeAnnotation
-                    (typed coreServiceMod "Region" [])
-                    (typed coreServiceMod "Service" [])
+                (funAnn
+                    (fqTyped coreServiceMod "Region" [])
+                    (fqTyped coreServiceMod "Service" [])
                 )
 
         impl =
-            application
-                [ functionOrValue coreServiceMod "defineRegional"
-                , literal model.endpointPrefix
-                , literal model.apiVersion
-                , functionOrValue coreServiceMod model.protocol
-                , functionOrValue coreServiceMod model.signer
+            apply
+                [ fqFun coreServiceMod "defineRegional"
+                , string model.endpointPrefix
+                , string model.apiVersion
+                , fqFun coreServiceMod model.protocol
+                , fqFun coreServiceMod model.signer
                 ]
     in
-    ( functionDeclaration
+    ( funDecl
         (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
         impl
-    , emptyImportsAndExposing
-        |> addImport (import_ coreServiceMod Nothing Nothing)
-        |> addExposing (functionExpose "service")
+    , emptyLinkage
+        |> addImport (importStmt coreServiceMod Nothing Nothing)
+        |> addExposing (funExpose "service")
     )
 
 
-globalService : GenModel -> ( Declaration, ImportsAndExposing )
+globalService : GenModel -> ( Declaration, Linkage )
 globalService model =
     let
         sig =
             signature "service"
-                (typed coreServiceMod "Service" [])
+                (fqTyped coreServiceMod "Service" [])
 
         impl =
-            application
-                [ functionOrValue coreServiceMod "defineGlobal"
-                , literal model.endpointPrefix
-                , literal model.apiVersion
-                , functionOrValue coreServiceMod model.protocol
-                , functionOrValue coreServiceMod model.signer
+            apply
+                [ fqFun coreServiceMod "defineGlobal"
+                , string model.endpointPrefix
+                , string model.apiVersion
+                , fqFun coreServiceMod model.protocol
+                , fqFun coreServiceMod model.signer
                 ]
     in
-    ( functionDeclaration
+    ( funDecl
         (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
         impl
-    , emptyImportsAndExposing
-        |> addImport (import_ coreServiceMod Nothing Nothing)
-        |> addExposing (functionExpose "service")
+    , emptyLinkage
+        |> addImport (importStmt coreServiceMod Nothing Nothing)
+        |> addExposing (funExpose "service")
     )
 
 
@@ -236,7 +236,7 @@ globalService model =
 -- {{~}}
 
 
-typeDeclarations : GenModel -> ( List Declaration, List ImportsAndExposing )
+typeDeclarations : GenModel -> ( List Declaration, List Linkage )
 typeDeclarations model =
     Dict.foldl
         (\name decl accum -> Templates.L1.typeDecl name decl :: accum)
@@ -245,7 +245,7 @@ typeDeclarations model =
         |> List.unzip
 
 
-jsonCodecs : GenModel -> ( List Declaration, List ImportsAndExposing )
+jsonCodecs : GenModel -> ( List Declaration, List Linkage )
 jsonCodecs model =
     Dict.foldl
         (\name decl accum -> Templates.L1.codec name decl :: accum)
