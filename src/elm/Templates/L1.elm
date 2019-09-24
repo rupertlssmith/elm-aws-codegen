@@ -85,16 +85,16 @@ lowerBasic : Basic -> TypeAnnotation
 lowerBasic basic =
     case basic of
         BBool ->
-            typed "Bool" []
+            boolAnn
 
         BInt ->
-            typed "Int" []
+            intAnn
 
         BReal ->
-            typed "Float" []
+            floatAnn
 
         BString ->
-            typed "String" []
+            stringAnn
 
 
 {-| Lowers an L1 product type into an Elm type annotation.
@@ -116,16 +116,16 @@ lowerContainer : Container -> TypeAnnotation
 lowerContainer container =
     case container of
         CList l1Type ->
-            typed "List" [ lowerType l1Type ]
+            lowerType l1Type |> listAnn
 
         CSet l1Type ->
-            typed "Set" [ lowerType l1Type ]
+            lowerType l1Type |> setAnn
 
         CDict l1keyType l1valType ->
-            typed "Dict" [ lowerType l1keyType, lowerType l1valType ]
+            dictAnn (lowerType l1keyType) (lowerType l1valType)
 
         COptional l1Type ->
-            typed "Maybe" [ lowerType l1Type ]
+            lowerType l1Type |> maybeAnn
 
 
 
