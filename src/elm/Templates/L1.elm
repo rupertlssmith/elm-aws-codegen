@@ -76,7 +76,7 @@ lowerType l1Type =
             lowerContainer container
 
         TFunction arg res ->
-            unit
+            unitType
 
 
 {-| Lowers an L1 basic type into an Elm type annotation.
