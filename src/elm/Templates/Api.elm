@@ -15,7 +15,6 @@ type alias GenModel =
     , signer : String
     , docs : String
     , declarations : Declarations
-    , imports : List ()
     , operations : List ()
     }
 
@@ -34,7 +33,6 @@ example =
             [ ( "record", exampleRecord )
             , ( "custom", exampleCustom )
             ]
-    , imports = []
     , operations = []
     }
 
