@@ -14,6 +14,7 @@ import Random exposing (Seed)
 import Task
 import Templates.Api
 import Time exposing (Posix)
+import Transform
 
 
 
@@ -114,7 +115,8 @@ processServiceModel name val seed =
                             "Failed to generic decode" |> Debug.log "Error"
 
                 codegen =
-                    Templates.Api.serviceFile AWSApiModel.example
+                    Transform.transform service
+                        |> Templates.Api.serviceFile
                         |> Elm.Pretty.pretty
                         |> Pretty.pretty 120
             in
