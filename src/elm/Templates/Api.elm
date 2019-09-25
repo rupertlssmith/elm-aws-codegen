@@ -1,8 +1,8 @@
 module Templates.Api exposing (GenModel, coreServiceMod, docs, example, globalService, module_, regionalService, service, serviceFile)
 
 import Dict exposing (Dict)
-import Elm.CodeGen exposing (..)
-import LevelOne exposing (..)
+import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
+import LevelOne exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
 import Templates.L1 exposing (..)
 
 
@@ -91,12 +91,12 @@ serviceFile model =
                 |> (::) linkage
 
         ( imports, exposings ) =
-            combineLinkage linkages
+            CG.combineLinkage linkages
 
         moduleSpec =
             module_ model exposings
     in
-    file moduleSpec imports declarations []
+    CG.file moduleSpec imports declarations []
 
 
 coreServiceMod : List String
@@ -110,7 +110,7 @@ coreServiceMod =
 
 module_ : GenModel -> List TopLevelExpose -> Module
 module_ model exposings =
-    normalModule model.name exposings
+    CG.normalModule model.name exposings
 
 
 
@@ -162,30 +162,30 @@ regionalService : GenModel -> ( Declaration, Linkage )
 regionalService model =
     let
         sig =
-            signature "service"
-                (funAnn
-                    (fqTyped coreServiceMod "Region" [])
-                    (fqTyped coreServiceMod "Service" [])
+            CG.signature "service"
+                (CG.funAnn
+                    (CG.fqTyped coreServiceMod "Region" [])
+                    (CG.fqTyped coreServiceMod "Service" [])
                 )
 
         impl =
-            apply
-                [ fqFun coreServiceMod "defineRegional"
-                , string model.endpointPrefix
-                , string model.apiVersion
-                , fqFun coreServiceMod model.protocol
-                , fqFun coreServiceMod model.signer
+            CG.apply
+                [ CG.fqFun coreServiceMod "defineRegional"
+                , CG.string model.endpointPrefix
+                , CG.string model.apiVersion
+                , CG.fqFun coreServiceMod model.protocol
+                , CG.fqFun coreServiceMod model.signer
                 ]
     in
-    ( funDecl
+    ( CG.funDecl
         (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
         impl
-    , emptyLinkage
-        |> addImport (importStmt coreServiceMod Nothing Nothing)
-        |> addExposing (funExpose "service")
+    , CG.emptyLinkage
+        |> CG.addImport (CG.importStmt coreServiceMod Nothing Nothing)
+        |> CG.addExposing (CG.funExpose "service")
     )
 
 
@@ -193,27 +193,27 @@ globalService : GenModel -> ( Declaration, Linkage )
 globalService model =
     let
         sig =
-            signature "service"
-                (fqTyped coreServiceMod "Service" [])
+            CG.signature "service"
+                (CG.fqTyped coreServiceMod "Service" [])
 
         impl =
-            apply
-                [ fqFun coreServiceMod "defineGlobal"
-                , string model.endpointPrefix
-                , string model.apiVersion
-                , fqFun coreServiceMod model.protocol
-                , fqFun coreServiceMod model.signer
+            CG.apply
+                [ CG.fqFun coreServiceMod "defineGlobal"
+                , CG.string model.endpointPrefix
+                , CG.string model.apiVersion
+                , CG.fqFun coreServiceMod model.protocol
+                , CG.fqFun coreServiceMod model.signer
                 ]
     in
-    ( funDecl
+    ( CG.funDecl
         (Just "{-| Configuration for this service. -}")
         (Just sig)
         "service"
         []
         impl
-    , emptyLinkage
-        |> addImport (importStmt coreServiceMod Nothing Nothing)
-        |> addExposing (funExpose "service")
+    , CG.emptyLinkage
+        |> CG.addImport (CG.importStmt coreServiceMod Nothing Nothing)
+        |> CG.addExposing (CG.funExpose "service")
     )
 
 
