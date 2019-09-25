@@ -357,8 +357,8 @@ codecContainer container =
                 |> parens
 
         COptional l1Type ->
-            --|> codecOptional
-            codecType l1Type
+            apply [ codecFn "maybe", codecType l1Type ]
+                |> parens
 
 
 {-| Generates a codec for an L1 product type that has been named as an alias.
