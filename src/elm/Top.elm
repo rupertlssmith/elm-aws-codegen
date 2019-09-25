@@ -1,5 +1,6 @@
 port module Top exposing (main)
 
+import AWSApiModel
 import AWSService exposing (AWSService)
 import Codec
 import Dict exposing (Dict)
@@ -113,7 +114,7 @@ processServiceModel name val seed =
                             "Failed to generic decode" |> Debug.log "Error"
 
                 codegen =
-                    Templates.Api.serviceFile Templates.Api.example
+                    Templates.Api.serviceFile AWSApiModel.example
                         |> Elm.Pretty.pretty
                         |> Pretty.pretty 120
             in

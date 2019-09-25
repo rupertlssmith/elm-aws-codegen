@@ -1,72 +1,13 @@
-module Templates.Api exposing (GenModel, coreServiceMod, docs, example, globalService, module_, regionalService, service, serviceFile)
+module Templates.Api exposing (coreServiceMod, docs, globalService, module_, regionalService, service, serviceFile)
 
+import AWSApiModel exposing (AWSApiModel)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
 import LevelOne exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
 import Templates.L1 exposing (..)
 
 
-type alias GenModel =
-    { name : List String
-    , isRegional : Bool
-    , endpointPrefix : String
-    , apiVersion : String
-    , protocol : String
-    , signer : String
-    , docs : String
-    , declarations : Declarations
-    , operations : List ()
-    }
-
-
-example : GenModel
-example =
-    { name = [ "Some", "Module" ]
-    , isRegional = True
-    , endpointPrefix = "dynamodb"
-    , apiVersion = "2012-08-10"
-    , protocol = "json"
-    , signer = "signV4"
-    , docs = ""
-    , declarations =
-        Dict.fromList
-            [ ( "record", exampleRecord )
-            , ( "custom", exampleCustom )
-            ]
-    , operations = []
-    }
-
-
-exampleRecord : Declarable
-exampleRecord =
-    TProduct
-        [ ( "a", TBasic BInt )
-        , ( "b", TBasic BBool )
-        , ( "c", TBasic BReal )
-        , ( "d", TBasic BString )
-        , ( "e", TBasic BString |> CList |> TContainer )
-        , ( "f", TBasic BString |> CSet |> TContainer )
-        , ( "g", CDict (TBasic BString) (TBasic BString) |> TContainer )
-        , ( "h", TBasic BString |> COptional |> TContainer )
-        ]
-        |> DAlias
-
-
-exampleCustom : Declarable
-exampleCustom =
-    DSum
-        [ ( "a", [ ( "val", TBasic BInt ) ] )
-        , ( "b", [ ( "val", TBasic BBool ) ] )
-        , ( "c", [ ( "val", TBasic BReal ) ] )
-        , ( "d", [ ( "val", TBasic BString ) ] )
-        , ( "e", [ ( "val", TBasic BString |> CList |> TContainer ) ] )
-        , ( "f", [ ( "val", TBasic BString |> CSet |> TContainer ) ] )
-        , ( "g", [ ( "vals", CDict (TBasic BString) (TBasic BString) |> TContainer ) ] )
-        , ( "h", [ ( "maybeVal", TBasic BString |> COptional |> TContainer ) ] )
-        ]
-
-
-serviceFile : GenModel -> File
+serviceFile : AWSApiModel -> File
 serviceFile model =
     let
         ( serviceFn, linkage ) =
@@ -106,7 +47,7 @@ coreServiceMod =
 --== Module Specification (with exposing).
 
 
-module_ : GenModel -> List TopLevelExpose -> Module
+module_ : AWSApiModel -> List TopLevelExpose -> Module
 module_ model exposings =
     CG.normalModule model.name exposings
 
@@ -147,7 +88,7 @@ docs =
 --== Service Definition
 
 
-service : GenModel -> ( Declaration, Linkage )
+service : AWSApiModel -> ( Declaration, Linkage )
 service model =
     if model.isRegional then
         regionalService model
@@ -156,7 +97,7 @@ service model =
         globalService model
 
 
-regionalService : GenModel -> ( Declaration, Linkage )
+regionalService : AWSApiModel -> ( Declaration, Linkage )
 regionalService model =
     let
         sig =
@@ -187,7 +128,7 @@ regionalService model =
     )
 
 
-globalService : GenModel -> ( Declaration, Linkage )
+globalService : AWSApiModel -> ( Declaration, Linkage )
 globalService model =
     let
         sig =
@@ -234,7 +175,7 @@ globalService model =
 -- {{~}}
 
 
-typeDeclarations : GenModel -> ( List Declaration, List Linkage )
+typeDeclarations : AWSApiModel -> ( List Declaration, List Linkage )
 typeDeclarations model =
     Dict.foldl
         (\name decl accum -> Templates.L1.typeDecl name decl :: accum)
@@ -243,7 +184,7 @@ typeDeclarations model =
         |> List.unzip
 
 
-jsonCodecs : GenModel -> ( List Declaration, List Linkage )
+jsonCodecs : AWSApiModel -> ( List Declaration, List Linkage )
 jsonCodecs model =
     Dict.foldl
         (\name decl accum -> Templates.L1.codec name decl :: accum)
