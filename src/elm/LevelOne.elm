@@ -1,4 +1,11 @@
-module LevelOne exposing (..)
+module LevelOne exposing
+    ( Basic(..)
+    , Container(..)
+    , Declarable(..)
+    , Declarations
+    , Restricted(..)
+    , Type(..)
+    )
 
 import Dict exposing (Dict)
 
