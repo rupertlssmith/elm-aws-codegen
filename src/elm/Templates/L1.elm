@@ -208,14 +208,19 @@ customTypeCodec name constructors =
 codecCustomType : List ( String, List ( String, Type ) ) -> Expression
 codecCustomType constructors =
     let
-        codecVariant name l1Type =
-            codecFn "variantX"
+        codecVariant name args =
+            List.foldr
+                (\( _, l1Type ) accum -> codecType l1Type :: accum)
+                [ Case.toCamelCaseUpper name |> fun
+                , Case.toCamelCaseUpper name |> string
+                , codecFn ("variant" ++ String.fromInt (List.length args))
+                ]
+                args
+                |> List.reverse
+                |> apply
     in
-    List.foldr (\( name, l1Type ) accum -> codecVariant name l1Type :: accum)
-        [ apply
-            [ codecFn "buildCustom"
-            ]
-        ]
+    List.foldr (\( name, consArgs ) accum -> codecVariant name consArgs :: accum)
+        [ apply [ codecFn "buildCustom" ] ]
         constructors
         |> pipe
             (apply
@@ -288,6 +293,9 @@ codecType l1Type =
         TProduct fields ->
             codecProduct fields
 
+        TContainer container ->
+            codecContainer container
+
         _ ->
             unit
 
@@ -331,6 +339,26 @@ codecBasic basic =
 
         BString ->
             codecFn "string"
+
+
+codecContainer : Container -> Expression
+codecContainer container =
+    case container of
+        CList l1Type ->
+            apply [ codecFn "list", codecType l1Type ]
+                |> parens
+
+        CSet l1Type ->
+            apply [ codecFn "set", codecType l1Type ]
+                |> parens
+
+        CDict l1keyType l1valType ->
+            apply [ codecFn "dict", codecType l1keyType, codecType l1valType ]
+                |> parens
+
+        COptional l1Type ->
+            --|> codecOptional
+            codecType l1Type
 
 
 {-| Generates a codec for an L1 product type that has been named as an alias.
