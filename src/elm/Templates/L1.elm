@@ -54,7 +54,6 @@ customType name constructors =
 
         ( mappedConstructors, linkages ) =
             List.map
-                -- (Tuple.mapBoth Case.toCamelCaseUpper (List.map lowerArgs))
                 (\( consName, consArgs ) ->
                     let
                         ( loweredArgs, linkage ) =
