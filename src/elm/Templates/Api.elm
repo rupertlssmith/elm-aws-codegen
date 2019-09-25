@@ -3,8 +3,7 @@ module Templates.Api exposing (coreServiceMod, docs, globalService, module_, reg
 import AWSApiModel exposing (AWSApiModel)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
-import LevelOne exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
-import Templates.L1 exposing (..)
+import Templates.L1
 
 
 serviceFile : AWSApiModel -> File
