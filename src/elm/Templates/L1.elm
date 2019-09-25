@@ -61,7 +61,7 @@ customType name constructors =
                                 |> List.unzip
                                 |> Tuple.mapSecond CG.combineLinkage
                     in
-                    ( ( Case.toCamelCaseLower consName, loweredArgs ), linkage )
+                    ( ( Case.toCamelCaseUpper consName, loweredArgs ), linkage )
                 )
                 constructors
                 |> List.unzip
