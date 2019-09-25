@@ -35,8 +35,12 @@ typeDecl name decl =
 -}
 typeAlias : String -> Type -> ( Declaration, Linkage )
 typeAlias name l1Type =
-    ( aliasDecl Nothing (Case.toCamelCaseUpper name) [] (lowerType l1Type)
-    , emptyLinkage
+    let
+        ( loweredType, linkage ) =
+            lowerType l1Type
+    in
+    ( aliasDecl Nothing (Case.toCamelCaseUpper name) [] loweredType
+    , linkage
     )
 
 
@@ -48,26 +52,40 @@ customType name constructors =
         lowerArgs ( _, l1Type ) =
             lowerType l1Type
 
-        mappedConstructors =
+        ( mappedConstructors, linkages ) =
             List.map
-                (Tuple.mapBoth Case.toCamelCaseUpper (List.map lowerArgs))
+                -- (Tuple.mapBoth Case.toCamelCaseUpper (List.map lowerArgs))
+                (\( consName, consArgs ) ->
+                    let
+                        ( loweredArgs, linkage ) =
+                            List.map lowerArgs consArgs
+                                |> List.unzip
+                                |> Tuple.mapSecond combineLinkage
+                    in
+                    ( ( Case.toCamelCaseLower consName, loweredArgs ), linkage )
+                )
                 constructors
+                |> List.unzip
     in
     ( customTypeDecl Nothing (Case.toCamelCaseUpper name) [] mappedConstructors
-    , emptyLinkage
+    , combineLinkage linkages
     )
 
 
 {-| Lowers an L1 type into an Elm type annotation.
 -}
-lowerType : Type -> TypeAnnotation
+lowerType : Type -> ( TypeAnnotation, Linkage )
 lowerType l1Type =
     case l1Type of
         TBasic basic ->
-            lowerBasic basic
+            ( lowerBasic basic
+            , emptyLinkage
+            )
 
         TNamed name ->
-            typed (Case.toCamelCaseUpper name) []
+            ( typed (Case.toCamelCaseUpper name) []
+            , emptyLinkage
+            )
 
         TProduct fields ->
             lowerProduct fields
@@ -76,7 +94,9 @@ lowerType l1Type =
             lowerContainer container
 
         TFunction arg res ->
-            unitAnn
+            ( unitAnn
+            , emptyLinkage
+            )
 
 
 {-| Lowers an L1 basic type into an Elm type annotation.
@@ -99,33 +119,55 @@ lowerBasic basic =
 
 {-| Lowers an L1 product type into an Elm type annotation.
 -}
-lowerProduct : List ( String, Type ) -> TypeAnnotation
+lowerProduct : List ( String, Type ) -> ( TypeAnnotation, Linkage )
 lowerProduct fields =
     let
-        mappedFields =
+        ( mappedFields, linkages ) =
             List.map
-                (Tuple.mapBoth Case.toCamelCaseLower lowerType)
+                (\( name, l1Type ) ->
+                    let
+                        ( loweredType, linkage ) =
+                            lowerType l1Type
+                    in
+                    ( ( Case.toCamelCaseLower name, loweredType ), linkage )
+                )
                 fields
+                |> List.unzip
     in
-    recordAnn mappedFields
+    ( recordAnn mappedFields
+    , combineLinkage linkages
+    )
 
 
 {-| Lowers an L1 container type into an Elm type annotation.
 -}
-lowerContainer : Container -> TypeAnnotation
+lowerContainer : Container -> ( TypeAnnotation, Linkage )
 lowerContainer container =
     case container of
         CList l1Type ->
-            lowerType l1Type |> listAnn
+            lowerType l1Type
+                |> Tuple.mapFirst listAnn
 
         CSet l1Type ->
-            lowerType l1Type |> setAnn
+            lowerType l1Type
+                |> Tuple.mapFirst setAnn
+                |> Tuple.mapSecond (addImport setImport)
 
         CDict l1keyType l1valType ->
-            dictAnn (lowerType l1keyType) (lowerType l1valType)
+            let
+                ( keyAnn, keyLink ) =
+                    lowerType l1keyType
+
+                ( valAnn, valLink ) =
+                    lowerType l1valType
+            in
+            ( dictAnn keyAnn valAnn
+            , combineLinkage [ keyLink, valLink ] |> addImport dictImport
+            )
 
         COptional l1Type ->
-            lowerType l1Type |> maybeAnn
+            lowerType l1Type
+                |> Tuple.mapFirst maybeAnn
 
 
 
@@ -352,8 +394,8 @@ codecContainer container =
             apply [ codecFn "set", codecType l1Type ]
                 |> parens
 
-        CDict l1keyType l1valType ->
-            apply [ codecFn "dict", codecType l1keyType, codecType l1valType ]
+        CDict _ l1valType ->
+            apply [ codecFn "dict", codecType l1valType ]
                 |> parens
 
         COptional l1Type ->
@@ -407,8 +449,8 @@ codecContainerField name container =
                 |> parens
                 |> codecField name
 
-        CDict l1keyType l1valType ->
-            apply [ codecFn "dict", codecType l1keyType, codecType l1valType ]
+        CDict _ l1valType ->
+            apply [ codecFn "dict", codecType l1valType ]
                 |> parens
                 |> codecField name
 
@@ -475,3 +517,13 @@ codecFn =
 codecImport : Import
 codecImport =
     importStmt codecMod Nothing (Just <| exposeExplicit [ typeOrAliasExpose "Codec" ])
+
+
+setImport : Import
+setImport =
+    importStmt [ "Set" ] Nothing (Just <| exposeExplicit [ typeOrAliasExpose "Set" ])
+
+
+dictImport : Import
+dictImport =
+    importStmt [ "Dict" ] Nothing (Just <| exposeExplicit [ typeOrAliasExpose "Dict" ])
