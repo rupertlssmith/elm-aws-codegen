@@ -1,4 +1,13 @@
-module AWSService exposing (AWSService, awsServiceCodec)
+module AWSService exposing
+    ( AWSService
+    , AuthorizationStrategy
+    , Authorizers
+    , MetaData
+    , Operation
+    , Shape
+    , ShapeRef
+    , awsServiceCodec
+    )
 
 {-| AWS Service2 Descriptor. This module provides the data model and decoders.
 -}
