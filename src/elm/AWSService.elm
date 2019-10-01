@@ -1,5 +1,6 @@
 module AWSService exposing
     ( AWSService
+    , AWSType(..)
     , AuthorizationStrategy
     , Authorizers
     , MetaData
