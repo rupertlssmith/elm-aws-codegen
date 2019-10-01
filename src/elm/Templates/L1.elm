@@ -481,7 +481,7 @@ codecField name expr =
     CG.apply
         [ codecFn "field"
         , CG.string (Case.toCamelCaseLower name)
-        , CG.accessFun (Case.toCamelCaseLower name)
+        , CG.accessFun ("." ++ Case.toCamelCaseLower name)
         , expr
         ]
 
@@ -493,7 +493,7 @@ codecOptionalField name expr =
     CG.apply
         [ codecFn "optionalField"
         , CG.string (Case.toCamelCaseLower name)
-        , CG.accessFun (Case.toCamelCaseLower name)
+        , CG.accessFun ("." ++ Case.toCamelCaseLower name)
         , expr
         ]
 
