@@ -12,7 +12,8 @@ transform service =
         default =
             AWSApiModel.example
     in
-    { default | declarations = modelShapes service.shapes }
+    --{ default | declarations = modelShapes service.shapes }
+    default
 
 
 modelShapes : Dict String Shape -> Declarations
