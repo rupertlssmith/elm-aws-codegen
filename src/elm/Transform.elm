@@ -66,8 +66,7 @@ modelShape shapeDict shape name =
             Err "Blob not implemented."
 
         AStructure ->
-            --TProduct [] |> DAlias |> Ok
-            Err "Structure not implemented."
+            modelStructure shapeDict shape name
 
         AList ->
             CList (BString |> TBasic) |> TContainer |> DAlias |> Ok
@@ -80,3 +79,19 @@ modelShape shapeDict shape name =
 
         AUnknown ->
             Err "Unknown not implemented."
+
+
+modelStructure : Dict String Shape -> Shape -> String -> Result String Declarable
+modelStructure shapeDict shape name =
+    case shape.members of
+        Nothing ->
+            Err (name ++ ": structure has no members")
+
+        Just members ->
+            Dict.foldl
+                (\key value accum -> ( key, BString |> TBasic ) :: accum)
+                []
+                members
+                |> TProduct
+                |> DAlias
+                |> Ok
