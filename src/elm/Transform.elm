@@ -52,7 +52,7 @@ modelShape shapeDict shape name =
             BBool |> TBasic |> DAlias |> Ok
 
         AInteger ->
-            BInt |> TBasic |> DAlias |> Ok
+            modelInt shapeDict shape name
 
         ALong ->
             BInt |> TBasic |> DAlias |> Ok
@@ -105,6 +105,18 @@ modelString shapeDict shape name =
 
         ( _, _ ) ->
             BString |> TBasic |> DAlias |> Ok
+
+
+modelInt : Dict String Shape -> Shape -> String -> Result String Declarable
+modelInt shapeDict shape name =
+    case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
+        True ->
+            RInt { min = shape.min, max = shape.max, width = Nothing }
+                |> DRestricted
+                |> Ok
+
+        _ ->
+            BInt |> TBasic |> DAlias |> Ok
 
 
 modelStructure : Dict String Shape -> Shape -> String -> Result String Declarable
