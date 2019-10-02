@@ -16,8 +16,12 @@ const app = Elm.Top.init();
 //     });
 // });
 
-fs.readFile('api/dynamodb-2012-08-10.normal.json', 'utf8', function(err, contents) {
-  app.ports.modelInPort.send(['api/dynamodb-2012-08-10.normal.json', contents]);
+// fs.readFile('api/dynamodb-2012-08-10.normal.json', 'utf8', function(err, contents) {
+//   app.ports.modelInPort.send(['api/dynamodb-2012-08-10.normal.json', contents]);
+// });
+
+fs.readFile('api/iam-2010-05-08.normal.json', 'utf8', function(err, contents) {
+  app.ports.modelInPort.send(['api/iam-2010-05-08.normal.json', contents]);
 });
 
 app.ports.codeOutPort.subscribe(request => {

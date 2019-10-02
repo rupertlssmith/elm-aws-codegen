@@ -3,7 +3,8 @@ module Transform exposing (transform)
 import AWSApiModel exposing (AWSApiModel)
 import AWSService exposing (AWSService, AWSType(..), Shape)
 import Dict exposing (Dict)
-import LevelOne exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
+import LevelOne exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
+import Maybe.Extra
 
 
 transform : AWSService -> AWSApiModel
@@ -45,7 +46,7 @@ modelShape : Dict String Shape -> Shape -> String -> Result String Declarable
 modelShape shapeDict shape name =
     case shape.type_ of
         AString ->
-            BString |> TBasic |> DAlias |> Ok
+            modelString shapeDict shape name
 
         ABoolean ->
             BBool |> TBasic |> DAlias |> Ok
@@ -79,6 +80,31 @@ modelShape shapeDict shape name =
 
         AUnknown ->
             Err "Unknown not implemented."
+
+
+modelString : Dict String Shape -> Shape -> String -> Result String Declarable
+modelString shapeDict shape name =
+    case
+        ( shape.enum
+        , Maybe.Extra.isJust shape.max
+            || Maybe.Extra.isJust shape.min
+            || Maybe.Extra.isJust shape.pattern
+        )
+    of
+        ( Just enumVals, False ) ->
+            List.map
+                (\val -> ( val, [ ( "name", BString |> TBasic ) ] ))
+                enumVals
+                |> DSum
+                |> Ok
+
+        ( Nothing, True ) ->
+            RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
+                |> DRestricted
+                |> Ok
+
+        ( _, _ ) ->
+            BString |> TBasic |> DAlias |> Ok
 
 
 modelStructure : Dict String Shape -> Shape -> String -> Result String Declarable

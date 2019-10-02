@@ -34,7 +34,7 @@ type Type
 
 type Restricted
     = RInt { min : Maybe Int, max : Maybe Int, width : Maybe Int }
-    | RString { minLength : Maybe Int, maxLength : Maybe Int, regex : String }
+    | RString { minLength : Maybe Int, maxLength : Maybe Int, regex : Maybe String }
 
 
 type Declarable
