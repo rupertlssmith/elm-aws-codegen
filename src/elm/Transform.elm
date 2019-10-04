@@ -3,7 +3,7 @@ module Transform exposing (transform)
 import AWSApiModel exposing (AWSApiModel)
 import AWSService exposing (AWSService, AWSType(..), Shape)
 import Dict exposing (Dict)
-import LevelOne exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
 import Maybe.Extra
 
 

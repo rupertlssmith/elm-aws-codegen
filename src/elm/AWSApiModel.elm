@@ -1,7 +1,7 @@
 module AWSApiModel exposing (AWSApiModel, example)
 
 import Dict exposing (Dict)
-import LevelOne exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
 
 
 type alias AWSApiModel =

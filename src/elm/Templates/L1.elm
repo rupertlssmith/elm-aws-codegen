@@ -1,6 +1,6 @@
 module Templates.L1 exposing (typeDecl, codec)
 
-{-| Elm code generation from LevelOne models.
+{-| Elm code generation from L1 models.
 
 @docs typeDecl, codec
 
@@ -8,7 +8,7 @@ module Templates.L1 exposing (typeDecl, codec)
 
 import Codec
 import Elm.CodeGen as CG exposing (Declaration, Expression, Import, Linkage, TypeAnnotation)
-import LevelOne exposing (Basic(..), Container(..), Declarable(..), Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Type(..))
 import String.Case as Case
 
 
