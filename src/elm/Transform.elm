@@ -7,14 +7,6 @@ import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Rest
 import Maybe.Extra
 
 
-type alias DataModel =
-    { simpleTypes : Dict String Basic
-    , restrictedTypes : Dict String Restricted
-    , enums : Dict String Declarable
-    , records : Dict String Declarable
-    }
-
-
 transform : AWSService -> AWSApiModel
 transform service =
     let
