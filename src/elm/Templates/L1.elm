@@ -35,10 +35,14 @@ restrictedType : String -> Restricted -> ( Declaration, Linkage )
 restrictedType name restricted =
     case restricted of
         RInt _ ->
-            ( CG.funDecl Nothing Nothing name [] (CG.string "RInt"), CG.emptyLinkage )
+            ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ]
+            , CG.emptyLinkage
+            )
 
         RString _ ->
-            ( CG.funDecl Nothing Nothing name [] (CG.string "RString"), CG.emptyLinkage )
+            ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+            , CG.emptyLinkage
+            )
 
 
 {-| Turns an L1 `Type` into a type alias in Elm code.
