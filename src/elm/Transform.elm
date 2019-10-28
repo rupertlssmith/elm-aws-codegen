@@ -49,7 +49,86 @@ type Outline
 
 outline : Dict String Shape -> Dict String Outline
 outline shapes =
-    Dict.empty
+    Dict.foldl
+        (\key value accum ->
+            case outlineShape value key of
+                Nothing ->
+                    accum
+
+                Just ol ->
+                    Dict.insert key ol accum
+        )
+        Dict.empty
+        shapes
+
+
+outlineShape : Shape -> String -> Maybe Outline
+outlineShape shape name =
+    case shape.type_ of
+        AString ->
+            outlineString shape name |> Just
+
+        ABoolean ->
+            BBool |> OlBasic |> Just
+
+        AInteger ->
+            outlineInt shape name |> Just
+
+        ALong ->
+            BInt |> OlBasic |> Just
+
+        AFloat ->
+            BReal |> OlBasic |> Just
+
+        ADouble ->
+            BReal |> OlBasic |> Just
+
+        ABlob ->
+            Nothing
+
+        AStructure ->
+            name |> OlNamed |> Just
+
+        AList ->
+            name |> OlNamed |> Just
+
+        AMap ->
+            name |> OlNamed |> Just
+
+        ATimestamp ->
+            name |> OlNamed |> Just
+
+        AUnknown ->
+            Nothing
+
+
+outlineString : Shape -> String -> Outline
+outlineString shape name =
+    case
+        ( shape.enum
+        , Maybe.Extra.isJust shape.max
+            || Maybe.Extra.isJust shape.min
+            || Maybe.Extra.isJust shape.pattern
+        )
+    of
+        ( Just enumVals, False ) ->
+            OlNamed name
+
+        ( Nothing, True ) ->
+            OlNamed name
+
+        ( _, _ ) ->
+            OlBasic BString
+
+
+outlineInt : Shape -> String -> Outline
+outlineInt shape name =
+    case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
+        True ->
+            OlNamed name
+
+        _ ->
+            OlBasic BInt
 
 
 
