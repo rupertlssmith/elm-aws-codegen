@@ -177,7 +177,7 @@ modelShape outlineDict shape name =
             modelStructure outlineDict shape name
 
         AList ->
-            CList (BString |> TBasic) |> TContainer |> DAlias |> Ok
+            modelList outlineDict shape name
 
         AMap ->
             CDict (BString |> TBasic) (BString |> TBasic) |> TContainer |> DAlias |> Ok
@@ -240,3 +240,8 @@ modelStructure outlineDict shape name =
                 |> TProduct
                 |> DAlias
                 |> Ok
+
+
+modelList : Dict String Outline -> Shape -> String -> Result String Declarable
+modelList outlineDict shape name =
+    CList (BString |> TBasic) |> TContainer |> DAlias |> Ok
