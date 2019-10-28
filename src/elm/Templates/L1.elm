@@ -8,7 +8,7 @@ module Templates.L1 exposing (typeDecl, codec)
 
 import Codec
 import Elm.CodeGen as CG exposing (Declaration, Expression, Import, Linkage, TypeAnnotation)
-import L1 exposing (Basic(..), Container(..), Declarable(..), Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Restricted(..), Type(..))
 import String.Case as Case
 
 
@@ -27,8 +27,18 @@ typeDecl name decl =
         DSum constructors ->
             customType name constructors
 
-        DRestricted _ ->
-            dummy name
+        DRestricted res ->
+            restrictedType name res
+
+
+restrictedType : String -> Restricted -> ( Declaration, Linkage )
+restrictedType name restricted =
+    case restricted of
+        RInt _ ->
+            ( CG.funDecl Nothing Nothing name [] (CG.string "RInt"), CG.emptyLinkage )
+
+        RString _ ->
+            ( CG.funDecl Nothing Nothing name [] (CG.string "RString"), CG.emptyLinkage )
 
 
 {-| Turns an L1 `Type` into a type alias in Elm code.
@@ -185,7 +195,7 @@ codec name decl =
             customTypeCodec name constructors
 
         DRestricted _ ->
-            dummy (name ++ "Codec")
+            dummyFn (name ++ "Codec")
 
 
 {-| Generates a Codec for an L1 type alias.
@@ -308,7 +318,7 @@ codecNamedType name l1Type =
             codecType l1Type
 
         TNamed named ->
-            CG.unit
+            CG.string "codecNamedType_TNamed"
 
         TProduct fields ->
             codecNamedProduct name fields
@@ -329,7 +339,7 @@ codecType l1Type =
             codecBasic basic
 
         TNamed named ->
-            CG.unit
+            CG.string "codecType_TNamed"
 
         TProduct fields ->
             codecProduct fields
@@ -351,7 +361,7 @@ codecTypeField name l1Type =
                 |> codecField name
 
         TNamed named ->
-            CG.unit
+            CG.string "codecTypeFieldTNamed"
 
         TProduct fields ->
             codecProduct fields
@@ -429,7 +439,7 @@ built explicitly by its fields.
 -}
 codecProduct : List ( String, Type ) -> Expression
 codecProduct fields =
-    CG.unit
+    CG.string "codecProduct"
 
 
 {-| Generates a field codec for an L1 container type. The 'optional' type is mapped
@@ -498,8 +508,8 @@ codecOptionalField name expr =
         ]
 
 
-dummy : String -> ( Declaration, Linkage )
-dummy name =
+dummyFn : String -> ( Declaration, Linkage )
+dummyFn name =
     ( CG.funDecl Nothing Nothing name [] CG.unit, CG.emptyLinkage )
 
 
