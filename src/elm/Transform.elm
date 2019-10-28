@@ -13,8 +13,11 @@ transform service =
         default =
             AWSApiModel.example
 
+        outlineDict =
+            outline service.shapes
+
         mappings =
-            modelShapes service.shapes
+            modelShapes service.shapes outlineDict
 
         ( okMappings, errMappings ) =
             Dict.foldl
@@ -139,24 +142,24 @@ outlineInt shape name =
 -- names will be used by referring to them.
 
 
-modelShapes : Dict String Shape -> Dict String (Result String Declarable)
-modelShapes shapeDict =
+modelShapes : Dict String Shape -> Dict String Outline -> Dict String (Result String Declarable)
+modelShapes shapeDict outlineDict =
     Dict.map
-        (\key value -> modelShape shapeDict value key)
+        (\key value -> modelShape outlineDict value key)
         shapeDict
 
 
-modelShape : Dict String Shape -> Shape -> String -> Result String Declarable
-modelShape shapeDict shape name =
+modelShape : Dict String Outline -> Shape -> String -> Result String Declarable
+modelShape outlineDict shape name =
     case shape.type_ of
         AString ->
-            modelString shapeDict shape name
+            modelString outlineDict shape name
 
         ABoolean ->
             BBool |> TBasic |> DAlias |> Ok
 
         AInteger ->
-            modelInt shapeDict shape name
+            modelInt outlineDict shape name
 
         ALong ->
             BInt |> TBasic |> DAlias |> Ok
@@ -171,7 +174,7 @@ modelShape shapeDict shape name =
             Err "Blob not implemented."
 
         AStructure ->
-            modelStructure shapeDict shape name
+            modelStructure outlineDict shape name
 
         AList ->
             CList (BString |> TBasic) |> TContainer |> DAlias |> Ok
@@ -186,8 +189,8 @@ modelShape shapeDict shape name =
             Err "Unknown not implemented."
 
 
-modelString : Dict String Shape -> Shape -> String -> Result String Declarable
-modelString shapeDict shape name =
+modelString : Dict String Outline -> Shape -> String -> Result String Declarable
+modelString outlineDict shape name =
     case
         ( shape.enum
         , Maybe.Extra.isJust shape.max
@@ -211,8 +214,8 @@ modelString shapeDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
 
-modelInt : Dict String Shape -> Shape -> String -> Result String Declarable
-modelInt shapeDict shape name =
+modelInt : Dict String Outline -> Shape -> String -> Result String Declarable
+modelInt outlineDict shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
             RInt { min = shape.min, max = shape.max, width = Nothing }
@@ -223,8 +226,8 @@ modelInt shapeDict shape name =
             BInt |> TBasic |> DAlias |> Ok
 
 
-modelStructure : Dict String Shape -> Shape -> String -> Result String Declarable
-modelStructure shapeDict shape name =
+modelStructure : Dict String Outline -> Shape -> String -> Result String Declarable
+modelStructure outlineDict shape name =
     case shape.members of
         Nothing ->
             Err (name ++ ": structure has no members")
