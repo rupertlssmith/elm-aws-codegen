@@ -35,6 +35,31 @@ transform service =
     { default | declarations = okMappings }
 
 
+
+--== First pass.
+-- In the first pass all the named shapes are discovered and an approximate
+-- outline of how they will transalate into L1 is generated. Either they are
+-- basic types, or refer to things that will be given declared names.
+
+
+type Outline
+    = OlNamed String
+    | OlBasic Basic
+
+
+outline : Dict String Shape -> Dict String Outline
+outline shapes =
+    Dict.empty
+
+
+
+--== Second pass.
+-- In the second pass a complete L1 model is generated for each shape. The
+-- outline from the first pass is used to guide this, as all basic types are
+-- inlined without being given intermediate names, and all types with declared
+-- names will be used by referring to them.
+
+
 modelShapes : Dict String Shape -> Dict String (Result String Declarable)
 modelShapes shapeDict =
     Dict.map
