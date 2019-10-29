@@ -1,7 +1,7 @@
 module Transform exposing (transform)
 
 import AWSApiModel exposing (AWSApiModel)
-import AWSService exposing (AWSService, AWSType(..), Shape)
+import AWSService exposing (AWSService, AWSType(..), Shape, ShapeRef)
 import Dict exposing (Dict)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
 import Maybe.Extra
@@ -36,6 +36,30 @@ transform service =
             Debug.log "errors" errMappings
     in
     { default | declarations = okMappings }
+
+
+
+--== Error reporting.
+
+
+type Error
+    = SingleError String
+    | MultipleError (List Error)
+
+
+error : String -> Error
+error val =
+    SingleError val
+
+
+addError : String -> Error -> Error
+addError val errors =
+    case errors of
+        SingleError single ->
+            MultipleError [ SingleError val, SingleError single ]
+
+        MultipleError errorList ->
+            MultipleError (SingleError val :: errorList)
 
 
 
@@ -134,6 +158,19 @@ outlineInt shape name =
             OlBasic BInt
 
 
+shapeRefToL1Type : ShapeRef -> Dict String Outline -> Maybe Type
+shapeRefToL1Type ref outlineDict =
+    case Dict.get ref.shape outlineDict of
+        Just (OlNamed memberName) ->
+            TNamed memberName |> Just
+
+        Just (OlBasic basic) ->
+            TBasic basic |> Just
+
+        Nothing ->
+            Nothing
+
+
 
 --== Second pass.
 -- In the second pass a complete L1 model is generated for each shape. The
@@ -142,14 +179,14 @@ outlineInt shape name =
 -- names will be used by referring to them.
 
 
-modelShapes : Dict String Shape -> Dict String Outline -> Dict String (Result String Declarable)
+modelShapes : Dict String Shape -> Dict String Outline -> Dict String (Result Error Declarable)
 modelShapes shapeDict outlineDict =
     Dict.map
         (\key value -> modelShape outlineDict value key)
         shapeDict
 
 
-modelShape : Dict String Outline -> Shape -> String -> Result String Declarable
+modelShape : Dict String Outline -> Shape -> String -> Result Error Declarable
 modelShape outlineDict shape name =
     case shape.type_ of
         AString ->
@@ -171,7 +208,7 @@ modelShape outlineDict shape name =
             BReal |> TBasic |> DAlias |> Ok
 
         ABlob ->
-            Err "Blob not implemented."
+            error "Blob not implemented." |> Err
 
         AStructure ->
             modelStructure outlineDict shape name
@@ -186,10 +223,10 @@ modelShape outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
         AUnknown ->
-            Err "Unknown not implemented."
+            error "Unknown not implemented." |> Err
 
 
-modelString : Dict String Outline -> Shape -> String -> Result String Declarable
+modelString : Dict String Outline -> Shape -> String -> Result Error Declarable
 modelString outlineDict shape name =
     case
         ( shape.enum
@@ -214,7 +251,7 @@ modelString outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
 
-modelInt : Dict String Outline -> Shape -> String -> Result String Declarable
+modelInt : Dict String Outline -> Shape -> String -> Result Error Declarable
 modelInt outlineDict shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
@@ -226,11 +263,11 @@ modelInt outlineDict shape name =
             BInt |> TBasic |> DAlias |> Ok
 
 
-modelStructure : Dict String Outline -> Shape -> String -> Result String Declarable
+modelStructure : Dict String Outline -> Shape -> String -> Result Error Declarable
 modelStructure outlineDict shape name =
     case shape.members of
         Nothing ->
-            Err (name ++ ": structure has no members")
+            error (name ++ ": structure has no members") |> Err
 
         Just members ->
             Dict.foldl
@@ -242,6 +279,16 @@ modelStructure outlineDict shape name =
                 |> Ok
 
 
-modelList : Dict String Outline -> Shape -> String -> Result String Declarable
+modelList : Dict String Outline -> Shape -> String -> Result Error Declarable
 modelList outlineDict shape name =
-    CList (BString |> TBasic) |> TContainer |> DAlias |> Ok
+    case shape.member of
+        Nothing ->
+            error "List .member in empty, but should be a shape reference." |> Err
+
+        Just ref ->
+            case shapeRefToL1Type ref outlineDict of
+                Just type_ ->
+                    CList type_ |> TContainer |> DAlias |> Ok
+
+                Nothing ->
+                    error "List .member reference did not resolve." |> Err
