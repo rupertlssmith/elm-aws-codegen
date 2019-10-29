@@ -76,6 +76,7 @@ addError val errs =
 
 type Outline
     = OlNamed String
+    | OlEnum String
     | OlBasic Basic
 
 
@@ -144,7 +145,7 @@ outlineString shape name =
         )
     of
         ( Just enumVals, False ) ->
-            OlNamed name
+            OlEnum name
 
         ( Nothing, True ) ->
             OlNamed name
@@ -169,11 +170,34 @@ shapeRefToL1Type ref outlineDict =
         Just (OlNamed memberName) ->
             TNamed memberName |> Just
 
+        Just (OlEnum memberName) ->
+            TNamed memberName |> Just
+
         Just (OlBasic basic) ->
             TBasic basic |> Just
 
         Nothing ->
             Nothing
+
+
+shapeRefIsEnum : ShapeRef -> Dict String Outline -> Bool
+shapeRefIsEnum ref outlineDict =
+    case Dict.get ref.shape outlineDict of
+        Just (OlEnum memberName) ->
+            True
+
+        _ ->
+            False
+
+
+shapeRefIsBasic : ShapeRef -> Dict String Outline -> Bool
+shapeRefIsBasic ref outlineDict =
+    case Dict.get ref.shape outlineDict of
+        Just (OlBasic basic) ->
+            True
+
+        _ ->
+            False
 
 
 
@@ -305,7 +329,7 @@ modelList : Dict String Outline -> Shape -> String -> Result Error Declarable
 modelList outlineDict shape name =
     case shape.member of
         Nothing ->
-            error "List .member in empty, but should be a shape reference." |> Err
+            error "List .member is empty, but should be a shape reference." |> Err
 
         Just ref ->
             case shapeRefToL1Type ref outlineDict of
@@ -319,9 +343,48 @@ modelList outlineDict shape name =
 modelMap : Dict String Outline -> Shape -> String -> Result Error Declarable
 modelMap outlineDict shape name =
     let
-        _ =
-            Debug.log "Map shape" shape
+        keyTypeRes =
+            case shape.key of
+                Nothing ->
+                    error "Map .key is empty, should be basic or enum." |> Err
 
-        -- Has custom types for keys? Not so simple...
+                Just keyRef ->
+                    case shapeRefToL1Type keyRef outlineDict of
+                        Just type_ ->
+                            if shapeRefIsEnum keyRef outlineDict then
+                                type_ |> Ok
+
+                            else if shapeRefIsBasic keyRef outlineDict then
+                                type_ |> Ok
+
+                            else
+                                error "Map .key is not an enum or basic." |> Err
+
+                        Nothing ->
+                            error "Map .key reference did not resolve." |> Err
+
+        valTypeRes =
+            case shape.value of
+                Nothing ->
+                    error "Map .value is empty, should be basic or enum." |> Err
+
+                Just valRef ->
+                    case shapeRefToL1Type valRef outlineDict of
+                        Just type_ ->
+                            type_ |> Ok
+
+                        Nothing ->
+                            error "Map .value reference did not resolve." |> Err
     in
-    CDict (BString |> TBasic) (BString |> TBasic) |> TContainer |> DAlias |> Ok
+    case ( keyTypeRes, valTypeRes ) of
+        ( Err keyError, Err valError ) ->
+            errors [ keyError, valError ] |> Err
+
+        ( Err keyError, _ ) ->
+            Err keyError
+
+        ( _, Err valError ) ->
+            Err valError
+
+        ( Ok keyType, Ok valType ) ->
+            CDict keyType valType |> TContainer |> DAlias |> Ok
