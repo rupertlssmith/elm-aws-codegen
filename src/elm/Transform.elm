@@ -222,7 +222,7 @@ modelShape outlineDict shape name =
             modelList outlineDict shape name
 
         AMap ->
-            CDict (BString |> TBasic) (BString |> TBasic) |> TContainer |> DAlias |> Ok
+            modelMap outlineDict shape name
 
         ATimestamp ->
             BString |> TBasic |> DAlias |> Ok
@@ -242,7 +242,7 @@ modelString outlineDict shape name =
     of
         ( Just enumVals, False ) ->
             List.map
-                (\val -> ( val, [ ( "name", BString |> TBasic ) ] ))
+                (\val -> ( val, [] ))
                 enumVals
                 |> DSum
                 |> Ok
@@ -314,3 +314,14 @@ modelList outlineDict shape name =
 
                 Nothing ->
                     error "List .member reference did not resolve." |> Err
+
+
+modelMap : Dict String Outline -> Shape -> String -> Result Error Declarable
+modelMap outlineDict shape name =
+    let
+        _ =
+            Debug.log "Map shape" shape
+
+        -- Has custom types for keys? Not so simple...
+    in
+    CDict (BString |> TBasic) (BString |> TBasic) |> TContainer |> DAlias |> Ok
