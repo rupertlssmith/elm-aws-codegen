@@ -1,4 +1,4 @@
-module Enum exposing (..)
+module Enum exposing (Enum, decoder, encoder, find, make)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
