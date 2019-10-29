@@ -52,9 +52,14 @@ error val =
     SingleError val
 
 
+errors : List Error -> Error
+errors errs =
+    MultipleError errs
+
+
 addError : String -> Error -> Error
-addError val errors =
-    case errors of
+addError val errs =
+    case errs of
         SingleError single ->
             MultipleError [ SingleError val, SingleError single ]
 
@@ -270,13 +275,30 @@ modelStructure outlineDict shape name =
             error (name ++ ": structure has no members") |> Err
 
         Just members ->
-            Dict.foldl
-                (\key value accum -> ( key, BString |> TBasic ) :: accum)
-                []
-                members
-                |> TProduct
-                |> DAlias
-                |> Ok
+            let
+                ( fieldErrors, fields ) =
+                    Dict.foldl
+                        (\memberName shapeRef ( errAccum, fieldAccum ) ->
+                            case shapeRefToL1Type shapeRef outlineDict of
+                                Nothing ->
+                                    ( error "Structure .members reference did no resolve." :: errAccum
+                                    , fieldAccum
+                                    )
+
+                                Just type_ ->
+                                    ( errAccum
+                                    , ( memberName, type_ ) :: fieldAccum
+                                    )
+                        )
+                        ( [], [] )
+                        members
+            in
+            case fieldErrors of
+                [] ->
+                    fields |> TProduct |> DAlias |> Ok
+
+                _ ->
+                    errors fieldErrors |> Err
 
 
 modelList : Dict String Outline -> Shape -> String -> Result Error Declarable
