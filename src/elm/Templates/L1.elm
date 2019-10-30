@@ -27,6 +27,9 @@ typeDecl name decl =
         DSum constructors ->
             customType name constructors
 
+        DEnum labels ->
+            enumType name labels
+
         DRestricted res ->
             restrictedType name res
 
@@ -82,6 +85,19 @@ customType name constructors =
     in
     ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] mappedConstructors
     , CG.combineLinkage linkages
+    )
+
+
+{-| Turns an L1 enum type into a guarded type in Elm code.
+-}
+enumType : String -> List String -> ( Declaration, Linkage )
+enumType name labels =
+    let
+        guardedConstructor =
+            [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+    in
+    ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] guardedConstructor
+    , CG.emptyLinkage
     )
 
 
@@ -198,6 +214,9 @@ codec name decl =
         DSum constructors ->
             customTypeCodec name constructors
 
+        DEnum labels ->
+            enumCodec name labels
+
         DRestricted _ ->
             dummyFn (name ++ "Codec")
 
@@ -258,6 +277,11 @@ customTypeCodec name constructors =
     , CG.emptyLinkage
         |> CG.addImport codecImport
     )
+
+
+enumCodec : String -> List String -> ( Declaration, Linkage )
+enumCodec name constructors =
+    dummyFn "enumCodec"
 
 
 codecCustomType : List ( String, List ( String, Type ) ) -> Expression

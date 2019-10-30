@@ -265,10 +265,8 @@ modelString outlineDict shape name =
         )
     of
         ( Just enumVals, False ) ->
-            List.map
-                (\val -> ( val, [] ))
-                enumVals
-                |> DSum
+            enumVals
+                |> DEnum
                 |> Ok
 
         ( Nothing, True ) ->
