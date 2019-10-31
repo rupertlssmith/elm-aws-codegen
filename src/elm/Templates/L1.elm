@@ -96,6 +96,10 @@ customType name constructors =
 
 
 {-| Turns an L1 enum type into a guarded type in Elm code.
+
+This produces 2 declarations, one for the guarded type, and one for the enum
+declaring its allowed values.
+
 -}
 enumType : String -> List String -> ( List Declaration, List Linkage )
 enumType name labels =
