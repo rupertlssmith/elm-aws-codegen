@@ -122,9 +122,12 @@ enumType name labels =
                 , CG.lambda [ CG.namedPattern (Case.toCamelCaseUpper name) [ CG.varPattern "val" ] ]
                     (CG.val "val")
                 ]
+
+        enumSig =
+            CG.signature (Case.toCamelCaseLower name) (CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ])
     in
     ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] guardedConstructor
-      , CG.valDecl Nothing Nothing (Case.toCamelCaseLower name) enumValues
+      , CG.valDecl Nothing (Just enumSig) (Case.toCamelCaseLower name) enumValues
       ]
     , [ CG.emptyLinkage |> CG.addImport enumImport ]
     )
