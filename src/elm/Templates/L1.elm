@@ -429,7 +429,7 @@ codecType l1Type =
             codecBasic basic
 
         TNamed named ->
-            CG.string "codecType_TNamed"
+            codecNamed named
 
         TProduct fields ->
             codecProduct fields
@@ -451,7 +451,8 @@ codecTypeField name l1Type =
                 |> codecField name
 
         TNamed named ->
-            CG.string "codecTypeFieldTNamed"
+            codecNamed named
+                |> codecField name
 
         TProduct fields ->
             codecProduct fields
@@ -480,6 +481,10 @@ codecBasic basic =
 
         BString ->
             codecFn "string"
+
+
+codecNamed named =
+    CG.fun (Case.toCamelCaseLower (named ++ "Codec"))
 
 
 codecContainer : Container -> Expression
