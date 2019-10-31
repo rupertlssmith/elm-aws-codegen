@@ -124,7 +124,7 @@ enumType name labels =
                 ]
     in
     ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] guardedConstructor
-      , CG.patternDecl (CG.varPattern (Case.toCamelCaseLower name)) enumValues
+      , CG.valDecl Nothing Nothing (Case.toCamelCaseLower name) enumValues
       ]
     , [ CG.emptyLinkage |> CG.addImport enumImport ]
     )
