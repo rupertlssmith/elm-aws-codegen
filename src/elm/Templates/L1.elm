@@ -17,21 +17,28 @@ import String.Case as Case
 
 
 {-| Turns an L1 type declaration into Elm code.
+
+A type can result in a list of declarations - enums in addition to declaring a
+type can also declare the permitted enum values.
+
 -}
-typeDecl : String -> Declarable -> ( Declaration, Linkage )
+typeDecl : String -> Declarable -> ( List Declaration, List Linkage )
 typeDecl name decl =
     case decl of
         DAlias l1Type ->
             typeAlias name l1Type
+                |> Tuple.mapBoth List.singleton List.singleton
 
         DSum constructors ->
             customType name constructors
+                |> Tuple.mapBoth List.singleton List.singleton
 
         DEnum labels ->
             enumType name labels
 
         DRestricted res ->
             restrictedType name res
+                |> Tuple.mapBoth List.singleton List.singleton
 
 
 restrictedType : String -> Restricted -> ( Declaration, Linkage )
@@ -90,14 +97,32 @@ customType name constructors =
 
 {-| Turns an L1 enum type into a guarded type in Elm code.
 -}
-enumType : String -> List String -> ( Declaration, Linkage )
+enumType : String -> List String -> ( List Declaration, List Linkage )
 enumType name labels =
     let
         guardedConstructor =
             [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+
+        enumValues =
+            CG.apply
+                [ CG.fqFun enumMod "make"
+                , List.map
+                    (\label ->
+                        CG.apply
+                            [ CG.fun (Case.toCamelCaseUpper name)
+                            , Case.toCamelCaseUpper label |> CG.string
+                            ]
+                    )
+                    labels
+                    |> CG.list
+                , CG.lambda [ CG.namedPattern (Case.toCamelCaseUpper name) [ CG.varPattern "val" ] ]
+                    (CG.val "val")
+                ]
     in
-    ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] guardedConstructor
-    , CG.emptyLinkage
+    ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] guardedConstructor
+      , CG.patternDecl (CG.varPattern (Case.toCamelCaseLower name)) enumValues
+      ]
+    , [ CG.emptyLinkage |> CG.addImport enumImport ]
     )
 
 
@@ -546,6 +571,11 @@ codecMod =
     [ "Codec" ]
 
 
+enumMod : List String
+enumMod =
+    [ "Enum" ]
+
+
 codecFn : String -> Expression
 codecFn =
     CG.fqFun codecMod
@@ -564,3 +594,8 @@ setImport =
 dictImport : Import
 dictImport =
     CG.importStmt [ "Dict" ] Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Dict" ])
+
+
+enumImport : Import
+enumImport =
+    CG.importStmt enumMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Enum" ])

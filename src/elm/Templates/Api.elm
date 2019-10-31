@@ -177,10 +177,13 @@ globalService model =
 typeDeclarations : AWSApiModel -> ( List Declaration, List Linkage )
 typeDeclarations model =
     Dict.foldl
-        (\name decl accum -> Templates.L1.typeDecl name decl :: accum)
-        []
+        (\name decl ( declAccum, linkageAccum ) ->
+            Templates.L1.typeDecl name decl
+                |> Tuple.mapFirst (List.append declAccum)
+                |> Tuple.mapSecond (List.append linkageAccum)
+        )
+        ( [], [] )
         model.declarations
-        |> List.unzip
 
 
 jsonCodecs : AWSApiModel -> ( List Declaration, List Linkage )
