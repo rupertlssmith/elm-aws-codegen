@@ -313,7 +313,37 @@ customTypeCodec name constructors =
 
 enumCodec : String -> List String -> ( Declaration, Linkage )
 enumCodec name constructors =
-    dummyFn "enumCodec"
+    let
+        codecFnName =
+            Case.toCamelCaseLower (name ++ "Codec")
+
+        typeName =
+            Case.toCamelCaseUpper name
+
+        enumName =
+            Case.toCamelCaseLower name
+
+        sig =
+            CG.signature codecFnName
+                (CG.typed "Codec" [ CG.typed typeName [] ])
+
+        impl =
+            CG.apply
+                [ CG.fqFun codecMod "build"
+                , CG.parens (CG.apply [ CG.fqFun enumMod "encoder", CG.val enumName ])
+                , CG.parens (CG.apply [ CG.fqFun enumMod "decoder", CG.val enumName ])
+                ]
+    in
+    ( CG.funDecl
+        (Just <| "{-| Codec for " ++ typeName ++ ". -}")
+        (Just sig)
+        codecFnName
+        []
+        impl
+    , CG.emptyLinkage
+        |> CG.addImport codecImport
+        |> CG.addImport enumImport
+    )
 
 
 codecCustomType : List ( String, List ( String, Type ) ) -> Expression
