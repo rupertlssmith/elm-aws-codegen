@@ -142,7 +142,7 @@ enumCustomType name labels =
     )
 
 
-{-| Turns an L1 enum type into an opaue guarded type in Elm code.
+{-| Turns an L1 enum type into an opaque guarded type in Elm code.
 
 This produces 2 declarations, one for the guarded type, and one for the enum
 declaring its allowed values.
