@@ -34,7 +34,8 @@ typeDecl name decl =
                 |> Tuple.mapBoth List.singleton List.singleton
 
         DEnum labels ->
-            enumGuardedType name labels
+            -- enumGuardedType name labels
+            enumCustomType name labels
 
         DRestricted res ->
             restrictedType name res
@@ -95,7 +96,53 @@ customType name constructors =
     )
 
 
-{-| Turns an L1 enum type into a guarded type in Elm code.
+{-| Turns an L1 enum type into a custom type in Elm code.
+
+This produces 2 declarations, one for the guarded type, and one for the enum
+declaring its allowed values.
+
+-}
+enumCustomType : String -> List String -> ( List Declaration, List Linkage )
+enumCustomType name labels =
+    let
+        constructors =
+            List.map
+                (\label -> ( Case.toCamelCaseUpper name ++ Case.toCamelCaseUpper label, [] ))
+                labels
+
+        enumValues =
+            CG.apply
+                [ CG.fqFun enumMod "make"
+                , List.map
+                    (\label ->
+                        CG.fun (Case.toCamelCaseUpper name ++ Case.toCamelCaseUpper label)
+                    )
+                    labels
+                    |> CG.list
+                , CG.lambda [ CG.varPattern "val" ]
+                    (CG.caseExpr (CG.val "val")
+                        (List.map
+                            (\label ->
+                                ( CG.namedPattern (Case.toCamelCaseUpper name ++ Case.toCamelCaseUpper label) []
+                                , CG.string label
+                                )
+                            )
+                            labels
+                        )
+                    )
+                ]
+
+        enumSig =
+            CG.signature (Case.toCamelCaseLower name) (CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ])
+    in
+    ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] constructors
+      , CG.valDecl Nothing (Just enumSig) (Case.toCamelCaseLower name) enumValues
+      ]
+    , [ CG.emptyLinkage |> CG.addImport enumImport ]
+    )
+
+
+{-| Turns an L1 enum type into an opaue guarded type in Elm code.
 
 This produces 2 declarations, one for the guarded type, and one for the enum
 declaring its allowed values.
@@ -114,7 +161,7 @@ enumGuardedType name labels =
                     (\label ->
                         CG.apply
                             [ CG.fun (Case.toCamelCaseUpper name)
-                            , Case.toCamelCaseUpper label |> CG.string
+                            , label |> CG.string
                             ]
                     )
                     labels
