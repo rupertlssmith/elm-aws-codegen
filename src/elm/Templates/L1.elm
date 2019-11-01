@@ -34,7 +34,7 @@ typeDecl name decl =
                 |> Tuple.mapBoth List.singleton List.singleton
 
         DEnum labels ->
-            enumType name labels
+            enumGuardedType name labels
 
         DRestricted res ->
             restrictedType name res
@@ -101,8 +101,8 @@ This produces 2 declarations, one for the guarded type, and one for the enum
 declaring its allowed values.
 
 -}
-enumType : String -> List String -> ( List Declaration, List Linkage )
-enumType name labels =
+enumGuardedType : String -> List String -> ( List Declaration, List Linkage )
+enumGuardedType name labels =
     let
         guardedConstructor =
             [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
