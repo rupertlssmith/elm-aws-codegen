@@ -100,11 +100,9 @@ regionalService : AWSApiModel -> ( Declaration, Linkage )
 regionalService model =
     let
         sig =
-            CG.signature "service"
-                (CG.funAnn
-                    (CG.fqTyped coreServiceMod "Region" [])
-                    (CG.fqTyped coreServiceMod "Service" [])
-                )
+            CG.funAnn
+                (CG.fqTyped coreServiceMod "Region" [])
+                (CG.fqTyped coreServiceMod "Service" [])
 
         impl =
             CG.apply
@@ -131,8 +129,7 @@ globalService : AWSApiModel -> ( Declaration, Linkage )
 globalService model =
     let
         sig =
-            CG.signature "service"
-                (CG.fqTyped coreServiceMod "Service" [])
+            CG.fqTyped coreServiceMod "Service" []
 
         impl =
             CG.apply

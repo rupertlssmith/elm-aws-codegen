@@ -67,7 +67,7 @@ restrictedInt name res =
             CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ]
 
         restrictedSig =
-            CG.signature (Case.toCamelCaseLower name) (CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ])
+            CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
 
         restrictedDecl =
             CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) CG.unit
@@ -89,7 +89,7 @@ restrictedString name res =
             CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
 
         restrictedSig =
-            CG.signature (Case.toCamelCaseLower name) (CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ])
+            CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
 
         restrictedDecl =
             CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) CG.unit
@@ -178,7 +178,7 @@ enumCustomType name labels =
                 ]
 
         enumSig =
-            CG.signature (Case.toCamelCaseLower name) (CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ])
+            CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ]
     in
     ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] constructors
       , CG.valDecl Nothing (Just enumSig) (Case.toCamelCaseLower name) enumValues
@@ -216,7 +216,7 @@ enumGuardedType name labels =
                 ]
 
         enumSig =
-            CG.signature (Case.toCamelCaseLower name) (CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ])
+            CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ]
     in
     ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] guardedConstructor
       , CG.valDecl Nothing (Just enumSig) (Case.toCamelCaseLower name) enumValues
@@ -357,8 +357,7 @@ typeAliasCodec name l1Type =
             Case.toCamelCaseUpper name
 
         sig =
-            CG.signature codecFnName
-                (CG.typed "Codec" [ CG.typed typeName [] ])
+            CG.typed "Codec" [ CG.typed typeName [] ]
 
         impl =
             codecNamedType name l1Type
@@ -386,8 +385,7 @@ customTypeCodec name constructors =
             Case.toCamelCaseUpper name
 
         sig =
-            CG.signature codecFnName
-                (CG.typed "Codec" [ CG.typed typeName [] ])
+            CG.typed "Codec" [ CG.typed typeName [] ]
 
         impl =
             codecCustomType constructors
@@ -416,8 +414,7 @@ enumCodec name constructors =
             Case.toCamelCaseLower name
 
         sig =
-            CG.signature codecFnName
-                (CG.typed "Codec" [ CG.typed typeName [] ])
+            CG.typed "Codec" [ CG.typed typeName [] ]
 
         impl =
             CG.apply
