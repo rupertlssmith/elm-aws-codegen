@@ -50,15 +50,55 @@ to the functions needed to create or unbox the restricted type.
 restrictedType : String -> Restricted -> ( List Declaration, List Linkage )
 restrictedType name restricted =
     case restricted of
-        RInt _ ->
-            ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ] ]
-            , [ CG.emptyLinkage ]
-            )
+        RInt res ->
+            restrictedInt name res
 
-        RString _ ->
-            ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ] ]
-            , [ CG.emptyLinkage ]
-            )
+        RString res ->
+            restrictedString name res
+
+
+restrictedInt :
+    String
+    -> { min : Maybe Int, max : Maybe Int, width : Maybe Int }
+    -> ( List Declaration, List Linkage )
+restrictedInt name res =
+    let
+        boxedTypeDecl =
+            CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ]
+
+        restrictedSig =
+            CG.signature (Case.toCamelCaseLower name) (CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ])
+
+        restrictedDecl =
+            CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) CG.unit
+    in
+    ( [ boxedTypeDecl
+      , restrictedDecl
+      ]
+    , [ CG.emptyLinkage |> CG.addImport guardedImport ]
+    )
+
+
+restrictedString :
+    String
+    -> { minLength : Maybe Int, maxLength : Maybe Int, regex : Maybe String }
+    -> ( List Declaration, List Linkage )
+restrictedString name res =
+    let
+        boxedTypeDecl =
+            CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+
+        restrictedSig =
+            CG.signature (Case.toCamelCaseLower name) (CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ])
+
+        restrictedDecl =
+            CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) CG.unit
+    in
+    ( [ boxedTypeDecl
+      , restrictedDecl
+      ]
+    , [ CG.emptyLinkage |> CG.addImport guardedImport ]
+    )
 
 
 {-| Turns an L1 `Type` into a type alias in Elm code.
@@ -670,6 +710,21 @@ enumMod =
     [ "Enum" ]
 
 
+maybeMod : List String
+maybeMod =
+    [ "Maybe" ]
+
+
+guardedMod : List String
+guardedMod =
+    [ "Guarded" ]
+
+
+resultMod : List String
+resultMod =
+    [ "Result" ]
+
+
 codecFn : String -> Expression
 codecFn =
     CG.fqFun codecMod
@@ -693,3 +748,45 @@ dictImport =
 enumImport : Import
 enumImport =
     CG.importStmt enumMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Enum" ])
+
+
+guardedImport : Import
+guardedImport =
+    CG.importStmt guardedMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Guarded" ])
+
+
+
+-- Helpers
+
+
+mChain : (Expression -> Expression) -> Expression -> List Expression -> Expression
+mChain lift head expressions =
+    case expressions of
+        [] ->
+            head
+
+        [ expr ] ->
+            CG.opApply "|>" CG.left head (lift expr)
+
+        expr :: exprs ->
+            CG.opApply "|>" CG.left head (lift (mChain expr exprs))
+
+
+mChainResult : Expression -> List Expression -> Expression
+mChainResult =
+    mChain liftResult
+
+
+mChainMaybe : Expression -> List Expression -> Expression
+mChainMaybe =
+    mChain liftMaybe
+
+
+liftResult : Expression -> Expression
+liftResult expr =
+    CG.apply [ CG.fqFun resultMod "andThen", expr ]
+
+
+liftMaybe : Expression -> Expression
+liftMaybe expr =
+    CG.apply [ CG.fqFun maybeMod "andThen", expr ]
