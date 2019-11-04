@@ -39,20 +39,25 @@ typeDecl name decl =
 
         DRestricted res ->
             restrictedType name res
-                |> Tuple.mapBoth List.singleton List.singleton
 
 
-restrictedType : String -> Restricted -> ( Declaration, Linkage )
+{-| Turns an L1 restricted type into Elm code.
+
+This will result in a list of declarations - the type declaration in addition
+to the functions needed to create or unbox the restricted type.
+
+-}
+restrictedType : String -> Restricted -> ( List Declaration, List Linkage )
 restrictedType name restricted =
     case restricted of
         RInt _ ->
-            ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ]
-            , CG.emptyLinkage
+            ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ] ]
+            , [ CG.emptyLinkage ]
             )
 
         RString _ ->
-            ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
-            , CG.emptyLinkage
+            ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ] ]
+            , [ CG.emptyLinkage ]
             )
 
 
