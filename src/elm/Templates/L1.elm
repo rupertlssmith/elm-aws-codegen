@@ -766,10 +766,10 @@ mChain lift head expressions =
             head
 
         [ expr ] ->
-            CG.opApply "|>" CG.left head (lift expr)
+            CG.opApply "|>" CG.infixLeft head (lift expr)
 
         expr :: exprs ->
-            CG.opApply "|>" CG.left head (lift (mChain expr exprs))
+            CG.opApply "|>" CG.infixLeft head (lift (mChain lift expr exprs))
 
 
 mChainResult : Expression -> List Expression -> Expression
