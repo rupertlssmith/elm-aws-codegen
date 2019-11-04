@@ -20,7 +20,7 @@
             "the-sett/decode-generic": "1.0.0",
             "the-sett/elm-pretty-printer": "2.2.2",
             "the-sett/elm-string-case": "1.0.2",
-            "the-sett/elm-syntax-dsl": "3.0.0"
+            "the-sett/elm-syntax-dsl": "4.0.0"
         },
         "indirect": {
             "elm/parser": "1.1.0",
