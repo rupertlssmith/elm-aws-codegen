@@ -9,6 +9,7 @@ module Templates.L1 exposing (typeDecl, codec)
 import Codec
 import Elm.CodeGen as CG exposing (Declaration, Expression, Import, Linkage, TypeAnnotation)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Restricted(..), Type(..))
+import Maybe.Extra
 import String.Case as Case
 
 
@@ -63,20 +64,60 @@ restrictedInt :
     -> ( List Declaration, List Linkage )
 restrictedInt name res =
     let
-        boxedTypeDecl =
-            CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ]
+        minGuard =
+            Maybe.map
+                (\minValue -> CG.apply [ CG.fqFun guardedMod "gt", CG.int minValue ])
+                res.min
 
-        restrictedSig =
-            CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+        maxGuard =
+            Maybe.map
+                (\maxValue -> CG.apply [ CG.fqFun guardedMod "lt", CG.int maxValue ])
+                res.max
 
-        restrictedDecl =
-            CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) CG.unit
+        guards =
+            [ minGuard, maxGuard ] |> Maybe.Extra.values
     in
-    ( [ boxedTypeDecl
-      , restrictedDecl
-      ]
-    , [ CG.emptyLinkage |> CG.addImport guardedImport ]
-    )
+    case guards of
+        [] ->
+            -- If there are no guard clauses, it is just an int.
+            typeAlias name (BInt |> TBasic)
+                |> Tuple.mapBoth List.singleton List.singleton
+
+        gd :: gds ->
+            let
+                boxedTypeDecl =
+                    CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ]
+
+                restrictedSig =
+                    CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+
+                guardFn =
+                    mChainResult (CG.apply [ gd, CG.val "val" ])
+                        (List.map CG.parens gds)
+                        |> CG.letFunction "guardFn" [ CG.varPattern "val" ]
+
+                unboxFn =
+                    CG.letFunction "unboxFn"
+                        [ CG.namedPattern (Case.toCamelCaseUpper name) [ CG.varPattern "val" ] ]
+                        (CG.val "val")
+
+                restrictedImpl =
+                    CG.apply
+                        [ CG.fqFun guardedMod "make"
+                        , CG.fun "guardFn"
+                        , CG.fqFun guardedMod "intErrorToString"
+                        , CG.fun "unboxFn"
+                        ]
+                        |> CG.letExpr [ guardFn, unboxFn ]
+
+                restrictedDecl =
+                    CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) restrictedImpl
+            in
+            ( [ boxedTypeDecl
+              , restrictedDecl
+              ]
+            , [ CG.emptyLinkage |> CG.addImport guardedImport ]
+            )
 
 
 restrictedString :
@@ -85,20 +126,65 @@ restrictedString :
     -> ( List Declaration, List Linkage )
 restrictedString name res =
     let
-        boxedTypeDecl =
-            CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+        minLenGuard =
+            Maybe.map
+                (\minValue -> CG.apply [ CG.fqFun guardedMod "minLength", CG.int minValue ])
+                res.minLength
 
-        restrictedSig =
-            CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+        maxLenGuard =
+            Maybe.map
+                (\maxValue -> CG.apply [ CG.fqFun guardedMod "maxLength", CG.int maxValue ])
+                res.maxLength
 
-        restrictedDecl =
-            CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) CG.unit
+        patternGuard =
+            Maybe.map
+                (\regex -> CG.apply [ CG.fqFun guardedMod "regexMatch", CG.string regex ])
+                res.regex
+
+        guards =
+            [ minLenGuard, maxLenGuard, patternGuard ] |> Maybe.Extra.values
     in
-    ( [ boxedTypeDecl
-      , restrictedDecl
-      ]
-    , [ CG.emptyLinkage |> CG.addImport guardedImport ]
-    )
+    case guards of
+        [] ->
+            -- If there are no guard clauses, it is just an string.
+            typeAlias name (BString |> TBasic)
+                |> Tuple.mapBoth List.singleton List.singleton
+
+        gd :: gds ->
+            let
+                boxedTypeDecl =
+                    CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+
+                restrictedSig =
+                    CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+
+                guardFn =
+                    mChainResult (CG.apply [ gd, CG.val "val" ])
+                        (List.map CG.parens gds)
+                        |> CG.letFunction "guardFn" [ CG.varPattern "val" ]
+
+                unboxFn =
+                    CG.letFunction "unboxFn"
+                        [ CG.namedPattern (Case.toCamelCaseUpper name) [ CG.varPattern "val" ] ]
+                        (CG.val "val")
+
+                restrictedImpl =
+                    CG.apply
+                        [ CG.fqFun guardedMod "make"
+                        , CG.fun "guardFn"
+                        , CG.fqFun guardedMod "intErrorToString"
+                        , CG.fun "unboxFn"
+                        ]
+                        |> CG.letExpr [ guardFn, unboxFn ]
+
+                restrictedDecl =
+                    CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) restrictedImpl
+            in
+            ( [ boxedTypeDecl
+              , restrictedDecl
+              ]
+            , [ CG.emptyLinkage |> CG.addImport guardedImport ]
+            )
 
 
 {-| Turns an L1 `Type` into a type alias in Elm code.
