@@ -154,21 +154,6 @@ globalService model =
 
 
 --== Types and Codecs
--- {{~ it.types.filter(t => t.exposeAs) :t }}
--- {{= t.typeDef }}
---
--- {{? t.decoderDef }}
--- {{= t.decoderDef }}
--- {{?}}
---
--- {{? t.toStringDef }}
--- {{= t.toStringDef }}
--- {{?}}
--- {{~}}
---
--- {{~ it.types.filter(t => t.category === 'request') :t }}
--- {{= t.typeDef }}
--- {{~}}
 
 
 typeDeclarations : AWSApiModel -> ( List Declaration, List Linkage )
@@ -190,6 +175,27 @@ jsonCodecs model =
         []
         model.declarations
         |> List.unzip
+
+
+
+-- {{? t.toStringDef }}
+-- {{= t.toStringDef }}
+-- {{?}}
+-- {{~}}
+
+
+toParams =
+    ()
+
+
+
+-- {{~ it.types.filter(t => t.category === 'request') :t }}
+-- {{= t.typeDef }}
+-- {{~}}
+
+
+requests =
+    ()
 
 
 
