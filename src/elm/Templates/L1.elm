@@ -427,8 +427,8 @@ codec name decl =
         DEnum labels ->
             enumCodec name labels
 
-        DRestricted _ ->
-            dummyFn (name ++ "Codec")
+        DRestricted res ->
+            restrictedCodec name res
 
 
 {-| Generates a Codec for an L1 type alias.
@@ -507,6 +507,40 @@ enumCodec name constructors =
                 [ CG.fqFun codecMod "build"
                 , CG.parens (CG.apply [ CG.fqFun enumMod "encoder", CG.val enumName ])
                 , CG.parens (CG.apply [ CG.fqFun enumMod "decoder", CG.val enumName ])
+                ]
+    in
+    ( CG.funDecl
+        (Just <| "{-| Codec for " ++ typeName ++ ". -}")
+        (Just sig)
+        codecFnName
+        []
+        impl
+    , CG.emptyLinkage
+        |> CG.addImport codecImport
+        |> CG.addImport enumImport
+    )
+
+
+restrictedCodec : String -> Restricted -> ( Declaration, Linkage )
+restrictedCodec name _ =
+    let
+        codecFnName =
+            Case.toCamelCaseLower (name ++ "Codec")
+
+        typeName =
+            Case.toCamelCaseUpper name
+
+        enumName =
+            Case.toCamelCaseLower name
+
+        sig =
+            CG.typed "Codec" [ CG.typed typeName [] ]
+
+        impl =
+            CG.apply
+                [ CG.fqFun codecMod "build"
+                , CG.parens (CG.apply [ CG.fqFun guardedMod "encoder", CG.val enumName ])
+                , CG.parens (CG.apply [ CG.fqFun guardedMod "decoder", CG.val enumName ])
                 ]
     in
     ( CG.funDecl
