@@ -12,19 +12,24 @@ serviceFile model =
         ( serviceFn, linkage ) =
             service model
 
-        ( types, linkage2 ) =
+        ( endpoints, linkage2 ) =
+            operations model
+
+        ( types, linkage3 ) =
             typeDeclarations model
 
-        ( codecs, linkage3 ) =
+        ( codecs, linkage4 ) =
             jsonCodecs model
 
         declarations =
             codecs
                 |> List.append types
+                |> List.append endpoints
                 |> (::) serviceFn
 
         linkages =
-            linkage3
+            linkage4
+                |> List.append linkage3
                 |> List.append linkage2
                 |> (::) linkage
 
@@ -153,6 +158,15 @@ globalService model =
 
 
 
+--== Operations
+
+
+operations : AWSApiModel -> ( List Declaration, List Linkage )
+operations model =
+    ( [], [] )
+
+
+
 --== Types and Codecs
 
 
@@ -196,17 +210,3 @@ toParams =
 
 requests =
     ()
-
-
-
---== Operations
---
--- {{~ it.types.filter(t => t.exposeAs || t.category === 'request') :t }}
--- {{? it.metadata.protocol === 'json' && t.jsonEncoderDef }}
--- {{= t.jsonEncoderDef }}
--- {{?}}
---
--- {{? it.metadata.protocol === 'query' && t.queryEncoderDef }}
--- {{= t.queryEncoderDef }}
--- {{?}}
--- {{~}}
