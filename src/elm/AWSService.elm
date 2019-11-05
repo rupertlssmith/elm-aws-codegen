@@ -316,47 +316,22 @@ type AWSType
     | AUnknown
 
 
-typesCodec : Codec AWSType
-typesCodec =
-    Codec.map
-        (\val ->
-            case val of
-                "string" ->
-                    AString
-
-                "boolean" ->
-                    ABoolean
-
-                "integer" ->
-                    AInteger
-
-                "long" ->
-                    ALong
-
-                "float" ->
-                    AFloat
-
-                "double" ->
-                    ADouble
-
-                "blob" ->
-                    ABlob
-
-                "structure" ->
-                    AStructure
-
-                "list" ->
-                    AList
-
-                "map" ->
-                    AMap
-
-                "timestamp" ->
-                    ATimestamp
-
-                str ->
-                    AUnknown
-        )
+awsTypeEnum : Enum AWSType
+awsTypeEnum =
+    Enum.make
+        [ AString
+        , ABoolean
+        , AInteger
+        , ALong
+        , AFloat
+        , ADouble
+        , ABlob
+        , AStructure
+        , AList
+        , AMap
+        , ATimestamp
+        , AUnknown
+        ]
         (\types ->
             case types of
                 AString ->
@@ -395,4 +370,8 @@ typesCodec =
                 AUnknown ->
                     "unknown"
         )
-        Codec.string
+
+
+typesCodec : Codec AWSType
+typesCodec =
+    Codec.build (Enum.encoder awsTypeEnum) (Enum.decoder awsTypeEnum)
