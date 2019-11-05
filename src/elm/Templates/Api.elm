@@ -177,8 +177,22 @@ operations model =
 requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
     let
-        ( requestSig, requestAnnLinkage ) =
-            Templates.L1.lowerFun op.request op.response
+        ( requestType, requestLinkage ) =
+            Templates.L1.lowerType op.request
+
+        ( responseType, responseLinkage ) =
+            Templates.L1.lowerType op.response
+
+        wrappedRespType =
+            CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ responseType ] ]
+
+        wrappedRespLinkage =
+            CG.emptyLinkage
+                |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+                |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
+
+        requestSig =
+            CG.funAnn requestType wrappedRespType
     in
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
@@ -186,7 +200,7 @@ requestFn name op =
         name
         []
         CG.unit
-    , CG.combineLinkage [ requestAnnLinkage ]
+    , CG.combineLinkage [ requestLinkage, responseLinkage, wrappedRespLinkage ]
     )
 
 
@@ -234,3 +248,17 @@ toParams =
 
 requests =
     ()
+
+
+
+-- Helpers
+
+
+coreHttpMod : List String
+coreHttpMod =
+    [ "AWS", "Core", "Http" ]
+
+
+coreDecodeMod : List String
+coreDecodeMod =
+    [ "AWS", "Core", "Decode" ]
