@@ -1,6 +1,6 @@
 module Templates.Api exposing (coreServiceMod, docs, globalService, module_, regionalService, service, serviceFile)
 
-import AWSApiModel exposing (AWSApiModel)
+import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
 import L1
@@ -174,7 +174,7 @@ operations model =
         model.operations
 
 
-requestFn : String -> L1.Type -> ( Declaration, Linkage )
+requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")

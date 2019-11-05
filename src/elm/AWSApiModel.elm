@@ -1,7 +1,13 @@
-module AWSApiModel exposing (AWSApiModel, example)
+module AWSApiModel exposing (AWSApiModel, Endpoint, example)
 
 import Dict exposing (Dict)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
+
+
+type alias Endpoint =
+    { request : Type
+    , response : Type
+    }
 
 
 type alias AWSApiModel =
@@ -13,7 +19,7 @@ type alias AWSApiModel =
     , signer : String
     , docs : String
     , declarations : Declarations
-    , operations : Dict String Type
+    , operations : Dict String Endpoint
     }
 
 

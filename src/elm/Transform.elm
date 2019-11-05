@@ -1,7 +1,7 @@
 module Transform exposing (transform)
 
-import AWSApiModel exposing (AWSApiModel)
-import AWSService exposing (AWSService, AWSType(..), Shape, ShapeRef)
+import AWSApiModel exposing (AWSApiModel, Endpoint)
+import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Dict exposing (Dict)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
 import Maybe.Extra
@@ -32,10 +32,32 @@ transform service =
                 ( Dict.empty, Dict.empty )
                 mappings
 
+        operations =
+            modelOperations okMappings service.operations
+
+        ( okOperations, errOperations ) =
+            Dict.foldl
+                (\key val ( okAccum, errAccum ) ->
+                    case val of
+                        Ok endpoint ->
+                            ( Dict.insert key endpoint okAccum, errAccum )
+
+                        Err err ->
+                            ( okAccum, Dict.insert key err errAccum )
+                )
+                ( Dict.empty, Dict.empty )
+                operations
+
         _ =
             Debug.log "errors" errMappings
+
+        _ =
+            Debug.log "errors" errOperations
     in
-    { default | declarations = okMappings }
+    { default
+        | declarations = okMappings
+        , operations = okOperations
+    }
 
 
 
@@ -386,3 +408,13 @@ modelMap outlineDict shape name =
 
         ( Ok keyType, Ok valType ) ->
             CDict keyType valType |> TContainer |> DAlias |> Ok
+
+
+
+-- operations
+
+
+modelOperations : Dict String Declarable -> Dict String Operation -> Dict String (Result Error Endpoint)
+modelOperations okMappings operations =
+    Dict.empty
+        |> Dict.insert "test" (Ok { request = TBasic BInt, response = TBasic BInt })
