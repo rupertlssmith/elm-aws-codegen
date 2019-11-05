@@ -4,6 +4,7 @@ import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
 import L1
+import String.Case as Case
 import Templates.L1
 
 
@@ -197,7 +198,7 @@ requestFn name op =
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
         (Just requestSig)
-        name
+        (Case.toCamelCaseLower name)
         []
         CG.unit
     , CG.combineLinkage [ requestLinkage, responseLinkage, wrappedRespLinkage ]

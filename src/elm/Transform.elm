@@ -415,6 +415,41 @@ modelMap outlineDict shape name =
 
 
 modelOperations : Dict String Declarable -> Dict String Operation -> Dict String (Result Error Endpoint)
-modelOperations okMappings operations =
-    Dict.empty
-        |> Dict.insert "test" (Ok { request = TBasic BInt, response = TBasic BInt })
+modelOperations typeDict operations =
+    Dict.map
+        (\name operation -> modelOperation typeDict name operation)
+        operations
+
+
+modelOperation : Dict String Declarable -> String -> Operation -> Result Error Endpoint
+modelOperation typeDict name operation =
+    let
+        requestTypeRes =
+            operation.input
+                |> Maybe.map .shape
+                |> Maybe.andThen
+                    (\reqTypeName ->
+                        Dict.get reqTypeName typeDict
+                            |> Maybe.map (always reqTypeName)
+                    )
+
+        responseTypeRes =
+            operation.output
+                |> Maybe.map .shape
+                |> Maybe.andThen
+                    (\respTypeName ->
+                        Dict.get respTypeName typeDict
+                            |> Maybe.map (always respTypeName)
+                    )
+    in
+    case requestTypeRes of
+        Nothing ->
+            error "No request type." |> Err
+
+        Just requestTypeName ->
+            case responseTypeRes of
+                Nothing ->
+                    error "No responsetype." |> Err
+
+                Just responseTypeName ->
+                    Ok { request = TNamed requestTypeName, response = TNamed responseTypeName }
