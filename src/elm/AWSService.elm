@@ -15,6 +15,7 @@ module AWSService exposing
 
 import Codec exposing (Codec)
 import Dict exposing (Dict)
+import Enum exposing (Enum)
 
 
 type alias AWSService =
