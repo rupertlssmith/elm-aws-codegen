@@ -20,7 +20,7 @@ const app = Elm.Top.init();
 //   app.ports.modelInPort.send(['api/dynamodb-2012-08-10.normal.json', contents]);
 // });
 
-fs.readFile('api/iam-2010-05-08.normal.json', 'utf8', function(err, contents) {
+fs.readFile('api/athena-2017-05-18.normal.json', 'utf8', function(err, contents) {
   app.ports.modelInPort.send(['api/athena-2017-05-18.normal.json', contents]);
 });
 
