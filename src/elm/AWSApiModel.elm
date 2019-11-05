@@ -13,7 +13,7 @@ type alias AWSApiModel =
     , signer : String
     , docs : String
     , declarations : Declarations
-    , operations : Dict String ()
+    , operations : Dict String Type
     }
 
 
