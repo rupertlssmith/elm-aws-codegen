@@ -163,7 +163,26 @@ globalService model =
 
 operations : AWSApiModel -> ( List Declaration, List Linkage )
 operations model =
-    ( [], [] )
+    Dict.foldl
+        (\name operation ( declAccum, linkageAccum ) ->
+            requestFn name operation
+                |> Tuple.mapFirst (\decl -> decl :: declAccum)
+                |> Tuple.mapSecond (\linkage -> linkage :: linkageAccum)
+        )
+        ( [], [] )
+        model.operations
+
+
+requestFn : String -> () -> ( Declaration, Linkage )
+requestFn name op =
+    ( CG.funDecl
+        (Just "{-| AWS Endpoint. -}")
+        Nothing
+        name
+        []
+        CG.unit
+    , CG.emptyLinkage
+    )
 
 
 

@@ -13,7 +13,7 @@ type alias AWSApiModel =
     , signer : String
     , docs : String
     , declarations : Declarations
-    , operations : List ()
+    , operations : Dict String ()
     }
 
 
@@ -31,7 +31,7 @@ example =
             [ ( "record", exampleRecord )
             , ( "custom", exampleCustom )
             ]
-    , operations = []
+    , operations = Dict.empty
     }
 
 
