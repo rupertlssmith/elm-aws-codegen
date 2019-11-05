@@ -176,13 +176,17 @@ operations model =
 
 requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
+    let
+        ( requestSig, requestAnnLinkage ) =
+            Templates.L1.lowerFun op.request op.response
+    in
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
-        Nothing
+        (Just requestSig)
         name
         []
         CG.unit
-    , CG.emptyLinkage
+    , CG.combineLinkage [ requestAnnLinkage ]
     )
 
 

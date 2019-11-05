@@ -1,8 +1,17 @@
-module Templates.L1 exposing (typeDecl, codec)
+module Templates.L1 exposing
+    ( typeDecl, codec
+    , lowerType, lowerFun
+    )
 
 {-| Elm code generation from L1 models.
 
+Type declarations:
+
 @docs typeDecl, codec
+
+Lowerings of L1 into Elm type annotations:
+
+@docs lowerType, lowerFun
 
 -}
 
@@ -407,6 +416,22 @@ lowerContainer container =
         COptional l1Type ->
             lowerType l1Type
                 |> Tuple.mapFirst CG.maybeAnn
+
+
+{-| Lowers an L1 function type into an Elm type annotation
+-}
+lowerFun : Type -> Type -> ( TypeAnnotation, Linkage )
+lowerFun fromType toType =
+    let
+        ( from, fromLinkage ) =
+            lowerType fromType
+
+        ( to, toLinkage ) =
+            lowerType toType
+    in
+    ( CG.funAnn from to
+    , CG.combineLinkage [ fromLinkage, toLinkage ]
+    )
 
 
 

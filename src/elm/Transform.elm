@@ -411,7 +411,7 @@ modelMap outlineDict shape name =
 
 
 
--- operations
+--== Operations
 
 
 modelOperations : Dict String Declarable -> Dict String Operation -> Dict String (Result Error Endpoint)
