@@ -178,7 +178,6 @@ operations model =
 requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
     let
-        -- Need input type name, output type name, HTTP method, URL
         ( requestType, requestLinkage ) =
             Templates.L1.lowerType op.request
 
@@ -198,7 +197,10 @@ requestFn name op =
 
         jsonBody =
             CG.pipe (CG.val "req")
-                [ CG.val "InputEncoder"
+                [ CG.apply
+                    [ CG.fqFun codecMod "encoder"
+                    , CG.val (Case.toCamelCaseLower op.requestTypeName ++ "Codec")
+                    ]
                 , CG.fqVal coreHttpMod "jsonBody"
                 ]
                 |> CG.letVal "jsonBody"
@@ -209,8 +211,11 @@ requestFn name op =
                 , CG.string (Case.toCamelCaseUpper name)
                 , CG.apply
                     [ CG.fqFun coreDecodeMod "ResultDecoder"
-                    , CG.string "OutputTypeName"
-                    , CG.val "OutputDecoder"
+                    , CG.string op.responseTypeName
+                    , CG.apply
+                        [ CG.fqFun codecMod "decoder"
+                        , CG.val (Case.toCamelCaseLower op.responseTypeName ++ "Codec")
+                        ]
                     ]
                     |> CG.parens
                 ]
@@ -219,8 +224,8 @@ requestFn name op =
         requestImpl =
             CG.apply
                 [ CG.fqFun coreHttpMod "request"
-                , CG.fqVal coreHttpMod "POST"
-                , CG.string "/"
+                , CG.fqVal coreHttpMod op.httpMethod
+                , CG.string op.url
                 , CG.val "jsonBody"
                 , CG.val "responseDecoder"
                 ]
@@ -284,6 +289,11 @@ requests =
 
 
 -- Helpers
+
+
+codecMod : List String
+codecMod =
+    [ "Codec" ]
 
 
 coreHttpMod : List String
