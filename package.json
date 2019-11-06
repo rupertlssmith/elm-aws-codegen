@@ -1,13 +1,12 @@
 {
-  "name": "tink-data",
+  "name": "elm-aws-codegen",
   "version": "1.0.0",
   "engines": {
     "node": ">=6.10.0"
   },
-  "description": "Turn some CSV into POSTs to Tink APIs.",
-  "author": "Rupert Smith <rupert.smith@rbs.co.uk>",
-  "license": "MIT",
-  "main": "src-bridge/index.js",
+  "description": "Generate service stubs in Elm for calling AWS services.",
+  "author": "Rupert Smith <github@thesett.com>",
+  "license": "Apache-2.0",
   "scripts": {
     "clobber": "rm -rf elm-stuff",
     "rebuild": "npm run clobber && npm install && npm run build",
