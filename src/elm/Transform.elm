@@ -452,4 +452,11 @@ modelOperation typeDict name operation =
                     error "No responsetype." |> Err
 
                 Just responseTypeName ->
-                    Ok { request = TNamed requestTypeName, response = TNamed responseTypeName }
+                    Ok
+                        { request = TNamed requestTypeName
+                        , response = TNamed responseTypeName
+                        , requestTypeName = requestTypeName
+                        , responseTypeName = responseTypeName
+                        , url = "/"
+                        , httpMethod = "HTTP"
+                        }

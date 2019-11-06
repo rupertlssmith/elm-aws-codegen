@@ -178,6 +178,7 @@ operations model =
 requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
     let
+        -- Need input type name, output type name, HTTP method, URL
         ( requestType, requestLinkage ) =
             Templates.L1.lowerType op.request
 
@@ -194,13 +195,43 @@ requestFn name op =
 
         requestSig =
             CG.funAnn requestType wrappedRespType
+
+        jsonBody =
+            CG.pipe (CG.val "req")
+                [ CG.val "InputEncoder"
+                , CG.fqVal coreHttpMod "jsonBody"
+                ]
+                |> CG.letVal "jsonBody"
+
+        responseDecoder =
+            CG.apply
+                [ CG.fqVal coreDecodeMod "responseWrapperDecoder"
+                , CG.string (Case.toCamelCaseUpper name)
+                , CG.apply
+                    [ CG.fqFun coreDecodeMod "ResultDecoder"
+                    , CG.string "OutputTypeName"
+                    , CG.val "OutputDecoder"
+                    ]
+                    |> CG.parens
+                ]
+                |> CG.letVal "responseDecoder"
+
+        requestImpl =
+            CG.apply
+                [ CG.fqFun coreHttpMod "request"
+                , CG.fqVal coreHttpMod "POST"
+                , CG.string "/"
+                , CG.val "jsonBody"
+                , CG.val "responseDecoder"
+                ]
+                |> CG.letExpr [ jsonBody, responseDecoder ]
     in
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
         (Just requestSig)
         (Case.toCamelCaseLower name)
-        []
-        CG.unit
+        [ CG.varPattern "req" ]
+        requestImpl
     , CG.combineLinkage [ requestLinkage, responseLinkage, wrappedRespLinkage ]
     )
 
