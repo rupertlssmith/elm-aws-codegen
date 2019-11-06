@@ -10,9 +10,6 @@ import Maybe.Extra
 transform : AWSService -> AWSApiModel
 transform service =
     let
-        default =
-            AWSApiModel.example
-
         outlineDict =
             outline service.shapes
 
@@ -54,9 +51,24 @@ transform service =
         _ =
             Debug.log "errors" errOperations
     in
-    { default
-        | declarations = okMappings
-        , operations = okOperations
+    { declarations = okMappings
+    , operations = okOperations
+    , name = [ "AWS", service.metaData.serviceId ]
+    , isRegional = Maybe.Extra.isJust service.metaData.globalEndpoint
+    , endpointPrefix = service.metaData.endpointPrefix
+    , apiVersion = service.metaData.apiVersion
+    , protocol = service.metaData.protocol
+    , signer =
+        case service.metaData.signatureVersion of
+            Just "v4" ->
+                "signV4"
+
+            Just "s3" ->
+                "signS3"
+
+            _ ->
+                "signV4"
+    , docs = Maybe.withDefault "" service.documentation
     }
 
 
