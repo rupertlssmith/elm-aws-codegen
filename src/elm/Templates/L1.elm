@@ -19,6 +19,7 @@ import Codec
 import Elm.CodeGen as CG exposing (Declaration, Expression, Import, Linkage, TypeAnnotation)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Restricted(..), Type(..))
 import Maybe.Extra
+import Set exposing (Set)
 import String.Case as Case
 
 
@@ -798,6 +799,50 @@ codecContainerField name container =
 
 
 
+--== Naming cleanup.
+
+
+{-| Checks if a name matches an Elm keyword, and proposes a different name to
+use instead, which is the original with an underscore appended.
+
+    cleanupName "type" == "type_"
+
+-}
+safeName : String -> String
+safeName val =
+    let
+        keywords =
+            Set.fromList
+                [ "type"
+                , "alias"
+                , "let"
+                , "in"
+                , "if"
+                , "then"
+                , "else"
+                , "import"
+                , "exposing"
+                , "module"
+                , "as"
+                , "case"
+                , "of"
+                , "Int"
+                , "Bool"
+                , "Float"
+                , "String"
+                , "Char"
+                , "Order"
+                , "Never"
+                ]
+    in
+    if Set.member val keywords then
+        val ++ "_"
+
+    else
+        val
+
+
+
 --== Helper Functions
 
 
@@ -895,10 +940,6 @@ enumImport =
 guardedImport : Import
 guardedImport =
     CG.importStmt guardedMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Guarded" ])
-
-
-
--- Helpers
 
 
 mChain : (Expression -> Expression) -> Expression -> List Expression -> Expression
