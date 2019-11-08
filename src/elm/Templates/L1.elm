@@ -20,7 +20,6 @@ import Elm.CodeGen as CG exposing (Declaration, Expression, Import, Linkage, Typ
 import L1 exposing (Basic(..), Container(..), Declarable(..), Restricted(..), Type(..))
 import Maybe.Extra
 import Set exposing (Set)
-import String.Case as Case
 import Templates.Util as Util
 
 
@@ -97,10 +96,10 @@ restrictedInt name res =
         gd :: gds ->
             let
                 boxedTypeDecl =
-                    CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.intAnn ] ) ]
+                    CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.intAnn ] ) ]
 
                 restrictedSig =
-                    CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+                    CG.typed "Guarded" [ CG.typed (Util.safeCCU name) [] ]
 
                 guardFn =
                     Util.mChainResult (CG.apply [ gd, CG.val "val" ])
@@ -109,7 +108,7 @@ restrictedInt name res =
 
                 unboxFn =
                     CG.letFunction "unboxFn"
-                        [ CG.namedPattern (Case.toCamelCaseUpper name) [ CG.varPattern "val" ] ]
+                        [ CG.namedPattern (Util.safeCCU name) [ CG.varPattern "val" ] ]
                         (CG.val "val")
 
                 restrictedImpl =
@@ -122,7 +121,7 @@ restrictedInt name res =
                         |> CG.letExpr [ guardFn, unboxFn ]
 
                 restrictedDecl =
-                    CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) restrictedImpl
+                    CG.valDecl Nothing (Just restrictedSig) (Util.safeCCL name) restrictedImpl
             in
             ( [ boxedTypeDecl
               , restrictedDecl
@@ -164,10 +163,10 @@ restrictedString name res =
         gd :: gds ->
             let
                 boxedTypeDecl =
-                    CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+                    CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.stringAnn ] ) ]
 
                 restrictedSig =
-                    CG.typed "Guarded" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+                    CG.typed "Guarded" [ CG.typed (Util.safeCCU name) [] ]
 
                 guardFn =
                     Util.mChainResult (CG.apply [ gd, CG.val "val" ])
@@ -176,7 +175,7 @@ restrictedString name res =
 
                 unboxFn =
                     CG.letFunction "unboxFn"
-                        [ CG.namedPattern (Case.toCamelCaseUpper name) [ CG.varPattern "val" ] ]
+                        [ CG.namedPattern (Util.safeCCU name) [ CG.varPattern "val" ] ]
                         (CG.val "val")
 
                 restrictedImpl =
@@ -189,7 +188,7 @@ restrictedString name res =
                         |> CG.letExpr [ guardFn, unboxFn ]
 
                 restrictedDecl =
-                    CG.valDecl Nothing (Just restrictedSig) (Case.toCamelCaseLower name) restrictedImpl
+                    CG.valDecl Nothing (Just restrictedSig) (Util.safeCCL name) restrictedImpl
             in
             ( [ boxedTypeDecl
               , restrictedDecl
@@ -206,7 +205,7 @@ typeAlias name l1Type =
         ( loweredType, linkage ) =
             lowerType l1Type
     in
-    ( CG.aliasDecl Nothing (Case.toCamelCaseUpper name) [] loweredType
+    ( CG.aliasDecl Nothing (Util.safeCCU name) [] loweredType
     , linkage
     )
 
@@ -228,12 +227,12 @@ customType name constructors =
                                 |> List.unzip
                                 |> Tuple.mapSecond CG.combineLinkage
                     in
-                    ( ( Case.toCamelCaseUpper consName, loweredArgs ), linkage )
+                    ( ( Util.safeCCU consName, loweredArgs ), linkage )
                 )
                 constructors
                 |> List.unzip
     in
-    ( CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] mappedConstructors
+    ( CG.customTypeDecl Nothing (Util.safeCCU name) [] mappedConstructors
     , CG.combineLinkage linkages
     )
 
@@ -249,7 +248,7 @@ enumCustomType name labels =
     let
         constructors =
             List.map
-                (\label -> ( Case.toCamelCaseUpper name ++ Case.toCamelCaseUpper label, [] ))
+                (\label -> ( Util.safeCCU name ++ Util.safeCCU label, [] ))
                 labels
 
         enumValues =
@@ -257,7 +256,7 @@ enumCustomType name labels =
                 [ CG.fqFun enumMod "make"
                 , List.map
                     (\label ->
-                        CG.fun (Case.toCamelCaseUpper name ++ Case.toCamelCaseUpper label)
+                        CG.fun (Util.safeCCU name ++ Util.safeCCU label)
                     )
                     labels
                     |> CG.list
@@ -265,7 +264,7 @@ enumCustomType name labels =
                     (CG.caseExpr (CG.val "val")
                         (List.map
                             (\label ->
-                                ( CG.namedPattern (Case.toCamelCaseUpper name ++ Case.toCamelCaseUpper label) []
+                                ( CG.namedPattern (Util.safeCCU name ++ Util.safeCCU label) []
                                 , CG.string label
                                 )
                             )
@@ -275,10 +274,10 @@ enumCustomType name labels =
                 ]
 
         enumSig =
-            CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+            CG.typed "Enum" [ CG.typed (Util.safeCCU name) [] ]
     in
-    ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] constructors
-      , CG.valDecl Nothing (Just enumSig) (Case.toCamelCaseLower name) enumValues
+    ( [ CG.customTypeDecl Nothing (Util.safeCCU name) [] constructors
+      , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
       ]
     , [ CG.emptyLinkage |> CG.addImport enumImport ]
     )
@@ -294,7 +293,7 @@ enumGuardedType : String -> List String -> ( List Declaration, List Linkage )
 enumGuardedType name labels =
     let
         guardedConstructor =
-            [ ( Case.toCamelCaseUpper name, [ CG.stringAnn ] ) ]
+            [ ( Util.safeCCU name, [ CG.stringAnn ] ) ]
 
         enumValues =
             CG.apply
@@ -302,21 +301,21 @@ enumGuardedType name labels =
                 , List.map
                     (\label ->
                         CG.apply
-                            [ CG.fun (Case.toCamelCaseUpper name)
+                            [ CG.fun (Util.safeCCU name)
                             , label |> CG.string
                             ]
                     )
                     labels
                     |> CG.list
-                , CG.lambda [ CG.namedPattern (Case.toCamelCaseUpper name) [ CG.varPattern "val" ] ]
+                , CG.lambda [ CG.namedPattern (Util.safeCCU name) [ CG.varPattern "val" ] ]
                     (CG.val "val")
                 ]
 
         enumSig =
-            CG.typed "Enum" [ CG.typed (Case.toCamelCaseUpper name) [] ]
+            CG.typed "Enum" [ CG.typed (Util.safeCCU name) [] ]
     in
-    ( [ CG.customTypeDecl Nothing (Case.toCamelCaseUpper name) [] guardedConstructor
-      , CG.valDecl Nothing (Just enumSig) (Case.toCamelCaseLower name) enumValues
+    ( [ CG.customTypeDecl Nothing (Util.safeCCU name) [] guardedConstructor
+      , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
       ]
     , [ CG.emptyLinkage |> CG.addImport enumImport ]
     )
@@ -333,7 +332,7 @@ lowerType l1Type =
             )
 
         TNamed name ->
-            ( CG.typed (Case.toCamelCaseUpper name) []
+            ( CG.typed (Util.safeCCU name) []
             , CG.emptyLinkage
             )
 
@@ -379,7 +378,7 @@ lowerProduct fields =
                         ( loweredType, linkage ) =
                             lowerType l1Type
                     in
-                    ( ( Case.toCamelCaseLower name, loweredType ), linkage )
+                    ( ( Util.safeCCL name, loweredType ), linkage )
                 )
                 fields
                 |> List.unzip
@@ -464,10 +463,10 @@ typeAliasCodec : String -> Type -> ( Declaration, Linkage )
 typeAliasCodec name l1Type =
     let
         codecFnName =
-            Case.toCamelCaseLower (name ++ "Codec")
+            Util.safeCCL (name ++ "Codec")
 
         typeName =
-            Case.toCamelCaseUpper name
+            Util.safeCCU name
 
         sig =
             CG.typed "Codec" [ CG.typed typeName [] ]
@@ -492,10 +491,10 @@ customTypeCodec : String -> List ( String, List ( String, Type ) ) -> ( Declarat
 customTypeCodec name constructors =
     let
         codecFnName =
-            Case.toCamelCaseLower (name ++ "Codec")
+            Util.safeCCL (name ++ "Codec")
 
         typeName =
-            Case.toCamelCaseUpper name
+            Util.safeCCU name
 
         sig =
             CG.typed "Codec" [ CG.typed typeName [] ]
@@ -518,13 +517,13 @@ enumCodec : String -> List String -> ( Declaration, Linkage )
 enumCodec name constructors =
     let
         codecFnName =
-            Case.toCamelCaseLower (name ++ "Codec")
+            Util.safeCCL (name ++ "Codec")
 
         typeName =
-            Case.toCamelCaseUpper name
+            Util.safeCCU name
 
         enumName =
-            Case.toCamelCaseLower name
+            Util.safeCCL name
 
         sig =
             CG.typed "Codec" [ CG.typed typeName [] ]
@@ -552,13 +551,13 @@ restrictedCodec : String -> Restricted -> ( Declaration, Linkage )
 restrictedCodec name _ =
     let
         codecFnName =
-            Case.toCamelCaseLower (name ++ "Codec")
+            Util.safeCCL (name ++ "Codec")
 
         typeName =
-            Case.toCamelCaseUpper name
+            Util.safeCCU name
 
         enumName =
-            Case.toCamelCaseLower name
+            Util.safeCCL name
 
         sig =
             CG.typed "Codec" [ CG.typed typeName [] ]
@@ -588,8 +587,8 @@ codecCustomType constructors =
         codecVariant name args =
             List.foldr
                 (\( _, l1Type ) accum -> codecType l1Type :: accum)
-                [ Case.toCamelCaseUpper name |> CG.fun
-                , Case.toCamelCaseUpper name |> CG.string
+                [ Util.safeCCU name |> CG.fun
+                , Util.safeCCU name |> CG.string
                 , codecFn ("variant" ++ String.fromInt (List.length args))
                 ]
                 args
@@ -611,7 +610,7 @@ codecMatchFn : List ( String, List ( String, Type ) ) -> Expression
 codecMatchFn constructors =
     let
         consFnName name =
-            "f" ++ Case.toCamelCaseLower name
+            "f" ++ Util.safeCCL name
 
         args =
             List.foldr (\( name, _ ) accum -> (consFnName name |> CG.varPattern) :: accum)
@@ -619,7 +618,7 @@ codecMatchFn constructors =
                 constructors
 
         consPattern ( name, consArgs ) =
-            ( CG.namedPattern (Case.toCamelCaseUpper name)
+            ( CG.namedPattern (Util.safeCCU name)
                 (List.map (\( argName, _ ) -> CG.varPattern argName) consArgs)
             , List.foldr (\( argName, _ ) accum -> CG.val argName :: accum)
                 [ consFnName name |> CG.fun ]
@@ -720,7 +719,7 @@ codecBasic basic =
 
 
 codecNamed named =
-    CG.fun (Case.toCamelCaseLower (named ++ "Codec"))
+    CG.fun (Util.safeCCL (named ++ "Codec"))
 
 
 codecContainer : Container -> Expression
@@ -750,7 +749,7 @@ codecNamedProduct : String -> List ( String, Type ) -> Expression
 codecNamedProduct name fields =
     let
         typeName =
-            Case.toCamelCaseUpper name
+            Util.safeCCU name
 
         impl =
             codecFields fields
@@ -821,8 +820,8 @@ codecField : String -> Expression -> Expression
 codecField name expr =
     CG.apply
         [ codecFn "field"
-        , CG.string (Case.toCamelCaseLower name)
-        , CG.accessFun ("." ++ Case.toCamelCaseLower name)
+        , CG.string name
+        , CG.accessFun ("." ++ Util.safeCCL name)
         , expr
         ]
 
@@ -833,8 +832,8 @@ codecOptionalField : String -> Expression -> Expression
 codecOptionalField name expr =
     CG.apply
         [ codecFn "optionalField"
-        , CG.string (Case.toCamelCaseLower name)
-        , CG.accessFun ("." ++ Case.toCamelCaseLower name)
+        , CG.string (Util.safeCCL name)
+        , CG.accessFun ("." ++ Util.safeCCL name)
         , expr
         ]
 

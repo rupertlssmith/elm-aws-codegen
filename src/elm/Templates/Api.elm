@@ -4,8 +4,8 @@ import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
 import L1
-import String.Case as Case
 import Templates.L1
+import Templates.Util as Util
 
 
 serviceFile : AWSApiModel -> File
@@ -199,7 +199,7 @@ requestFn name op =
             CG.pipe (CG.val "req")
                 [ CG.apply
                     [ CG.fqFun codecMod "encoder"
-                    , CG.val (Case.toCamelCaseLower op.requestTypeName ++ "Codec")
+                    , CG.val (Util.safeCCL op.requestTypeName ++ "Codec")
                     ]
                 , CG.fqVal coreHttpMod "jsonBody"
                 ]
@@ -208,13 +208,13 @@ requestFn name op =
         responseDecoder =
             CG.apply
                 [ CG.fqVal coreDecodeMod "responseWrapperDecoder"
-                , CG.string (Case.toCamelCaseUpper name)
+                , CG.string (Util.safeCCU name)
                 , CG.apply
                     [ CG.fqFun coreDecodeMod "ResultDecoder"
                     , CG.string op.responseTypeName
                     , CG.apply
                         [ CG.fqFun codecMod "decoder"
-                        , CG.val (Case.toCamelCaseLower op.responseTypeName ++ "Codec")
+                        , CG.val (Util.safeCCL op.responseTypeName ++ "Codec")
                         ]
                     ]
                     |> CG.parens
@@ -234,7 +234,7 @@ requestFn name op =
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
         (Just requestSig)
-        (Case.toCamelCaseLower name)
+        (Util.safeCCL name)
         [ CG.varPattern "req" ]
         requestImpl
     , CG.combineLinkage [ requestLinkage, responseLinkage, wrappedRespLinkage ]
