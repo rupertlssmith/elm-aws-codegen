@@ -84,8 +84,12 @@ restrictedInt name res =
                 (\maxValue -> CG.apply [ CG.fqFun guardedMod "lt", CG.int maxValue ])
                 res.max
 
+        typeWrapper =
+            CG.fun (Util.safeCCU name)
+                |> Just
+
         guards =
-            [ minGuard, maxGuard ] |> Maybe.Extra.values
+            [ minGuard, maxGuard, typeWrapper ] |> Maybe.Extra.values
     in
     case guards of
         [] ->
@@ -161,8 +165,12 @@ restrictedString name res =
                 (\regex -> CG.apply [ CG.fqFun guardedMod "regexMatch", CG.string regex ])
                 res.regex
 
+        typeWrapper =
+            CG.fun (Util.safeCCU name)
+                |> Just
+
         guards =
-            [ minLenGuard, maxLenGuard, patternGuard ] |> Maybe.Extra.values
+            [ minLenGuard, maxLenGuard, patternGuard, typeWrapper ] |> Maybe.Extra.values
     in
     case guards of
         [] ->
