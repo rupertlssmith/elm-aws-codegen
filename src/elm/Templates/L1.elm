@@ -99,7 +99,11 @@ restrictedInt name res =
                     CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.intAnn ] ) ]
 
                 restrictedSig =
-                    CG.typed "Guarded" [ CG.typed (Util.safeCCU name) [] ]
+                    CG.typed "Guarded"
+                        [ CG.typed "Int" []
+                        , CG.typed (Util.safeCCU name) []
+                        , CG.typed "IntError" []
+                        ]
 
                 guardFn =
                     Util.mChainResult (CG.apply [ gd, CG.val "val" ])
@@ -126,7 +130,7 @@ restrictedInt name res =
             ( [ boxedTypeDecl
               , restrictedDecl
               ]
-            , [ CG.emptyLinkage |> CG.addImport guardedImport ]
+            , [ CG.emptyLinkage |> CG.addImport (guardedImportExposing [ "Guarded", "IntError" ]) ]
             )
 
 
@@ -166,7 +170,11 @@ restrictedString name res =
                     CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.stringAnn ] ) ]
 
                 restrictedSig =
-                    CG.typed "Guarded" [ CG.typed (Util.safeCCU name) [] ]
+                    CG.typed "Guarded"
+                        [ CG.typed "String" []
+                        , CG.typed (Util.safeCCU name) []
+                        , CG.typed "StringError" []
+                        ]
 
                 guardFn =
                     Util.mChainResult (CG.apply [ gd, CG.val "val" ])
@@ -182,7 +190,7 @@ restrictedString name res =
                     CG.apply
                         [ CG.fqFun guardedMod "make"
                         , CG.fun "guardFn"
-                        , CG.fqFun guardedMod "intErrorToString"
+                        , CG.fqFun guardedMod "stringErrorToString"
                         , CG.fun "unboxFn"
                         ]
                         |> CG.letExpr [ guardFn, unboxFn ]
@@ -193,7 +201,7 @@ restrictedString name res =
             ( [ boxedTypeDecl
               , restrictedDecl
               ]
-            , [ CG.emptyLinkage |> CG.addImport guardedImport ]
+            , [ CG.emptyLinkage |> CG.addImport (guardedImportExposing [ "Guarded", "StringError" ]) ]
             )
 
 
@@ -893,6 +901,6 @@ enumImport =
     CG.importStmt enumMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Enum" ])
 
 
-guardedImport : Import
-guardedImport =
-    CG.importStmt guardedMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Guarded" ])
+guardedImportExposing : List String -> Import
+guardedImportExposing exposings =
+    CG.importStmt guardedMod Nothing (Just <| CG.exposeExplicit (List.map CG.typeOrAliasExpose exposings))
