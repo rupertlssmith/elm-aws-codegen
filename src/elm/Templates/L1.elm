@@ -118,6 +118,8 @@ restrictedInt name res =
                 restrictedImpl =
                     CG.apply
                         [ CG.fqFun guardedMod "make"
+                        , CG.fqVal decodeMod "int"
+                        , CG.fqVal encodeMod "int"
                         , CG.fun "guardFn"
                         , CG.fqFun guardedMod "intErrorToString"
                         , CG.fun "unboxFn"
@@ -130,7 +132,11 @@ restrictedInt name res =
             ( [ boxedTypeDecl
               , restrictedDecl
               ]
-            , [ CG.emptyLinkage |> CG.addImport (guardedImportExposing [ "Guarded", "IntError" ]) ]
+            , [ CG.emptyLinkage
+                    |> CG.addImport (guardedImportExposing [ "Guarded", "IntError" ])
+                    |> CG.addImport decodeImport
+                    |> CG.addImport encodeImport
+              ]
             )
 
 
@@ -190,6 +196,8 @@ restrictedString name res =
                     CG.apply
                         [ CG.fqFun guardedMod "make"
                         , CG.fun "guardFn"
+                        , CG.fqVal decodeMod "string"
+                        , CG.fqVal encodeMod "string"
                         , CG.fqFun guardedMod "stringErrorToString"
                         , CG.fun "unboxFn"
                         ]
@@ -201,7 +209,11 @@ restrictedString name res =
             ( [ boxedTypeDecl
               , restrictedDecl
               ]
-            , [ CG.emptyLinkage |> CG.addImport (guardedImportExposing [ "Guarded", "StringError" ]) ]
+            , [ CG.emptyLinkage
+                    |> CG.addImport (guardedImportExposing [ "Guarded", "StringError" ])
+                    |> CG.addImport decodeImport
+                    |> CG.addImport encodeImport
+              ]
             )
 
 
@@ -856,6 +868,16 @@ codecMod =
     [ "Codec" ]
 
 
+decodeMod : List String
+decodeMod =
+    [ "Json", "Decode" ]
+
+
+encodeMod : List String
+encodeMod =
+    [ "Json", "Encode" ]
+
+
 enumMod : List String
 enumMod =
     [ "Enum" ]
@@ -884,6 +906,16 @@ codecFn =
 codecImport : Import
 codecImport =
     CG.importStmt codecMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Codec" ])
+
+
+decodeImport : Import
+decodeImport =
+    CG.importStmt decodeMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Decoder" ])
+
+
+encodeImport : Import
+encodeImport =
+    CG.importStmt encodeMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Value" ])
 
 
 setImport : Import
