@@ -470,5 +470,5 @@ modelOperation typeDict name operation =
                         , requestTypeName = requestTypeName
                         , responseTypeName = responseTypeName
                         , url = "/"
-                        , httpMethod = "HTTP"
+                        , httpMethod = operation.http.method
                         }
