@@ -1,4 +1,4 @@
-module Transform exposing (transform)
+module Transform exposing (TransformError, transform)
 
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
@@ -7,7 +7,7 @@ import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Rest
 import Maybe.Extra
 
 
-transform : AWSService -> AWSApiModel
+transform : AWSService -> ( AWSApiModel, List TransformError )
 transform service =
     let
         outlineDict =
@@ -45,35 +45,34 @@ transform service =
                 ( Dict.empty, Dict.empty )
                 operations
 
-        _ =
-            Debug.log "errors" errMappings
-
-        _ =
-            Debug.log "errors" errOperations
+        transformErrors =
+            flattenErrors [ errMappings, errOperations ]
     in
-    { declarations = okMappings
-    , operations = okOperations
-    , name = [ "AWS", service.metaData.serviceId ]
-    , isRegional = Maybe.Extra.isJust service.metaData.globalEndpoint
-    , endpointPrefix = service.metaData.endpointPrefix
-    , apiVersion = service.metaData.apiVersion
-    , protocol = service.metaData.protocol
-    , signer =
-        case service.metaData.signatureVersion of
-            Just "v4" ->
-                "signV4"
+    ( { declarations = okMappings
+      , operations = okOperations
+      , name = [ "AWS", service.metaData.serviceId ]
+      , isRegional = Maybe.Extra.isJust service.metaData.globalEndpoint
+      , endpointPrefix = service.metaData.endpointPrefix
+      , apiVersion = service.metaData.apiVersion
+      , protocol = service.metaData.protocol
+      , signer =
+            case service.metaData.signatureVersion of
+                Just "v4" ->
+                    "signV4"
 
-            Just "s3" ->
-                "signS3"
+                Just "s3" ->
+                    "signS3"
 
-            _ ->
-                "signV4"
-    , docs = Maybe.withDefault "" service.documentation
-    , xmlNamespace = service.metaData.xmlNamespace
-    , targetPrefix = service.metaData.targetPrefix
-    , signingName = service.metaData.signingName
-    , jsonVersion = service.metaData.jsonVersion
-    }
+                _ ->
+                    "signV4"
+      , docs = Maybe.withDefault "" service.documentation
+      , xmlNamespace = service.metaData.xmlNamespace
+      , targetPrefix = service.metaData.targetPrefix
+      , signingName = service.metaData.signingName
+      , jsonVersion = service.metaData.jsonVersion
+      }
+    , transformErrors
+    )
 
 
 
@@ -103,6 +102,15 @@ addError val errs =
 
         MultipleError errorList ->
             MultipleError (SingleError val :: errorList)
+
+
+type alias TransformError =
+    String
+
+
+flattenErrors : List (Dict String Error) -> List TransformError
+flattenErrors _ =
+    []
 
 
 

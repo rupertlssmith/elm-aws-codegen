@@ -100,11 +100,14 @@ processServiceModel name val seed =
     case serviceResult of
         Ok service ->
             let
-                codegen =
+                _ =
+                    Debug.log "Processing" service.metaData.serviceId
+
+                ( codegen, errors ) =
                     Transform.transform service
-                        |> Templates.Api.serviceFile
-                        |> Elm.Pretty.pretty
-                        |> Pretty.pretty 120
+                        |> Tuple.mapFirst Templates.Api.serviceFile
+                        |> Tuple.mapFirst Elm.Pretty.pretty
+                        |> Tuple.mapFirst (Pretty.pretty 120)
             in
             ( Seeded { seed = seed }
             , ( service.metaData.serviceId ++ ".elm", codegen ) |> codeOutPort
