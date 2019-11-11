@@ -36,6 +36,7 @@ port modelInPort : (( String, String ) -> msg) -> Sub msg
 port codeOutPort : String -> Cmd msg
 
 
+subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
         Error _ ->
@@ -70,12 +71,14 @@ type Msg
     | ModelData String String
 
 
+init : a -> ( Model, Cmd Msg )
 init _ =
     ( Initial
     , Task.perform CreateSeed Time.now
     )
 
 
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( model, msg ) of
         ( Initial, CreateSeed posix ) ->
@@ -88,32 +91,15 @@ update msg model =
             ( model, Cmd.none )
 
 
+processServiceModel : String -> String -> Seed -> ( Model, Cmd Msg )
 processServiceModel name val seed =
     let
-        example =
+        serviceResult =
             Codec.decodeString AWSService.awsServiceCodec val
     in
-    case example of
+    case serviceResult of
         Ok service ->
             let
-                _ =
-                    Debug.log "Ok" name
-
-                original =
-                    Decode.decodeString Generic.json val
-
-                parsed =
-                    Decode.decodeString Generic.json (Codec.encodeToString 0 AWSService.awsServiceCodec service)
-
-                diffs =
-                    case ( original, parsed ) of
-                        ( Ok jsonl, Ok jsonr ) ->
-                            Diff.diff jsonl jsonr |> Diff.diffsToString
-
-                        --|> logIfVal "Diffs"
-                        ( _, _ ) ->
-                            "Failed to generic decode" |> Debug.log "Error"
-
                 codegen =
                     Transform.transform service
                         |> Templates.Api.serviceFile
@@ -129,15 +115,4 @@ processServiceModel name val seed =
                 _ =
                     Debug.log "Error" (name ++ " - " ++ Decode.errorToString err)
             in
-            ( Seeded { seed = seed }
-            , Decode.errorToString err |> codeOutPort
-            )
-
-
-logIfVal : String -> String -> String
-logIfVal label val =
-    if val == "" then
-        val
-
-    else
-        Debug.log label val
+            ( Seeded { seed = seed }, Cmd.none )
