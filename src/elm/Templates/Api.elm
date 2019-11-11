@@ -4,6 +4,7 @@ import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
 import L1
+import Maybe.Extra
 import Templates.L1
 import Templates.Util as Util
 
@@ -103,6 +104,41 @@ service model =
         globalService model
 
 
+optionsFn model =
+    let
+        jsonVersionOption =
+            Maybe.map
+                (\name -> CG.apply [ CG.fqFun coreServiceMod "setJsonVersion", CG.string name ])
+                model.jsonVersion
+
+        signingNameOption =
+            Maybe.map
+                (\name -> CG.apply [ CG.fqFun coreServiceMod "setSigningName", CG.string name ])
+                model.signingName
+
+        targetPrefixOption =
+            Maybe.map
+                (\name -> CG.apply [ CG.fqFun coreServiceMod "setTargetPrefix", CG.string name ])
+                model.targetPrefix
+
+        xmlNamespaceOption =
+            Maybe.map
+                (\name -> CG.apply [ CG.fqFun coreServiceMod "setXmlNamespace", CG.string name ])
+                model.xmlNamespace
+
+        options =
+            [ jsonVersionOption, signingNameOption, targetPrefixOption, xmlNamespaceOption ] |> Maybe.Extra.values
+    in
+    (case options of
+        [] ->
+            CG.fun "identity"
+
+        op :: ops ->
+            CG.chain op (List.map CG.parens ops)
+    )
+        |> CG.letFunction "optionsFn" []
+
+
 regionalService : AWSApiModel -> ( Declaration, Linkage )
 regionalService model =
     let
@@ -118,7 +154,9 @@ regionalService model =
                 , CG.string model.apiVersion
                 , CG.fqFun coreServiceMod model.protocol
                 , CG.fqFun coreServiceMod model.signer
+                , CG.fun "optionsFn"
                 ]
+                |> CG.letExpr [ optionsFn model ]
     in
     ( CG.funDecl
         (Just "{-| Configuration for this service. -}")
@@ -145,7 +183,9 @@ globalService model =
                 , CG.string model.apiVersion
                 , CG.fqFun coreServiceMod model.protocol
                 , CG.fqFun coreServiceMod model.signer
+                , CG.fun "optionsFn"
                 ]
+                |> CG.letExpr [ optionsFn model ]
     in
     ( CG.funDecl
         (Just "{-| Configuration for this service. -}")

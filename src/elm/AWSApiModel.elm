@@ -22,6 +22,10 @@ type alias AWSApiModel =
     , protocol : String
     , signer : String
     , docs : String
+    , xmlNamespace : Maybe String
+    , targetPrefix : Maybe String
+    , signingName : Maybe String
+    , jsonVersion : Maybe String
     , declarations : Declarations
     , operations : Dict String Endpoint
     }

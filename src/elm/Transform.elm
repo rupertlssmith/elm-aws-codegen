@@ -69,6 +69,10 @@ transform service =
             _ ->
                 "signV4"
     , docs = Maybe.withDefault "" service.documentation
+    , xmlNamespace = service.metaData.xmlNamespace
+    , targetPrefix = service.metaData.targetPrefix
+    , signingName = service.metaData.signingName
+    , jsonVersion = service.metaData.jsonVersion
     }
 
 
