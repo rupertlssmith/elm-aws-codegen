@@ -84,12 +84,8 @@ restrictedInt name res =
                 (\maxValue -> CG.apply [ CG.fqFun guardedMod "lt", CG.int maxValue ])
                 res.max
 
-        typeWrapper =
-            CG.fun (Util.safeCCU name)
-                |> Just
-
         guards =
-            [ minGuard, maxGuard, typeWrapper ] |> Maybe.Extra.values
+            [ minGuard, maxGuard ] |> Maybe.Extra.values
     in
     case guards of
         [] ->
@@ -109,9 +105,19 @@ restrictedInt name res =
                         , CG.typed "IntError" []
                         ]
 
+                typeWrapper =
+                    CG.apply
+                        [ CG.fqFun resultMod "map"
+                        , CG.fun (Util.safeCCU name)
+                        ]
+
                 guardFn =
-                    Util.mChainResult (CG.apply [ gd, CG.val "val" ])
-                        (List.map CG.parens gds)
+                    CG.opApply "|>"
+                        CG.infixLeft
+                        (Util.mChainResult (CG.apply [ gd, CG.val "val" ])
+                            (List.map CG.parens gds)
+                        )
+                        typeWrapper
                         |> CG.letFunction "guardFn" [ CG.varPattern "val" ]
 
                 unboxFn =
@@ -165,12 +171,8 @@ restrictedString name res =
                 (\regex -> CG.apply [ CG.fqFun guardedMod "regexMatch", CG.string regex ])
                 res.regex
 
-        typeWrapper =
-            CG.fun (Util.safeCCU name)
-                |> Just
-
         guards =
-            [ minLenGuard, maxLenGuard, patternGuard, typeWrapper ] |> Maybe.Extra.values
+            [ minLenGuard, maxLenGuard, patternGuard ] |> Maybe.Extra.values
     in
     case guards of
         [] ->
@@ -190,9 +192,19 @@ restrictedString name res =
                         , CG.typed "StringError" []
                         ]
 
+                typeWrapper =
+                    CG.apply
+                        [ CG.fqFun resultMod "map"
+                        , CG.fun (Util.safeCCU name)
+                        ]
+
                 guardFn =
-                    Util.mChainResult (CG.apply [ gd, CG.val "val" ])
-                        (List.map CG.parens gds)
+                    CG.opApply "|>"
+                        CG.infixLeft
+                        (Util.mChainResult (CG.apply [ gd, CG.val "val" ])
+                            (List.map CG.parens gds)
+                        )
+                        typeWrapper
                         |> CG.letFunction "guardFn" [ CG.varPattern "val" ]
 
                 unboxFn =
