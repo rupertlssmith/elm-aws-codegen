@@ -25,7 +25,9 @@ const app = Elm.Top.init();
 
 const specs = [
   "athena-2017-05-18.normal.json",
-  "dynamodb-2012-08-10.normal.json"
+  "dynamodb-2012-08-10.normal.json",
+  "iam-2010-05-08.normal.json",
+  "lambda-2015-03-31.normal.json"
 ]
 
 specs.forEach(function(item, index) {
