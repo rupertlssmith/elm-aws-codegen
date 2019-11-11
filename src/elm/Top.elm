@@ -101,7 +101,7 @@ processServiceModel name val seed =
         Ok service ->
             let
                 _ =
-                    Debug.log "Processing" service.metaData.serviceId
+                    Debug.log "=== Processing ===" service.metaData.serviceId
 
                 ( codegen, errors ) =
                     Transform.transform service
