@@ -128,9 +128,9 @@ restrictedInt name res =
                 restrictedImpl =
                     CG.apply
                         [ CG.fqFun guardedMod "make"
+                        , CG.fun "guardFn"
                         , CG.fqVal decodeMod "int"
                         , CG.fqVal encodeMod "int"
-                        , CG.fun "guardFn"
                         , CG.fqFun guardedMod "intErrorToString"
                         , CG.fun "unboxFn"
                         ]
