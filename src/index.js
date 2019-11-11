@@ -1,11 +1,7 @@
 var fs = require('fs');
 var glob = require('glob');
 
-//const { Elm }  = require('./Top.elm'); -- do it this way if using webpack-loader
-const {
-  Elm
-} = require('./elm.js');
-
+const { Elm } = require('./elm.js');
 const app = Elm.Top.init();
 
 // glob("api/*.normal.json", function(er, files) {
@@ -14,13 +10,6 @@ const app = Elm.Top.init();
 //         app.ports.modelInPort.send([file, contents]);
 //       });
 //     });
-// });
-
-// fs.readFile('api/dynamodb-2012-08-10.normal.json', 'utf8', function(err, contents) {
-//   app.ports.modelInPort.send(['api/dynamodb-2012-08-10.normal.json', contents]);
-// });
-// fs.readFile('api/athena-2017-05-18.normal.json', 'utf8', function(err, contents) {
-//   app.ports.modelInPort.send(['api/athena-2017-05-18.normal.json', contents]);
 // });
 
 const specs = [
@@ -32,8 +21,6 @@ const specs = [
 
 specs.forEach(function(item, index) {
   var filename = 'api/' + item;
-
-  console.log(filename);
 
   fs.readFile(filename, 'utf8', function(err, contents) {
     app.ports.modelInPort.send([filename, contents]);
