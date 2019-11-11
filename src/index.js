@@ -25,7 +25,7 @@ fs.readFile('api/athena-2017-05-18.normal.json', 'utf8', function(err, contents)
 });
 
 app.ports.codeOutPort.subscribe(request => {
-  fs.writeFile(request[0], request[1], (err) => {
+  fs.writeFile('stubs/AWS/' + request[0], request[1], (err) => {
     if (err) throw err;
   })
 });

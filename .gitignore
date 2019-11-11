@@ -2,4 +2,4 @@ src/elm.js
 elm-stuff
 node_modules
 *.log
-example.txt
+/stubs
