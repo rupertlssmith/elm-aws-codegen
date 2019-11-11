@@ -33,7 +33,7 @@ main =
 port modelInPort : (( String, String ) -> msg) -> Sub msg
 
 
-port codeOutPort : String -> Cmd msg
+port codeOutPort : ( String, String ) -> Cmd msg
 
 
 subscriptions : Model -> Sub Msg
@@ -107,7 +107,7 @@ processServiceModel name val seed =
                         |> Pretty.pretty 120
             in
             ( Seeded { seed = seed }
-            , codegen |> codeOutPort
+            , ( service.metaData.serviceId ++ ".elm", codegen ) |> codeOutPort
             )
 
         Err err ->
