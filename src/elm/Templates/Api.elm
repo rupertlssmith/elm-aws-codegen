@@ -216,6 +216,7 @@ requestFn name op =
                         [ CG.fqFun codecMod "decoder"
                         , CG.val (Util.safeCCL op.responseTypeName ++ "Codec")
                         ]
+                        |> CG.parens
                     ]
                     |> CG.parens
                 ]
