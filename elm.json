@@ -19,7 +19,7 @@
             "stil4m/elm-syntax": "7.1.0",
             "the-sett/decode-generic": "1.0.0",
             "the-sett/elm-enum": "1.0.0",
-            "the-sett/elm-pretty-printer": "2.2.2",
+            "the-sett/elm-pretty-printer": "2.2.3",
             "the-sett/elm-string-case": "1.0.2",
             "the-sett/elm-syntax-dsl": "4.0.0"
         },
