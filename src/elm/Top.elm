@@ -108,6 +108,9 @@ processServiceModel name val seed =
                         |> Tuple.mapFirst Templates.Api.serviceFile
                         |> Tuple.mapFirst Elm.Pretty.pretty
                         |> Tuple.mapFirst (Pretty.pretty 120)
+
+                _ =
+                    Debug.log "errors" (String.join "\n" errors)
             in
             ( Seeded { seed = seed }
             , ( service.metaData.serviceId ++ ".elm", codegen ) |> codeOutPort

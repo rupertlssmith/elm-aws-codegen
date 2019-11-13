@@ -1,13 +1,73 @@
-module Transform exposing (TransformError, transform)
+module Transform exposing (transform)
 
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Dict exposing (Dict)
+import Errors exposing (Error)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
 import Maybe.Extra
 
 
-transform : AWSService -> ( AWSApiModel, List TransformError )
+type TransformError
+    = NoMembers String
+    | UnresolvedMemberRef
+    | NoRequestType
+    | NoResponseType
+    | UnresolvedMapKeyRef
+    | MapKeyNotEnumOrBasic
+    | MapKeyEmpty
+    | MapValueEmpty
+    | UnresolvedMapValueRef
+    | UnresolvedListMemberRef
+    | ListMemberEmpty
+    | BlobNotImplemented
+    | UnknownNotImplemented
+
+
+errorToString : TransformError -> String
+errorToString err =
+    case err of
+        NoMembers name ->
+            name ++ ": structure has no members"
+
+        UnresolvedMemberRef ->
+            "Structure .members reference did no resolve."
+
+        NoRequestType ->
+            "No request type."
+
+        NoResponseType ->
+            "No responsetype."
+
+        UnresolvedMapKeyRef ->
+            "Map .key reference did not resolve."
+
+        MapKeyNotEnumOrBasic ->
+            "Map .key is not an enum or basic."
+
+        MapKeyEmpty ->
+            "Map .key is empty, should be basic or enum."
+
+        MapValueEmpty ->
+            "Map .value is empty, should be basic or enum."
+
+        UnresolvedMapValueRef ->
+            "Map .value reference did not resolve."
+
+        UnresolvedListMemberRef ->
+            "List .member reference did not resolve."
+
+        ListMemberEmpty ->
+            "List .member is empty, but should be a shape reference."
+
+        BlobNotImplemented ->
+            "Blob not implemented."
+
+        UnknownNotImplemented ->
+            "Unknown not implemented."
+
+
+transform : AWSService -> ( AWSApiModel, List String )
 transform service =
     let
         outlineDict =
@@ -45,8 +105,16 @@ transform service =
                 ( Dict.empty, Dict.empty )
                 operations
 
+        enrichError key errors =
+            Errors.map (\err -> key ++ ": " ++ errorToString err) errors
+
         transformErrors =
-            flattenErrors [ errMappings, errOperations ]
+            [ Dict.map enrichError errMappings |> Dict.values
+            , Dict.map enrichError errOperations |> Dict.values
+            ]
+                |> List.concat
+                |> Errors.combine
+                |> Errors.toList
     in
     ( { declarations = okMappings
       , operations = okOperations
@@ -77,43 +145,6 @@ transform service =
 
 
 --== Error reporting.
-
-
-type Error
-    = SingleError String
-    | MultipleError (List Error)
-
-
-error : String -> Error
-error val =
-    SingleError val
-
-
-errors : List Error -> Error
-errors errs =
-    MultipleError errs
-
-
-addError : String -> Error -> Error
-addError val errs =
-    case errs of
-        SingleError single ->
-            MultipleError [ SingleError val, SingleError single ]
-
-        MultipleError errorList ->
-            MultipleError (SingleError val :: errorList)
-
-
-type alias TransformError =
-    String
-
-
-flattenErrors : List (Dict String Error) -> List TransformError
-flattenErrors _ =
-    []
-
-
-
 --== First pass.
 -- In the first pass all the named shapes are discovered and an approximate
 -- outline of how they will transalate into L1 is generated. Either they are
@@ -254,14 +285,14 @@ shapeRefIsBasic ref outlineDict =
 -- names will be used by referring to them.
 
 
-modelShapes : Dict String Shape -> Dict String Outline -> Dict String (Result Error Declarable)
+modelShapes : Dict String Shape -> Dict String Outline -> Dict String (Result (Error TransformError) Declarable)
 modelShapes shapeDict outlineDict =
     Dict.map
         (\key value -> modelShape outlineDict value key)
         shapeDict
 
 
-modelShape : Dict String Outline -> Shape -> String -> Result Error Declarable
+modelShape : Dict String Outline -> Shape -> String -> Result (Error TransformError) Declarable
 modelShape outlineDict shape name =
     case shape.type_ of
         AString ->
@@ -283,7 +314,7 @@ modelShape outlineDict shape name =
             BReal |> TBasic |> DAlias |> Ok
 
         ABlob ->
-            error "Blob not implemented." |> Err
+            Errors.single BlobNotImplemented |> Err
 
         AStructure ->
             modelStructure outlineDict shape name
@@ -298,10 +329,10 @@ modelShape outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
         AUnknown ->
-            error "Unknown not implemented." |> Err
+            Errors.single UnknownNotImplemented |> Err
 
 
-modelString : Dict String Outline -> Shape -> String -> Result Error Declarable
+modelString : Dict String Outline -> Shape -> String -> Result (Error TransformError) Declarable
 modelString outlineDict shape name =
     case
         ( shape.enum
@@ -324,7 +355,7 @@ modelString outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
 
-modelInt : Dict String Outline -> Shape -> String -> Result Error Declarable
+modelInt : Dict String Outline -> Shape -> String -> Result (Error TransformError) Declarable
 modelInt outlineDict shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
@@ -336,11 +367,11 @@ modelInt outlineDict shape name =
             BInt |> TBasic |> DAlias |> Ok
 
 
-modelStructure : Dict String Outline -> Shape -> String -> Result Error Declarable
+modelStructure : Dict String Outline -> Shape -> String -> Result (Error TransformError) Declarable
 modelStructure outlineDict shape name =
     case shape.members of
         Nothing ->
-            error (name ++ ": structure has no members") |> Err
+            NoMembers name |> Errors.single |> Err
 
         Just members ->
             let
@@ -349,7 +380,7 @@ modelStructure outlineDict shape name =
                         (\memberName shapeRef ( errAccum, fieldAccum ) ->
                             case shapeRefToL1Type shapeRef outlineDict of
                                 Nothing ->
-                                    ( error "Structure .members reference did no resolve." :: errAccum
+                                    ( Errors.single UnresolvedMemberRef :: errAccum
                                     , fieldAccum
                                     )
 
@@ -366,14 +397,14 @@ modelStructure outlineDict shape name =
                     fields |> TProduct |> DAlias |> Ok
 
                 _ ->
-                    errors fieldErrors |> Err
+                    Errors.combine fieldErrors |> Err
 
 
-modelList : Dict String Outline -> Shape -> String -> Result Error Declarable
+modelList : Dict String Outline -> Shape -> String -> Result (Error TransformError) Declarable
 modelList outlineDict shape name =
     case shape.member of
         Nothing ->
-            error "List .member is empty, but should be a shape reference." |> Err
+            Errors.single ListMemberEmpty |> Err
 
         Just ref ->
             case shapeRefToL1Type ref outlineDict of
@@ -381,16 +412,16 @@ modelList outlineDict shape name =
                     CList type_ |> TContainer |> DAlias |> Ok
 
                 Nothing ->
-                    error "List .member reference did not resolve." |> Err
+                    Errors.single UnresolvedListMemberRef |> Err
 
 
-modelMap : Dict String Outline -> Shape -> String -> Result Error Declarable
+modelMap : Dict String Outline -> Shape -> String -> Result (Error TransformError) Declarable
 modelMap outlineDict shape name =
     let
         keyTypeRes =
             case shape.key of
                 Nothing ->
-                    error "Map .key is empty, should be basic or enum." |> Err
+                    Errors.single MapKeyEmpty |> Err
 
                 Just keyRef ->
                     case shapeRefToL1Type keyRef outlineDict of
@@ -402,15 +433,15 @@ modelMap outlineDict shape name =
                                 type_ |> Ok
 
                             else
-                                error "Map .key is not an enum or basic." |> Err
+                                Errors.single MapKeyNotEnumOrBasic |> Err
 
                         Nothing ->
-                            error "Map .key reference did not resolve." |> Err
+                            Errors.single UnresolvedMapKeyRef |> Err
 
         valTypeRes =
             case shape.value of
                 Nothing ->
-                    error "Map .value is empty, should be basic or enum." |> Err
+                    Errors.single MapValueEmpty |> Err
 
                 Just valRef ->
                     case shapeRefToL1Type valRef outlineDict of
@@ -418,11 +449,11 @@ modelMap outlineDict shape name =
                             type_ |> Ok
 
                         Nothing ->
-                            error "Map .value reference did not resolve." |> Err
+                            Errors.single UnresolvedMapValueRef |> Err
     in
     case ( keyTypeRes, valTypeRes ) of
         ( Err keyError, Err valError ) ->
-            errors [ keyError, valError ] |> Err
+            Errors.combine [ keyError, valError ] |> Err
 
         ( Err keyError, _ ) ->
             Err keyError
@@ -438,14 +469,14 @@ modelMap outlineDict shape name =
 --== Operations
 
 
-modelOperations : Dict String Declarable -> Dict String Operation -> Dict String (Result Error Endpoint)
+modelOperations : Dict String Declarable -> Dict String Operation -> Dict String (Result (Error TransformError) Endpoint)
 modelOperations typeDict operations =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
         operations
 
 
-modelOperation : Dict String Declarable -> String -> Operation -> Result Error Endpoint
+modelOperation : Dict String Declarable -> String -> Operation -> Result (Error TransformError) Endpoint
 modelOperation typeDict name operation =
     let
         requestTypeRes =
@@ -468,12 +499,12 @@ modelOperation typeDict name operation =
     in
     case requestTypeRes of
         Nothing ->
-            error "No request type." |> Err
+            Errors.single NoRequestType |> Err
 
         Just requestTypeName ->
             case responseTypeRes of
                 Nothing ->
-                    error "No responsetype." |> Err
+                    Errors.single NoResponseType |> Err
 
                 Just responseTypeName ->
                     Ok
