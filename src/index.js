@@ -28,6 +28,13 @@ specs.forEach(function(item, index) {
 });
 
 app.ports.codeOutPort.subscribe(request => {
+
+  console.log("=== Processed ===: " + request[0] + "\n");
+
+  request[2].forEach(function(item, index) {
+    console.log(item + "\n");
+  });
+
   fs.writeFile('stubs/AWS/' + request[0], request[1], (err) => {
     if (err) throw err;
   })

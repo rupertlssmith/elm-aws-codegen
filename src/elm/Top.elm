@@ -33,7 +33,7 @@ main =
 port modelInPort : (( String, String ) -> msg) -> Sub msg
 
 
-port codeOutPort : ( String, String ) -> Cmd msg
+port codeOutPort : ( String, String, List String ) -> Cmd msg
 
 
 subscriptions : Model -> Sub Msg
@@ -100,20 +100,14 @@ processServiceModel name val seed =
     case serviceResult of
         Ok service ->
             let
-                _ =
-                    Debug.log "=== Processing ===" service.metaData.serviceId
-
                 ( codegen, errors ) =
                     Transform.transform service
                         |> Tuple.mapFirst Templates.Api.serviceFile
                         |> Tuple.mapFirst Elm.Pretty.pretty
                         |> Tuple.mapFirst (Pretty.pretty 120)
-
-                _ =
-                    Debug.log "errors" (String.join "\n" errors)
             in
             ( Seeded { seed = seed }
-            , ( service.metaData.serviceId ++ ".elm", codegen ) |> codeOutPort
+            , ( service.metaData.serviceId ++ ".elm", codegen, errors ) |> codeOutPort
             )
 
         Err err ->
