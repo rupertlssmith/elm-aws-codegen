@@ -37,7 +37,7 @@ errorToString err =
             "No request type."
 
         NoResponseType ->
-            "No responsetype."
+            "No response type."
 
         UnresolvedMapKeyRef ->
             "Map .key reference did not resolve."
@@ -105,8 +105,8 @@ transform service =
                 ( Dict.empty, Dict.empty )
                 operations
 
-        enrichError key errors =
-            Errors.map (\err -> key ++ ": " ++ errorToString err) errors
+        enrichError key error =
+            Errors.map (\err -> key ++ ": " ++ errorToString err) error
 
         transformErrors =
             [ Dict.map enrichError errMappings |> Dict.values
