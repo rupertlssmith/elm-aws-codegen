@@ -106,7 +106,7 @@ transform service =
                 operations
 
         enrichError key error =
-            Errors.map (\err -> key ++ ": " ++ errorToString err) error
+            Errors.map (\err -> "\u{001B}[36m" ++ key ++ "\u{001B}[0m" ++ ": " ++ errorToString err) error
 
         transformErrors =
             [ Dict.map enrichError errMappings |> Dict.values
