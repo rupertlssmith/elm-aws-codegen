@@ -3,6 +3,8 @@ module Templates.Api exposing (coreServiceMod, docs, globalService, module_, reg
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
+import Enum
+import HttpMethod exposing (HttpMethod)
 import L1
 import Maybe.Extra
 import Templates.L1
@@ -265,7 +267,7 @@ requestFn name op =
         requestImpl =
             CG.apply
                 [ CG.fqFun coreHttpMod "request"
-                , CG.fqVal coreHttpMod op.httpMethod
+                , CG.fqVal coreHttpMod (Enum.toString HttpMethod.httpMethodEnum op.httpMethod)
                 , CG.string op.url
                 , CG.val "jsonBody"
                 , CG.val "responseDecoder"

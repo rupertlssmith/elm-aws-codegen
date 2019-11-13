@@ -4,6 +4,7 @@ import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Console
 import Dict exposing (Dict)
+import Enum exposing (Enum)
 import Errors exposing (Error)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
 import Maybe.Extra

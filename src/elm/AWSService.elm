@@ -16,6 +16,7 @@ module AWSService exposing
 import Codec exposing (Codec)
 import Dict exposing (Dict)
 import Enum exposing (Enum)
+import HttpMethod exposing (HttpMethod)
 
 
 type alias AWSService =
@@ -162,7 +163,7 @@ endpointCodec =
 
 
 type alias Http =
-    { method : String
+    { method : HttpMethod
     , requestUri : Maybe String
     , requireUri : Maybe Bool
     , responseCode : Maybe Int
@@ -171,7 +172,7 @@ type alias Http =
 
 httpCodec =
     Codec.object Http
-        |> Codec.field "method" .method Codec.string
+        |> Codec.field "method" .method HttpMethod.httpMethodCodec
         |> Codec.optionalField "requestUri" .requestUri Codec.string
         |> Codec.optionalField "requireUri" .requireUri Codec.bool
         |> Codec.optionalField "responseCode" .responseCode Codec.int

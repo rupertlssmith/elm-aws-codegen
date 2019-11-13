@@ -1,6 +1,7 @@
 module AWSApiModel exposing (AWSApiModel, Endpoint)
 
 import Dict exposing (Dict)
+import HttpMethod exposing (HttpMethod)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
 
 
@@ -10,7 +11,7 @@ type alias Endpoint =
     , requestTypeName : String
     , responseTypeName : String
     , url : String
-    , httpMethod : String
+    , httpMethod : HttpMethod
     }
 
 
