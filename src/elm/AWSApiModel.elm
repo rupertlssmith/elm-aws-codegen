@@ -6,12 +6,10 @@ import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type
 
 
 type alias Endpoint =
-    { request : Type
-    , response : Type
-    , requestTypeName : String
-    , responseTypeName : String
+    { httpMethod : HttpMethod
     , url : String
-    , httpMethod : HttpMethod
+    , request : ( String, Type )
+    , response : Maybe ( String, Type )
     }
 
 

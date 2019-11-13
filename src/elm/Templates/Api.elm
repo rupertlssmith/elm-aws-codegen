@@ -223,6 +223,9 @@ requestFn name op =
         ( requestType, requestLinkage ) =
             Templates.L1.lowerType op.request
 
+        -- If there is no response type, just decode ()
+        -- (AWS.Core.Decode.FixedResult ())
+        --
         ( responseType, responseLinkage ) =
             Templates.L1.lowerType op.response
 

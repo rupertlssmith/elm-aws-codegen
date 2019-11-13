@@ -14,7 +14,6 @@ type TransformError
     = NoMembers String
     | UnresolvedMemberRef
     | NoRequestType
-    | NoResponseType
     | UnresolvedMapKeyRef
     | MapKeyNotEnumOrBasic
     | MapKeyEmpty
@@ -37,9 +36,6 @@ errorToString err =
 
         NoRequestType ->
             "No request type."
-
-        NoResponseType ->
-            "No response type."
 
         UnresolvedMapKeyRef ->
             "Map .key reference did not resolve."
@@ -506,14 +502,17 @@ modelOperation typeDict name operation =
         Just requestTypeName ->
             case responseTypeRes of
                 Nothing ->
-                    Errors.single NoResponseType |> Err
+                    Ok
+                        { httpMethod = operation.http.method
+                        , url = "/"
+                        , request = ( requestTypeName, TNamed requestTypeName )
+                        , response = Nothing
+                        }
 
                 Just responseTypeName ->
                     Ok
-                        { request = TNamed requestTypeName
-                        , response = TNamed responseTypeName
-                        , requestTypeName = requestTypeName
-                        , responseTypeName = responseTypeName
+                        { httpMethod = operation.http.method
                         , url = "/"
-                        , httpMethod = operation.http.method
+                        , request = ( requestTypeName, TNamed requestTypeName )
+                        , response = Just ( responseTypeName, TNamed responseTypeName )
                         }
