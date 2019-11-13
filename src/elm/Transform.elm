@@ -2,6 +2,7 @@ module Transform exposing (transform)
 
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
+import Console
 import Dict exposing (Dict)
 import Errors exposing (Error)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
@@ -106,7 +107,7 @@ transform service =
                 operations
 
         enrichError key error =
-            Errors.map (\err -> "\u{001B}[36m" ++ key ++ "\u{001B}[0m" ++ ": " ++ errorToString err) error
+            Errors.map (\err -> Console.fgCyan ++ key ++ Console.reset ++ ": " ++ errorToString err) error
 
         transformErrors =
             [ Dict.map enrichError errMappings |> Dict.values
