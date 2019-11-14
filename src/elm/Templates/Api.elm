@@ -236,8 +236,19 @@ requestFn name op =
         ( responseType, responseDecoder, responseLinkage ) =
             requestFnResponse name op
 
+        wrappedResponseType =
+            CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ responseType ] ]
+
+        wrappedDecoder =
+            CG.apply
+                [ CG.fqVal coreDecodeMod "responseWrapperDecoder"
+                , CG.string (Util.safeCCU name)
+                , responseDecoder
+                    |> CG.parens
+                ]
+
         requestSig =
-            CG.funAnn requestType responseType
+            CG.funAnn requestType wrappedResponseType
 
         requestImpl =
             CG.apply
@@ -245,9 +256,9 @@ requestFn name op =
                 , CG.fqVal coreHttpMod (Enum.toString HttpMethod.httpMethodEnum op.httpMethod)
                 , CG.string op.url
                 , CG.val "jsonBody"
-                , CG.val "responseDecoder"
+                , CG.val "wrappedDecoder"
                 ]
-                |> CG.letExpr [ jsonBody, responseDecoder |> CG.letVal "responseDecoder" ]
+                |> CG.letExpr [ jsonBody, wrappedDecoder |> CG.letVal "wrappedDecoder" ]
     in
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
@@ -255,16 +266,20 @@ requestFn name op =
         (Util.safeCCL name)
         [ CG.varPattern "req" ]
         requestImpl
-    , CG.combineLinkage [ requestLinkage, responseLinkage ]
+    , CG.combineLinkage
+        [ requestLinkage
+        , responseLinkage
+        , CG.emptyLinkage |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+        ]
     )
 
 
 {-| Figures out what response type for the endpoint will be.
 
-If is either the output shape, or if there is no response shape, build the response
-around ().
+If there is no response type defined for the endpoint then `()` is used to indicate
+that the response has completed but returned no data.
 
-The output of this is the return type alias for the endpoint, the decoder for the
+The output of this is the response type alias for the endpoint, the decoder for this
 expected response and any linkage that needs to be rolled up.
 
 When there is no response shape, the decoder will be `(AWS.Core.Decode.FixedResult ()`.
@@ -279,28 +294,22 @@ requestFnResponse name op =
                     Templates.L1.lowerType l1ResponseType
 
                 responseType =
-                    CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ loweredType ] ]
+                    loweredType
 
                 linkage =
                     CG.combineLinkage
                         [ CG.emptyLinkage
-                            |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
                             |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
                         , loweredLinkage
                         ]
 
                 decoder =
                     CG.apply
-                        [ CG.fqVal coreDecodeMod "responseWrapperDecoder"
-                        , CG.string (Util.safeCCU name)
+                        [ CG.fqFun coreDecodeMod "ResultDecoder"
+                        , CG.string responseTypeName
                         , CG.apply
-                            [ CG.fqFun coreDecodeMod "ResultDecoder"
-                            , CG.string responseTypeName
-                            , CG.apply
-                                [ CG.fqFun codecMod "decoder"
-                                , CG.val (Util.safeCCL responseTypeName ++ "Codec")
-                                ]
-                                |> CG.parens
+                            [ CG.fqFun codecMod "decoder"
+                            , CG.val (Util.safeCCL responseTypeName ++ "Codec")
                             ]
                             |> CG.parens
                         ]
@@ -320,7 +329,7 @@ requestFnResponse name op =
                         ]
 
                 responseType =
-                    CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ CG.unitAnn ] ]
+                    CG.unitAnn
             in
             ( responseType, decoder, linkage )
 
