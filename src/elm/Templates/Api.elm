@@ -2,7 +2,7 @@ module Templates.Api exposing (coreServiceMod, docs, globalService, module_, reg
 
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
-import Elm.CodeGen as CG exposing (Declaration, File, Linkage, Module, TopLevelExpose)
+import Elm.CodeGen as CG exposing (Declaration, Expression, File, Linkage, Module, TopLevelExpose, TypeAnnotation)
 import Enum
 import HttpMethod exposing (HttpMethod)
 import L1
@@ -221,51 +221,23 @@ requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
     let
         ( requestType, requestLinkage ) =
-            Templates.L1.lowerType op.request
-
-        -- If there is no response type, just decode ()
-        -- (AWS.Core.Decode.FixedResult ())
-        --
-        ( responseType, responseLinkage ) =
-            Templates.L1.lowerType op.response
-
-        wrappedRespType =
-            CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ responseType ] ]
-
-        wrappedRespLinkage =
-            CG.emptyLinkage
-                |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
-                |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
-
-        requestSig =
-            CG.funAnn requestType wrappedRespType
+            Templates.L1.lowerType (Tuple.second op.request)
 
         jsonBody =
             CG.pipe (CG.val "req")
                 [ CG.apply
                     [ CG.fqFun codecMod "encoder"
-                    , CG.val (Util.safeCCL op.requestTypeName ++ "Codec")
+                    , CG.val (Util.safeCCL (Tuple.first op.request) ++ "Codec")
                     ]
                 , CG.fqVal coreHttpMod "jsonBody"
                 ]
                 |> CG.letVal "jsonBody"
 
-        responseDecoder =
-            CG.apply
-                [ CG.fqVal coreDecodeMod "responseWrapperDecoder"
-                , CG.string (Util.safeCCU name)
-                , CG.apply
-                    [ CG.fqFun coreDecodeMod "ResultDecoder"
-                    , CG.string op.responseTypeName
-                    , CG.apply
-                        [ CG.fqFun codecMod "decoder"
-                        , CG.val (Util.safeCCL op.responseTypeName ++ "Codec")
-                        ]
-                        |> CG.parens
-                    ]
-                    |> CG.parens
-                ]
-                |> CG.letVal "responseDecoder"
+        ( responseType, responseDecoder, responseLinkage ) =
+            requestFnResponse name op
+
+        requestSig =
+            CG.funAnn requestType responseType
 
         requestImpl =
             CG.apply
@@ -275,7 +247,7 @@ requestFn name op =
                 , CG.val "jsonBody"
                 , CG.val "responseDecoder"
                 ]
-                |> CG.letExpr [ jsonBody, responseDecoder ]
+                |> CG.letExpr [ jsonBody, responseDecoder |> CG.letVal "responseDecoder" ]
     in
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
@@ -283,8 +255,65 @@ requestFn name op =
         (Util.safeCCL name)
         [ CG.varPattern "req" ]
         requestImpl
-    , CG.combineLinkage [ requestLinkage, responseLinkage, wrappedRespLinkage ]
+    , CG.combineLinkage [ requestLinkage, responseLinkage ]
     )
+
+
+requestFnResponse : String -> Endpoint -> ( TypeAnnotation, Expression, Linkage )
+requestFnResponse name op =
+    case op.response of
+        Just ( responseTypeName, l1ResponseType ) ->
+            let
+                ( responseType, loweredLinkage ) =
+                    Templates.L1.lowerType l1ResponseType
+
+                wrappedRespType =
+                    CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ responseType ] ]
+
+                linkage =
+                    CG.combineLinkage
+                        [ CG.emptyLinkage
+                            |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+                            |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
+                        , loweredLinkage
+                        ]
+
+                decoder =
+                    CG.apply
+                        [ CG.fqVal coreDecodeMod "responseWrapperDecoder"
+                        , CG.string (Util.safeCCU name)
+                        , CG.apply
+                            [ CG.fqFun coreDecodeMod "ResultDecoder"
+                            , CG.string responseTypeName
+                            , CG.apply
+                                [ CG.fqFun codecMod "decoder"
+                                , CG.val (Util.safeCCL responseTypeName ++ "Codec")
+                                ]
+                                |> CG.parens
+                            ]
+                            |> CG.parens
+                        ]
+            in
+            ( wrappedRespType, decoder, linkage )
+
+        Nothing ->
+            -- If there is no response type, just decode ()
+            -- (AWS.Core.Decode.FixedResult ())
+            let
+                linkage =
+                    CG.emptyLinkage
+                        |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
+
+                decoder =
+                    CG.apply
+                        [ CG.fqVal coreDecodeMod "FixedResult"
+                        , CG.unit
+                        ]
+
+                responseType =
+                    CG.unitAnn
+            in
+            ( responseType, decoder, linkage )
 
 
 
