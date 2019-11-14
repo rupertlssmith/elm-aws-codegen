@@ -44,10 +44,10 @@ errorToString err =
             "Map .key is not an enum or basic."
 
         MapKeyEmpty ->
-            "Map .key is empty, should be basic or enum."
+            "Map .key is empty."
 
         MapValueEmpty ->
-            "Map .value is empty, should be basic or enum."
+            "Map .value is empty."
 
         UnresolvedMapValueRef ->
             "Map .value reference did not resolve."
@@ -223,7 +223,11 @@ outlineString shape name =
             OlEnum name
 
         ( Nothing, True ) ->
-            OlNamed name
+            -- Restricted string should count as basic
+            -- Map using it as key can have string keys, but needs key unwrapping
+            -- when accessed since the restricted type is wrapped.
+            -- OlNamed name
+            OlBasic BString
 
         ( _, _ ) ->
             OlBasic BString
@@ -233,7 +237,11 @@ outlineInt : Shape -> String -> Outline
 outlineInt shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
-            OlNamed name
+            -- Restricted string should count as basic
+            -- Map using it as key can have string keys, but needs key unwrapping
+            -- when accessed since the restricted type is wrapped.
+            -- OlNamed name
+            OlBasic BInt
 
         _ ->
             OlBasic BInt
