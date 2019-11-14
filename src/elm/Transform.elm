@@ -15,7 +15,7 @@ type TransformError
     | UnresolvedMemberRef
     | NoRequestType
     | UnresolvedMapKeyRef
-    | MapKeyNotEnumOrBasic
+    | MapKeyTypeNotAllowed
     | MapKeyEmpty
     | MapValueEmpty
     | UnresolvedMapValueRef
@@ -40,8 +40,8 @@ errorToString err =
         UnresolvedMapKeyRef ->
             "Map .key reference did not resolve."
 
-        MapKeyNotEnumOrBasic ->
-            "Map .key is not an enum or basic."
+        MapKeyTypeNotAllowed ->
+            "Map .key is not an enum, restricted, or basic."
 
         MapKeyEmpty ->
             "Map .key is empty."
@@ -152,6 +152,7 @@ transform service =
 type Outline
     = OlNamed String
     | OlEnum String
+    | OlRestricted String Basic
     | OlBasic Basic
 
 
@@ -223,11 +224,7 @@ outlineString shape name =
             OlEnum name
 
         ( Nothing, True ) ->
-            -- Restricted string should count as basic
-            -- Map using it as key can have string keys, but needs key unwrapping
-            -- when accessed since the restricted type is wrapped.
-            -- OlBasic BString
-            OlNamed name
+            OlRestricted name BString
 
         ( _, _ ) ->
             OlBasic BString
@@ -237,11 +234,7 @@ outlineInt : Shape -> String -> Outline
 outlineInt shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
-            -- Restricted string should count as basic
-            -- Map using it as key can have string keys, but needs key unwrapping
-            -- when accessed since the restricted type is wrapped.
-            -- OlBasic BInt
-            OlNamed name
+            OlRestricted name BInt
 
         _ ->
             OlBasic BInt
@@ -256,6 +249,9 @@ shapeRefToL1Type ref outlineDict =
         Just (OlEnum memberName) ->
             TNamed memberName |> Just
 
+        Just (OlRestricted memberName _) ->
+            TNamed memberName |> Just
+
         Just (OlBasic basic) ->
             TBasic basic |> Just
 
@@ -267,6 +263,16 @@ shapeRefIsEnum : ShapeRef -> Dict String Outline -> Bool
 shapeRefIsEnum ref outlineDict =
     case Dict.get ref.shape outlineDict of
         Just (OlEnum memberName) ->
+            True
+
+        _ ->
+            False
+
+
+shapeRefIsRestricted : ShapeRef -> Dict String Outline -> Bool
+shapeRefIsRestricted ref outlineDict =
+    case Dict.get ref.shape outlineDict of
+        Just (OlRestricted memberName _) ->
             True
 
         _ ->
@@ -435,11 +441,14 @@ modelMap outlineDict shape name =
                             if shapeRefIsEnum keyRef outlineDict then
                                 type_ |> Ok
 
+                            else if shapeRefIsRestricted keyRef outlineDict then
+                                type_ |> Ok
+
                             else if shapeRefIsBasic keyRef outlineDict then
                                 type_ |> Ok
 
                             else
-                                Errors.single MapKeyNotEnumOrBasic |> Err
+                                Errors.single MapKeyTypeNotAllowed |> Err
 
                         Nothing ->
                             Errors.single UnresolvedMapKeyRef |> Err
