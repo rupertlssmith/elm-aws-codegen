@@ -226,8 +226,8 @@ outlineString shape name =
             -- Restricted string should count as basic
             -- Map using it as key can have string keys, but needs key unwrapping
             -- when accessed since the restricted type is wrapped.
-            -- OlNamed name
-            OlBasic BString
+            -- OlBasic BString
+            OlNamed name
 
         ( _, _ ) ->
             OlBasic BString
@@ -240,8 +240,8 @@ outlineInt shape name =
             -- Restricted string should count as basic
             -- Map using it as key can have string keys, but needs key unwrapping
             -- when accessed since the restricted type is wrapped.
-            -- OlNamed name
-            OlBasic BInt
+            -- OlBasic BInt
+            OlNamed name
 
         _ ->
             OlBasic BInt
