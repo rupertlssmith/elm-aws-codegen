@@ -259,16 +259,27 @@ requestFn name op =
     )
 
 
+{-| Figures out what response type for the endpoint will be.
+
+If is either the output shape, or if there is no response shape, build the response
+around ().
+
+The output of this is the return type alias for the endpoint, the decoder for the
+expected response and any linkage that needs to be rolled up.
+
+When there is no response shape, the decoder will be `(AWS.Core.Decode.FixedResult ()`.
+
+-}
 requestFnResponse : String -> Endpoint -> ( TypeAnnotation, Expression, Linkage )
 requestFnResponse name op =
     case op.response of
         Just ( responseTypeName, l1ResponseType ) ->
             let
-                ( responseType, loweredLinkage ) =
+                ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1ResponseType
 
-                wrappedRespType =
-                    CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ responseType ] ]
+                responseType =
+                    CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ loweredType ] ]
 
                 linkage =
                     CG.combineLinkage
@@ -294,11 +305,9 @@ requestFnResponse name op =
                             |> CG.parens
                         ]
             in
-            ( wrappedRespType, decoder, linkage )
+            ( responseType, decoder, linkage )
 
         Nothing ->
-            -- If there is no response type, just decode ()
-            -- (AWS.Core.Decode.FixedResult ())
             let
                 linkage =
                     CG.emptyLinkage
@@ -311,7 +320,7 @@ requestFnResponse name op =
                         ]
 
                 responseType =
-                    CG.unitAnn
+                    CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ CG.unitAnn ] ]
             in
             ( responseType, decoder, linkage )
 
