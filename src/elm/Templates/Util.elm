@@ -57,15 +57,8 @@ safeCCU =
 
 mChain : (Expression -> Expression) -> Expression -> List Expression -> Expression
 mChain lift head expressions =
-    case expressions of
-        [] ->
-            head
-
-        [ expr ] ->
-            CG.opApply "|>" CG.infixLeft head (lift expr)
-
-        expr :: exprs ->
-            CG.opApply "|>" CG.infixLeft head (lift (mChain lift expr exprs))
+    List.map lift expressions
+        |> CG.pipe head
 
 
 mChainResult : Expression -> List Expression -> Expression
