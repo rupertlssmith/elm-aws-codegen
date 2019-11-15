@@ -21,7 +21,6 @@ type TransformError
     | UnresolvedMapValueRef
     | UnresolvedListMemberRef
     | ListMemberEmpty
-    | BlobNotImplemented
     | UnknownNotImplemented
 
 
@@ -57,9 +56,6 @@ errorToString err =
 
         ListMemberEmpty ->
             "List .member is empty, but should be a shape reference."
-
-        BlobNotImplemented ->
-            "Blob not implemented."
 
         UnknownNotImplemented ->
             "Unknown not implemented."
@@ -193,7 +189,7 @@ outlineShape shape name =
             BReal |> OlBasic |> Just
 
         ABlob ->
-            Nothing
+            BString |> OlBasic |> Just
 
         AStructure ->
             name |> OlNamed |> Just
@@ -326,7 +322,7 @@ modelShape outlineDict shape name =
             BReal |> TBasic |> DAlias |> Ok
 
         ABlob ->
-            Errors.single BlobNotImplemented |> Err
+            BString |> TBasic |> DAlias |> Ok
 
         AStructure ->
             modelStructure outlineDict shape name
