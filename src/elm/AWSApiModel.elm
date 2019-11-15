@@ -8,7 +8,7 @@ import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type
 type alias Endpoint =
     { httpMethod : HttpMethod
     , url : String
-    , request : ( String, Type )
+    , request : Maybe ( String, Type )
     , response : Maybe ( String, Type )
     }
 

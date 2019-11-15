@@ -13,7 +13,6 @@ import Maybe.Extra
 type TransformError
     = NoMembers String
     | UnresolvedMemberRef
-    | NoRequestType
     | UnresolvedMapKeyRef
     | MapKeyTypeNotAllowed
     | MapKeyEmpty
@@ -32,9 +31,6 @@ errorToString err =
 
         UnresolvedMemberRef ->
             "Structure .members reference did no resolve."
-
-        NoRequestType ->
-            "No request type."
 
         UnresolvedMapKeyRef ->
             "Map .key reference did not resolve."
@@ -490,7 +486,7 @@ modelOperations typeDict operations =
 modelOperation : Dict String Declarable -> String -> Operation -> Result (Error TransformError) Endpoint
 modelOperation typeDict name operation =
     let
-        requestTypeRes =
+        request =
             operation.input
                 |> Maybe.map .shape
                 |> Maybe.andThen
@@ -498,8 +494,9 @@ modelOperation typeDict name operation =
                         Dict.get reqTypeName typeDict
                             |> Maybe.map (always reqTypeName)
                     )
+                |> Maybe.map (\refName -> ( refName, TNamed refName ))
 
-        responseTypeRes =
+        response =
             operation.output
                 |> Maybe.map .shape
                 |> Maybe.andThen
@@ -507,25 +504,11 @@ modelOperation typeDict name operation =
                         Dict.get respTypeName typeDict
                             |> Maybe.map (always respTypeName)
                     )
+                |> Maybe.map (\refName -> ( refName, TNamed refName ))
     in
-    case requestTypeRes of
-        Nothing ->
-            Errors.single NoRequestType |> Err
-
-        Just requestTypeName ->
-            case responseTypeRes of
-                Nothing ->
-                    Ok
-                        { httpMethod = operation.http.method
-                        , url = "/"
-                        , request = ( requestTypeName, TNamed requestTypeName )
-                        , response = Nothing
-                        }
-
-                Just responseTypeName ->
-                    Ok
-                        { httpMethod = operation.http.method
-                        , url = "/"
-                        , request = ( requestTypeName, TNamed requestTypeName )
-                        , response = Just ( responseTypeName, TNamed responseTypeName )
-                        }
+    { httpMethod = operation.http.method
+    , url = "/"
+    , request = request
+    , response = response
+    }
+        |> Ok

@@ -220,18 +220,8 @@ operations model =
 requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
     let
-        ( requestType, requestLinkage ) =
-            Templates.L1.lowerType (Tuple.second op.request)
-
-        jsonBody =
-            CG.pipe (CG.val "req")
-                [ CG.apply
-                    [ CG.fqFun codecMod "encoder"
-                    , CG.val (Util.safeCCL (Tuple.first op.request) ++ "Codec")
-                    ]
-                , CG.fqVal coreHttpMod "jsonBody"
-                ]
-                |> CG.letVal "jsonBody"
+        ( maybeRequestType, jsonBody, requestLinkage ) =
+            requestFnRequest name op
 
         ( responseType, responseDecoder, responseLinkage ) =
             requestFnResponse name op
@@ -248,7 +238,12 @@ requestFn name op =
                 ]
 
         requestSig =
-            CG.funAnn requestType wrappedResponseType
+            case maybeRequestType of
+                Just requestType ->
+                    CG.funAnn requestType wrappedResponseType
+
+                Nothing ->
+                    wrappedResponseType
 
         requestImpl =
             CG.apply
@@ -258,7 +253,10 @@ requestFn name op =
                 , CG.val "jsonBody"
                 , CG.val "wrappedDecoder"
                 ]
-                |> CG.letExpr [ jsonBody, wrappedDecoder |> CG.letVal "wrappedDecoder" ]
+                |> CG.letExpr
+                    [ jsonBody |> CG.letVal "jsonBody"
+                    , wrappedDecoder |> CG.letVal "wrappedDecoder"
+                    ]
     in
     ( CG.funDecl
         (Just "{-| AWS Endpoint. -}")
@@ -272,6 +270,52 @@ requestFn name op =
         , CG.emptyLinkage |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
         ]
     )
+
+
+{-| Figures out what the request type for the endpoint will be.
+
+If there is no request type defined for the endpoint then 'Nothing' will be returned,
+and an empty JSON body expression will be given.
+
+The output of this is the optional request type alias, the json body and any linkage
+that needs to be rolled up.
+
+-}
+requestFnRequest : String -> Endpoint -> ( Maybe TypeAnnotation, Expression, Linkage )
+requestFnRequest name op =
+    case op.request of
+        Just ( requestTypeName, l1RequestType ) ->
+            let
+                ( loweredType, loweredLinkage ) =
+                    Templates.L1.lowerType l1RequestType
+
+                linkage =
+                    CG.combineLinkage
+                        [ CG.emptyLinkage
+                            |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+                        , loweredLinkage
+                        ]
+
+                jsonBody =
+                    CG.pipe (CG.val "req")
+                        [ CG.apply
+                            [ CG.fqFun codecMod "encoder"
+                            , CG.val (Util.safeCCL requestTypeName ++ "Codec")
+                            ]
+                        , CG.fqVal coreHttpMod "jsonBody"
+                        ]
+            in
+            ( Just loweredType, jsonBody, linkage )
+
+        Nothing ->
+            let
+                emptyJsonBody =
+                    CG.fqVal coreHttpMod "emptyBody"
+
+                linkage =
+                    CG.emptyLinkage |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+            in
+            ( Nothing, emptyJsonBody, linkage )
 
 
 {-| Figures out what response type for the endpoint will be.
