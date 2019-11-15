@@ -201,8 +201,8 @@ restrictedString name res =
                 guardFn =
                     CG.opApply "|>"
                         CG.infixLeft
-                        (Util.mChainResult (CG.apply [ gd, CG.val "val" ])
-                            (List.map CG.parens gds)
+                        (CG.pipe (CG.apply [ gd, CG.val "val" ])
+                            (List.map (\expr -> CG.apply [ CG.fqFun resultMod "andThen", CG.parens expr ]) gds)
                         )
                         typeWrapper
                         |> CG.letFunction "guardFn" [ CG.varPattern "val" ]
