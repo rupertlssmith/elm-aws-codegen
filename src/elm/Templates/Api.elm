@@ -2,7 +2,7 @@ module Templates.Api exposing (coreServiceMod, docs, globalService, module_, reg
 
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
-import Elm.CodeGen as CG exposing (Declaration, Expression, File, Linkage, Module, TopLevelExpose, TypeAnnotation)
+import Elm.CodeGen as CG exposing (Declaration, Expression, File, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
 import Enum
 import HttpMethod exposing (HttpMethod)
 import L1
@@ -220,7 +220,7 @@ operations model =
 requestFn : String -> Endpoint -> ( Declaration, Linkage )
 requestFn name op =
     let
-        ( maybeRequestType, jsonBody, requestLinkage ) =
+        { maybeRequestType, argPatterns, jsonBody, requestLinkage } =
             requestFnRequest name op
 
         ( responseType, responseDecoder, responseLinkage ) =
@@ -262,7 +262,7 @@ requestFn name op =
         (Just "{-| AWS Endpoint. -}")
         (Just requestSig)
         (Util.safeCCL name)
-        [ CG.varPattern "req" ]
+        argPatterns
         requestImpl
     , CG.combineLinkage
         [ requestLinkage
@@ -277,11 +277,19 @@ requestFn name op =
 If there is no request type defined for the endpoint then 'Nothing' will be returned,
 and an empty JSON body expression will be given.
 
-The output of this is the optional request type alias, the json body and any linkage
-that needs to be rolled up.
+The output of this is the optional request type alias, a list of patterns for the
+request functions arguments, the json body and any linkage that needs to be rolled up.
 
 -}
-requestFnRequest : String -> Endpoint -> ( Maybe TypeAnnotation, Expression, Linkage )
+requestFnRequest :
+    String
+    -> Endpoint
+    ->
+        { maybeRequestType : Maybe TypeAnnotation
+        , argPatterns : List Pattern
+        , jsonBody : Expression
+        , requestLinkage : Linkage
+        }
 requestFnRequest name op =
     case op.request of
         Just ( requestTypeName, l1RequestType ) ->
@@ -305,7 +313,11 @@ requestFnRequest name op =
                         , CG.fqVal coreHttpMod "jsonBody"
                         ]
             in
-            ( Just loweredType, jsonBody, linkage )
+            { maybeRequestType = Just loweredType
+            , argPatterns = [ CG.varPattern "req" ]
+            , jsonBody = jsonBody
+            , requestLinkage = linkage
+            }
 
         Nothing ->
             let
@@ -315,7 +327,11 @@ requestFnRequest name op =
                 linkage =
                     CG.emptyLinkage |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
             in
-            ( Nothing, emptyJsonBody, linkage )
+            { maybeRequestType = Nothing
+            , argPatterns = []
+            , jsonBody = emptyJsonBody
+            , requestLinkage = linkage
+            }
 
 
 {-| Figures out what response type for the endpoint will be.
