@@ -3,8 +3,10 @@ module L1 exposing
     , Container(..)
     , Declarable(..)
     , Declarations
+    , Outlined(..)
     , Restricted(..)
     , Type(..)
+    , Unresolved
     )
 
 {-| L1 is a data modelling language.
@@ -29,19 +31,19 @@ type Basic
     | BString
 
 
-type Container
-    = CList Type
-    | CSet Type
-    | CDict Type Type
-    | COptional Type
+type Container a
+    = CList (Type a)
+    | CSet (Type a)
+    | CDict (Type a) (Type a)
+    | COptional (Type a)
 
 
-type Type
+type Type a
     = TBasic Basic
-    | TNamed String
-    | TProduct (List ( String, Type ))
-    | TContainer Container
-    | TFunction Type Type
+    | TNamed String a
+    | TProduct (List ( String, Type a ))
+    | TContainer (Container a)
+    | TFunction (Type a) (Type a)
 
 
 type Restricted
@@ -49,12 +51,31 @@ type Restricted
     | RString { minLength : Maybe Int, maxLength : Maybe Int, regex : Maybe String }
 
 
-type Declarable
-    = DAlias Type
-    | DSum (List ( String, List ( String, Type ) ))
+type Declarable a
+    = DAlias (Type a)
+    | DSum (List ( String, List ( String, Type a ) ))
     | DEnum (List String)
     | DRestricted Restricted
 
 
-type alias Declarations =
-    Dict String Declarable
+
+-- Processing steps
+
+
+type Unresolved
+    = Unresolved
+
+
+type Outlined
+    = OlBasic Basic
+    | OlEnum String
+    | OlRestricted String Basic
+    | OlNamed String
+
+
+
+-- A set of declarations
+
+
+type alias Declarations a =
+    Dict String (Declarable a)
