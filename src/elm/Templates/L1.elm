@@ -45,7 +45,6 @@ typeDecl name decl =
                 |> Tuple.mapBoth List.singleton List.singleton
 
         DEnum labels ->
-            -- enumGuardedType name labels
             enumCustomType name labels
 
         DRestricted res ->
@@ -99,7 +98,7 @@ restrictedInt name res =
                     CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.intAnn ] ) ]
 
                 restrictedSig =
-                    CG.typed "Guarded"
+                    CG.typed "Refined"
                         [ CG.typed "Int" []
                         , CG.typed (Util.safeCCU name) []
                         , CG.typed "IntError" []
@@ -127,7 +126,7 @@ restrictedInt name res =
 
                 restrictedImpl =
                     CG.apply
-                        [ CG.fqFun guardedMod "make"
+                        [ CG.fqFun guardedMod "define"
                         , CG.fun "guardFn"
                         , CG.fqVal decodeMod "int"
                         , CG.fqVal encodeMod "int"
@@ -143,7 +142,7 @@ restrictedInt name res =
               , restrictedDecl
               ]
             , [ CG.emptyLinkage
-                    |> CG.addImport (guardedImportExposing [ "Guarded", "IntError" ])
+                    |> CG.addImport (guardedImportExposing [ "Refined", "IntError" ])
                     |> CG.addImport decodeImport
                     |> CG.addImport encodeImport
               ]
@@ -186,7 +185,7 @@ restrictedString name res =
                     CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.stringAnn ] ) ]
 
                 restrictedSig =
-                    CG.typed "Guarded"
+                    CG.typed "Refined"
                         [ CG.typed "String" []
                         , CG.typed (Util.safeCCU name) []
                         , CG.typed "StringError" []
@@ -214,7 +213,7 @@ restrictedString name res =
 
                 restrictedImpl =
                     CG.apply
-                        [ CG.fqFun guardedMod "make"
+                        [ CG.fqFun guardedMod "define"
                         , CG.fun "guardFn"
                         , CG.fqVal decodeMod "string"
                         , CG.fqVal encodeMod "string"
@@ -230,7 +229,7 @@ restrictedString name res =
               , restrictedDecl
               ]
             , [ CG.emptyLinkage
-                    |> CG.addImport (guardedImportExposing [ "Guarded", "StringError" ])
+                    |> CG.addImport (guardedImportExposing [ "Refined", "StringError" ])
                     |> CG.addImport decodeImport
                     |> CG.addImport encodeImport
               ]
@@ -293,7 +292,7 @@ enumCustomType name labels =
 
         enumValues =
             CG.apply
-                [ CG.fqFun enumMod "make"
+                [ CG.fqFun enumMod "define"
                 , List.map
                     (\label ->
                         CG.fun (Util.safeCCU name ++ Util.safeCCU label)
@@ -323,21 +322,21 @@ enumCustomType name labels =
     )
 
 
-{-| Turns an L1 enum type into an opaque guarded type in Elm code.
+{-| Turns an L1 enum type into a refined type in Elm code.
 
-This produces 2 declarations, one for the guarded type, and one for the enum
+This produces 2 declarations, one for the refined type, and one for the enum
 declaring its allowed values.
 
 -}
-enumGuardedType : String -> List String -> ( List Declaration, List Linkage )
-enumGuardedType name labels =
+enumRefinedType : String -> List String -> ( List Declaration, List Linkage )
+enumRefinedType name labels =
     let
         guardedConstructor =
             [ ( Util.safeCCU name, [ CG.stringAnn ] ) ]
 
         enumValues =
             CG.apply
-                [ CG.fqFun enumMod "make"
+                [ CG.fqFun enumMod "define"
                 , List.map
                     (\label ->
                         CG.apply
@@ -910,7 +909,7 @@ maybeMod =
 
 guardedMod : List String
 guardedMod =
-    [ "Guarded" ]
+    [ "Refined" ]
 
 
 resultMod : List String
