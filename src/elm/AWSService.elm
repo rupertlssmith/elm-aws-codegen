@@ -319,7 +319,7 @@ type AWSType
 
 awsTypeEnum : Enum AWSType
 awsTypeEnum =
-    Enum.make
+    Enum.define
         [ AString
         , ABoolean
         , AInteger

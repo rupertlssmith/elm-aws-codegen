@@ -15,7 +15,7 @@ type HttpMethod
 
 httpMethodEnum : Enum HttpMethod
 httpMethodEnum =
-    Enum.make
+    Enum.define
         [ DELETE
         , GET
         , HEAD
