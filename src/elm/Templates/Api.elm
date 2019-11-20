@@ -292,7 +292,7 @@ requestFnRequest :
         }
 requestFnRequest name op =
     case op.request of
-        Just ( requestTypeName, l1RequestType ) ->
+        (L1.TNamed requestTypeName _) as l1RequestType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1RequestType
@@ -319,7 +319,7 @@ requestFnRequest name op =
             , requestLinkage = linkage
             }
 
-        Nothing ->
+        _ ->
             let
                 emptyJsonBody =
                     CG.fqVal coreHttpMod "emptyBody"
@@ -348,7 +348,7 @@ When there is no response shape, the decoder will be `(AWS.Core.Decode.FixedResu
 requestFnResponse : String -> Endpoint -> ( TypeAnnotation, Expression, Linkage )
 requestFnResponse name op =
     case op.response of
-        Just ( responseTypeName, l1ResponseType ) ->
+        (L1.TNamed responseTypeName _) as l1ResponseType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1ResponseType
@@ -376,7 +376,7 @@ requestFnResponse name op =
             in
             ( responseType, decoder, linkage )
 
-        Nothing ->
+        _ ->
             let
                 linkage =
                     CG.emptyLinkage
