@@ -2,14 +2,14 @@ module AWSApiModel exposing (AWSApiModel, Endpoint)
 
 import Dict exposing (Dict)
 import HttpMethod exposing (HttpMethod)
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Outlined, Type(..))
 
 
 type alias Endpoint =
     { httpMethod : HttpMethod
     , url : String
-    , request : Maybe ( String, Type )
-    , response : Maybe ( String, Type )
+    , request : Type Outlined
+    , response : Type Outlined
     }
 
 
@@ -25,6 +25,6 @@ type alias AWSApiModel =
     , targetPrefix : Maybe String
     , signingName : Maybe String
     , jsonVersion : Maybe String
-    , declarations : Declarations
+    , declarations : Declarations Outlined
     , operations : Dict String Endpoint
     }
