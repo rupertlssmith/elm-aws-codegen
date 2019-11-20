@@ -13,7 +13,6 @@ import Maybe.Extra
 type TransformError
     = UnresolvedRef String
     | NoMembers String
-    | OpMustBeAlias String
     | MapKeyTypeNotAllowed
     | MapKeyEmpty
     | MapValueEmpty
@@ -29,9 +28,6 @@ errorToString err =
 
         NoMembers name ->
             name ++ ": structure has no members"
-
-        OpMustBeAlias hint ->
-            hint ++ " for operation should be a named shape."
 
         MapKeyTypeNotAllowed ->
             "Map .key is not an enum, restricted, or basic."
@@ -471,8 +467,6 @@ modelOperations typeDict operations =
 modelOperation : Dict String (Declarable Outlined) -> String -> Operation -> Result (Error TransformError) Endpoint
 modelOperation typeDict name operation =
     let
-        -- No input or output shape should be mapped to ()
-        -- Should give errors when the named input or output type is not found in the type dict.
         paramType opShapeRef errHint =
             case opShapeRef of
                 Nothing ->
