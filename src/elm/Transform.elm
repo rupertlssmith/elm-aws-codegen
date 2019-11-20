@@ -478,33 +478,39 @@ modelOperations typeDict operations =
 
 modelOperation : Dict String (Declarable Outlined) -> String -> Operation -> Result (Error TransformError) Endpoint
 modelOperation typeDict name operation =
-    let
-        -- No input or output shape should be mapped to ()
-        -- Should give errors when the named input or output type is not found in the type dict.
-        -- Does it really need to return a name, type pair or just the type?
-        request =
-            operation.input
-                |> Maybe.map .shape
-                |> Maybe.andThen
-                    (\reqTypeName ->
-                        Dict.get reqTypeName typeDict
-                            |> Maybe.map (always reqTypeName)
-                    )
-                |> Maybe.map (\refName -> ( refName, TNamed refName ))
-
-        response =
-            operation.output
-                |> Maybe.map .shape
-                |> Maybe.andThen
-                    (\respTypeName ->
-                        Dict.get respTypeName typeDict
-                            |> Maybe.map (always respTypeName)
-                    )
-                |> Maybe.map (\refName -> ( refName, TNamed refName ))
-    in
+    -- let
+    --     -- No input or output shape should be mapped to ()
+    --     -- Should give errors when the named input or output type is not found in the type dict.
+    --     -- Does it really need to return a name, type pair or just the type?
+    --     request =
+    --         operation.input
+    --             |> Maybe.map .shape
+    --             |> Maybe.andThen
+    --                 (\reqTypeName ->
+    --                     Dict.get reqTypeName typeDict
+    --                         |> Maybe.map (always reqTypeName)
+    --                 )
+    --             |> Maybe.map (\refName -> ( refName, TNamed refName ))
+    --
+    --     response =
+    --         operation.output
+    --             |> Maybe.map .shape
+    --             |> Maybe.andThen
+    --                 (\respTypeName ->
+    --                     Dict.get respTypeName typeDict
+    --                         |> Maybe.map (always respTypeName)
+    --                 )
+    --             |> Maybe.map (\refName -> ( refName, TNamed refName ))
+    -- in
+    -- { httpMethod = operation.http.method
+    -- , url = "/"
+    -- , request = request
+    -- , response = response
+    -- }
+    --     |> Ok
     { httpMethod = operation.http.method
     , url = "/"
-    , request = request
-    , response = response
+    , request = TNamed "ref_input" (OlBasic BInt)
+    , response = TNamed "ref_output" (OlBasic BInt)
     }
         |> Ok

@@ -39,7 +39,8 @@ type Container a
 
 
 type Type a
-    = TBasic Basic
+    = TUnit
+    | TBasic Basic
     | TNamed String a
     | TProduct (List ( String, Type a ))
     | TContainer (Container a)

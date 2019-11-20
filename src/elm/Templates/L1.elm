@@ -365,6 +365,9 @@ enumRefinedType name labels =
 lowerType : Type Outlined -> ( TypeAnnotation, Linkage )
 lowerType l1Type =
     case l1Type of
+        TUnit ->
+            ( CG.unitAnn, CG.emptyLinkage )
+
         TBasic basic ->
             ( lowerBasic basic
             , CG.emptyLinkage
@@ -678,6 +681,9 @@ codecMatchFn constructors =
 codecNamedType : String -> Type Outlined -> Expression
 codecNamedType name l1Type =
     case l1Type of
+        TUnit ->
+            codecUnit
+
         TBasic basic ->
             codecType l1Type
 
@@ -720,6 +726,9 @@ codecType l1Type =
 codecTypeField : String -> Type Outlined -> Expression
 codecTypeField name l1Type =
     case l1Type of
+        TUnit ->
+            codecUnit |> codecField name
+
         TBasic basic ->
             codecBasic basic
                 |> codecField name
@@ -737,6 +746,18 @@ codecTypeField name l1Type =
 
         TFunction arg res ->
             CG.unit
+
+
+{-| Generates a codec for unit.
+
+Decodes `()`, and encodes to JSON `null`.
+
+-}
+codecUnit =
+    CG.apply
+        [ codecFn "constant"
+        , CG.unit
+        ]
 
 
 {-| Generates a codec for a basic L1 type.
