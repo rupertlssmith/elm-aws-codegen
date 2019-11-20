@@ -11,14 +11,12 @@ import Maybe.Extra
 
 
 type TransformError
-    = NoMembers String
-    | UnresolvedMemberRef
-    | UnresolvedMapKeyRef
+    = UnresolvedRef String
+    | NoMembers String
+    | OpMustBeAlias String
     | MapKeyTypeNotAllowed
     | MapKeyEmpty
     | MapValueEmpty
-    | UnresolvedMapValueRef
-    | UnresolvedListMemberRef
     | ListMemberEmpty
     | UnknownNotImplemented
 
@@ -26,14 +24,14 @@ type TransformError
 errorToString : TransformError -> String
 errorToString err =
     case err of
+        UnresolvedRef hint ->
+            hint ++ " reference did not resolve."
+
         NoMembers name ->
             name ++ ": structure has no members"
 
-        UnresolvedMemberRef ->
-            "Structure .members reference did no resolve."
-
-        UnresolvedMapKeyRef ->
-            "Map .key reference did not resolve."
+        OpMustBeAlias hint ->
+            hint ++ " for operation should be a named shape."
 
         MapKeyTypeNotAllowed ->
             "Map .key is not an enum, restricted, or basic."
@@ -43,12 +41,6 @@ errorToString err =
 
         MapValueEmpty ->
             "Map .value is empty."
-
-        UnresolvedMapValueRef ->
-            "Map .value reference did not resolve."
-
-        UnresolvedListMemberRef ->
-            "List .member reference did not resolve."
 
         ListMemberEmpty ->
             "List .member is empty, but should be a shape reference."
@@ -377,7 +369,7 @@ modelStructure outlineDict shape name =
                         (\memberName shapeRef ( errAccum, fieldAccum ) ->
                             case shapeRefToL1Type shapeRef outlineDict of
                                 Nothing ->
-                                    ( Errors.single UnresolvedMemberRef :: errAccum
+                                    ( Errors.single (UnresolvedRef "Structure .members") :: errAccum
                                     , fieldAccum
                                     )
 
@@ -409,7 +401,7 @@ modelList outlineDict shape name =
                     CList type_ |> TContainer |> DAlias |> Ok
 
                 Nothing ->
-                    Errors.single UnresolvedListMemberRef |> Err
+                    Errors.single (UnresolvedRef "List .member") |> Err
 
 
 modelMap : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
@@ -436,7 +428,7 @@ modelMap outlineDict shape name =
                                 Errors.single MapKeyTypeNotAllowed |> Err
 
                         Nothing ->
-                            Errors.single UnresolvedMapKeyRef |> Err
+                            Errors.single (UnresolvedRef "Map .key") |> Err
 
         valTypeRes =
             case shape.value of
@@ -449,7 +441,7 @@ modelMap outlineDict shape name =
                             type_ |> Ok
 
                         Nothing ->
-                            Errors.single UnresolvedMapValueRef |> Err
+                            Errors.single (UnresolvedRef "Map .value") |> Err
     in
     case ( keyTypeRes, valTypeRes ) of
         ( Err keyError, Err valError ) ->
@@ -478,39 +470,42 @@ modelOperations typeDict operations =
 
 modelOperation : Dict String (Declarable Outlined) -> String -> Operation -> Result (Error TransformError) Endpoint
 modelOperation typeDict name operation =
-    -- let
-    --     -- No input or output shape should be mapped to ()
-    --     -- Should give errors when the named input or output type is not found in the type dict.
-    --     -- Does it really need to return a name, type pair or just the type?
-    --     request =
-    --         operation.input
-    --             |> Maybe.map .shape
-    --             |> Maybe.andThen
-    --                 (\reqTypeName ->
-    --                     Dict.get reqTypeName typeDict
-    --                         |> Maybe.map (always reqTypeName)
-    --                 )
-    --             |> Maybe.map (\refName -> ( refName, TNamed refName ))
-    --
-    --     response =
-    --         operation.output
-    --             |> Maybe.map .shape
-    --             |> Maybe.andThen
-    --                 (\respTypeName ->
-    --                     Dict.get respTypeName typeDict
-    --                         |> Maybe.map (always respTypeName)
-    --                 )
-    --             |> Maybe.map (\refName -> ( refName, TNamed refName ))
-    -- in
-    -- { httpMethod = operation.http.method
-    -- , url = "/"
-    -- , request = request
-    -- , response = response
-    -- }
-    --     |> Ok
-    { httpMethod = operation.http.method
-    , url = "/"
-    , request = TNamed "ref_input" (OlBasic BInt)
-    , response = TNamed "ref_output" (OlBasic BInt)
-    }
-        |> Ok
+    let
+        -- No input or output shape should be mapped to ()
+        -- Should give errors when the named input or output type is not found in the type dict.
+        paramType opShapeRef errHint =
+            case opShapeRef of
+                Nothing ->
+                    TUnit |> Ok
+
+                Just shapeRef ->
+                    case Dict.get shapeRef.shape typeDict of
+                        Just decl ->
+                            TNamed shapeRef.shape (OlNamed shapeRef.shape) |> Ok
+
+                        Nothing ->
+                            Errors.single (UnresolvedRef "Input") |> Err
+
+        requestRes =
+            paramType operation.input "Input"
+
+        responseRes =
+            paramType operation.output "Output"
+    in
+    case ( requestRes, responseRes ) of
+        ( Ok request, Ok response ) ->
+            { httpMethod = operation.http.method
+            , url = "/"
+            , request = request
+            , response = response
+            }
+                |> Ok
+
+        ( Err requestErr, Err responseErr ) ->
+            Errors.combine [ requestErr, responseErr ] |> Err
+
+        ( Err requestErr, _ ) ->
+            Err requestErr
+
+        ( _, Err responseErr ) ->
+            Err responseErr
