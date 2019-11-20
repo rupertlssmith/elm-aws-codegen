@@ -75,12 +75,12 @@ restrictedInt name res =
     let
         minGuard =
             Maybe.map
-                (\minValue -> CG.apply [ CG.fqFun guardedMod "gt", CG.int minValue ])
+                (\minValue -> CG.apply [ CG.fqFun refinedMod "gt", CG.int minValue ])
                 res.min
 
         maxGuard =
             Maybe.map
-                (\maxValue -> CG.apply [ CG.fqFun guardedMod "lt", CG.int maxValue ])
+                (\maxValue -> CG.apply [ CG.fqFun refinedMod "lt", CG.int maxValue ])
                 res.max
 
         guards =
@@ -126,11 +126,11 @@ restrictedInt name res =
 
                 restrictedImpl =
                     CG.apply
-                        [ CG.fqFun guardedMod "define"
+                        [ CG.fqFun refinedMod "define"
                         , CG.fun "guardFn"
                         , CG.fqVal decodeMod "int"
                         , CG.fqVal encodeMod "int"
-                        , CG.fqFun guardedMod "intErrorToString"
+                        , CG.fqFun refinedMod "intErrorToString"
                         , CG.fun "unboxFn"
                         ]
                         |> CG.letExpr [ guardFn, unboxFn ]
@@ -157,17 +157,17 @@ restrictedString name res =
     let
         minLenGuard =
             Maybe.map
-                (\minValue -> CG.apply [ CG.fqFun guardedMod "minLength", CG.int minValue ])
+                (\minValue -> CG.apply [ CG.fqFun refinedMod "minLength", CG.int minValue ])
                 res.minLength
 
         maxLenGuard =
             Maybe.map
-                (\maxValue -> CG.apply [ CG.fqFun guardedMod "maxLength", CG.int maxValue ])
+                (\maxValue -> CG.apply [ CG.fqFun refinedMod "maxLength", CG.int maxValue ])
                 res.maxLength
 
         patternGuard =
             Maybe.map
-                (\regex -> CG.apply [ CG.fqFun guardedMod "regexMatch", CG.string regex ])
+                (\regex -> CG.apply [ CG.fqFun refinedMod "regexMatch", CG.string regex ])
                 res.regex
 
         guards =
@@ -213,11 +213,11 @@ restrictedString name res =
 
                 restrictedImpl =
                     CG.apply
-                        [ CG.fqFun guardedMod "define"
+                        [ CG.fqFun refinedMod "define"
                         , CG.fun "guardFn"
                         , CG.fqVal decodeMod "string"
                         , CG.fqVal encodeMod "string"
-                        , CG.fqFun guardedMod "stringErrorToString"
+                        , CG.fqFun refinedMod "stringErrorToString"
                         , CG.fun "unboxFn"
                         ]
                         |> CG.letExpr [ guardFn, unboxFn ]
@@ -445,6 +445,41 @@ lowerContainer container =
                 |> Tuple.mapSecond (CG.addImport setImport)
 
         CDict l1keyType l1valType ->
+            lowerDict l1keyType l1valType
+
+        COptional l1Type ->
+            lowerType l1Type
+                |> Tuple.mapFirst CG.maybeAnn
+
+
+lowerDict : Type Outlined -> Type Outlined -> ( TypeAnnotation, Linkage )
+lowerDict l1keyType l1valType =
+    case l1keyType of
+        TNamed name (OlRestricted _ basic) ->
+            let
+                ( keyAnn, keyLink ) =
+                    lowerType l1keyType
+
+                ( valAnn, valLink ) =
+                    lowerType l1valType
+            in
+            ( CG.fqTyped dictRefinedMod "Dict" [ lowerBasic basic, keyAnn, valAnn ]
+            , CG.combineLinkage [ keyLink, valLink ] |> CG.addImport dictRefinedImport
+            )
+
+        TNamed name (OlEnum _) ->
+            let
+                ( keyAnn, keyLink ) =
+                    lowerType l1keyType
+
+                ( valAnn, valLink ) =
+                    lowerType l1valType
+            in
+            ( CG.fqTyped dictEnumMod "Dict" [ keyAnn, valAnn ]
+            , CG.combineLinkage [ keyLink, valLink ] |> CG.addImport dictEnumImport
+            )
+
+        _ ->
             let
                 ( keyAnn, keyLink ) =
                     lowerType l1keyType
@@ -455,10 +490,6 @@ lowerContainer container =
             ( CG.dictAnn keyAnn valAnn
             , CG.combineLinkage [ keyLink, valLink ] |> CG.addImport dictImport
             )
-
-        COptional l1Type ->
-            lowerType l1Type
-                |> Tuple.mapFirst CG.maybeAnn
 
 
 {-| Lowers an L1 function type into an Elm type annotation
@@ -607,8 +638,8 @@ restrictedCodec name _ =
         impl =
             CG.apply
                 [ CG.fqFun codecMod "build"
-                , CG.parens (CG.apply [ CG.fqFun guardedMod "encoder", CG.val enumName ])
-                , CG.parens (CG.apply [ CG.fqFun guardedMod "decoder", CG.val enumName ])
+                , CG.parens (CG.apply [ CG.fqFun refinedMod "encoder", CG.val enumName ])
+                , CG.parens (CG.apply [ CG.fqFun refinedMod "decoder", CG.val enumName ])
                 ]
     in
     ( CG.funDecl
@@ -918,6 +949,11 @@ encodeMod =
     [ "Json", "Encode" ]
 
 
+dictEnumMod : List String
+dictEnumMod =
+    [ "Dict", "Enum" ]
+
+
 enumMod : List String
 enumMod =
     [ "Enum" ]
@@ -928,8 +964,13 @@ maybeMod =
     [ "Maybe" ]
 
 
-guardedMod : List String
-guardedMod =
+dictRefinedMod : List String
+dictRefinedMod =
+    [ "Dict", "Refined" ]
+
+
+refinedMod : List String
+refinedMod =
     [ "Refined" ]
 
 
@@ -973,6 +1014,21 @@ enumImport =
     CG.importStmt enumMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Enum" ])
 
 
+dictEnumImport : Import
+dictEnumImport =
+    CG.importStmt dictEnumMod Nothing Nothing
+
+
+refinedImport : Import
+refinedImport =
+    CG.importStmt refinedMod Nothing (Just <| CG.exposeExplicit [ CG.typeOrAliasExpose "Refined" ])
+
+
+dictRefinedImport : Import
+dictRefinedImport =
+    CG.importStmt dictRefinedMod Nothing Nothing
+
+
 guardedImportExposing : List String -> Import
 guardedImportExposing exposings =
-    CG.importStmt guardedMod Nothing (Just <| CG.exposeExplicit (List.map CG.typeOrAliasExpose exposings))
+    CG.importStmt refinedMod Nothing (Just <| CG.exposeExplicit (List.map CG.typeOrAliasExpose exposings))

@@ -27,12 +27,14 @@ serviceFile model =
             jsonCodecs model
 
         declarations =
+            -- types
             codecs
                 |> List.append types
                 |> List.append endpoints
                 |> (::) serviceFn
 
         linkages =
+            --linkage3
             linkage4
                 |> List.append linkage3
                 |> List.append linkage2
