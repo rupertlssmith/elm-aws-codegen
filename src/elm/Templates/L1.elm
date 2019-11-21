@@ -824,12 +824,39 @@ codecContainer container =
             CG.apply [ codecFn "set", codecType l1Type ]
                 |> CG.parens
 
-        CDict _ l1valType ->
-            CG.apply [ codecFn "dict", codecType l1valType ]
-                |> CG.parens
+        CDict l1keyType l1valType ->
+            codecDict l1keyType l1valType
 
         COptional l1Type ->
             CG.apply [ codecFn "maybe", codecType l1Type ]
+                |> CG.parens
+
+
+codecDict : Type Outlined -> Type Outlined -> Expression
+codecDict l1keyType l1valType =
+    case l1keyType of
+        TNamed name (OlRestricted _ basic) ->
+            let
+                _ =
+                    Debug.log "codecDict" "Codec for dict with restricted key."
+            in
+            CG.apply [ codecFn "dict", codecType l1valType ]
+                |> CG.parens
+
+        TNamed name (OlEnum _) ->
+            let
+                _ =
+                    Debug.log "codecDict" "Codec for dict with enum key."
+            in
+            CG.apply [ codecFn "dict", codecType l1valType ]
+                |> CG.parens
+
+        _ ->
+            let
+                _ =
+                    Debug.log "codecDict" "Codec for dict with basic key."
+            in
+            CG.apply [ codecFn "dict", codecType l1valType ]
                 |> CG.parens
 
 
@@ -879,9 +906,8 @@ codecContainerField name container =
                 |> CG.parens
                 |> codecField name
 
-        CDict _ l1valType ->
-            CG.apply [ codecFn "dict", codecType l1valType ]
-                |> CG.parens
+        CDict l1keyType l1valType ->
+            codecDict l1keyType l1valType
                 |> codecField name
 
         COptional l1Type ->
