@@ -840,22 +840,24 @@ codecDict l1keyType l1valType =
                 _ =
                     Debug.log "codecDict" "Codec for dict with restricted key."
             in
-            CG.apply [ codecFn "dict", codecType l1valType ]
-                |> CG.parens
+            CG.apply
+                [ CG.fqFun refinedMod "dictDecoder"
+                , CG.val (Util.safeCCL name)
+                , codecType l1valType
+                ]
 
         TNamed name (OlEnum _) ->
             let
                 _ =
                     Debug.log "codecDict" "Codec for dict with enum key."
             in
-            CG.apply [ codecFn "dict", codecType l1valType ]
-                |> CG.parens
+            CG.apply
+                [ CG.fqFun enumMod "dictDecoder"
+                , CG.val (Util.safeCCL name)
+                , codecType l1valType
+                ]
 
         _ ->
-            let
-                _ =
-                    Debug.log "codecDict" "Codec for dict with basic key."
-            in
             CG.apply [ codecFn "dict", codecType l1valType ]
                 |> CG.parens
 
