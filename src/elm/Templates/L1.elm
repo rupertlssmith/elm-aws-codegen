@@ -841,9 +841,21 @@ codecDict l1keyType l1valType =
                     Debug.log "codecDict" "Codec for dict with restricted key."
             in
             CG.apply
-                [ CG.fqFun refinedMod "dictDecoder"
-                , CG.val (Util.safeCCL name)
-                , codecType l1valType
+                [ codecFn "build"
+                , CG.apply
+                    [ CG.fqFun refinedMod "dictEncoder"
+                    , CG.val (Util.safeCCL name)
+                    , CG.apply [ codecFn "encoder", codecType l1valType ]
+                        |> CG.parens
+                    ]
+                    |> CG.parens
+                , CG.apply
+                    [ CG.fqFun refinedMod "dictDecoder"
+                    , CG.val (Util.safeCCL name)
+                    , CG.apply [ codecFn "decoder", codecType l1valType ]
+                        |> CG.parens
+                    ]
+                    |> CG.parens
                 ]
 
         TNamed name (OlEnum _) ->
@@ -852,9 +864,21 @@ codecDict l1keyType l1valType =
                     Debug.log "codecDict" "Codec for dict with enum key."
             in
             CG.apply
-                [ CG.fqFun enumMod "dictDecoder"
-                , CG.val (Util.safeCCL name)
-                , codecType l1valType
+                [ codecFn "build"
+                , CG.apply
+                    [ CG.fqFun enumMod "dictEncoder"
+                    , CG.val (Util.safeCCL name)
+                    , CG.apply [ codecFn "encoder", codecType l1valType ]
+                        |> CG.parens
+                    ]
+                    |> CG.parens
+                , CG.apply
+                    [ CG.fqFun enumMod "dictDecoder"
+                    , CG.val (Util.safeCCL name)
+                    , CG.apply [ codecFn "decoder", codecType l1valType ]
+                        |> CG.parens
+                    ]
+                    |> CG.parens
                 ]
 
         _ ->
