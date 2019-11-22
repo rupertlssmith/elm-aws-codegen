@@ -9,6 +9,7 @@ import Enum exposing (Enum)
 import Errors exposing (Error)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Outlined(..), Restricted(..), Type(..))
 import Maybe.Extra
+import String.Case as Case
 
 
 type TransformError
@@ -97,7 +98,7 @@ transform service =
     in
     ( { declarations = okMappings
       , operations = okOperations
-      , name = [ "AWS", service.metaData.serviceId ]
+      , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
       , isRegional = Maybe.Extra.isJust service.metaData.globalEndpoint
       , endpointPrefix = service.metaData.endpointPrefix
       , apiVersion = service.metaData.apiVersion

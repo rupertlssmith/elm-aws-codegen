@@ -11,6 +11,7 @@ import Json.Decode as Decode
 import Json.Decode.Generic as Generic
 import Pretty
 import Random exposing (Seed)
+import String.Case as Case
 import Task
 import Templates.Api
 import Time exposing (Posix)
@@ -107,7 +108,7 @@ processServiceModel name val seed =
                         |> Tuple.mapFirst (Pretty.pretty 120)
             in
             ( Seeded { seed = seed }
-            , ( service.metaData.serviceId ++ ".elm", codegen, errors ) |> codeOutPort
+            , ( Case.toCamelCaseUpper service.metaData.serviceId ++ ".elm", codegen, errors ) |> codeOutPort
             )
 
         Err err ->
