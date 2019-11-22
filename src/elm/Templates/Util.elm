@@ -29,6 +29,7 @@ safeName val =
                 , "as"
                 , "case"
                 , "of"
+                , "port"
                 , "Int"
                 , "Bool"
                 , "Float"
