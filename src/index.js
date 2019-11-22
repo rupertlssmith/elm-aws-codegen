@@ -6,8 +6,10 @@ const app = Elm.Top.init();
 
 // glob("api/*.normal.json", function(er, files) {
 //   files.forEach(function(file) {
+//       var filename = file.slice('api/'.length);
+//
 //       fs.readFile(file, 'utf8', function(err, contents) {
-//         app.ports.modelInPort.send([file, contents]);
+//         app.ports.modelInPort.send([filename, contents]);
 //       });
 //     });
 // });
