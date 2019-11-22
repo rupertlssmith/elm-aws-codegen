@@ -1,5 +1,6 @@
 module Templates.Api exposing (coreServiceMod, docs, globalService, module_, regionalService, service, serviceFile)
 
+import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, Expression, File, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
@@ -156,8 +157,8 @@ regionalService model =
                 [ CG.fqFun coreServiceMod "defineRegional"
                 , CG.string model.endpointPrefix
                 , CG.string model.apiVersion
-                , CG.fqFun coreServiceMod model.protocol
-                , CG.fqFun coreServiceMod model.signer
+                , protocolExpr model.protocol
+                , signerExpr model.signer
                 , CG.fun "optionsFn"
                 ]
                 |> CG.letExpr [ optionsFn model ]
@@ -185,8 +186,8 @@ globalService model =
                 [ CG.fqFun coreServiceMod "defineGlobal"
                 , CG.string model.endpointPrefix
                 , CG.string model.apiVersion
-                , CG.fqFun coreServiceMod model.protocol
-                , CG.fqFun coreServiceMod model.signer
+                , protocolExpr model.protocol
+                , signerExpr model.signer
                 , CG.fun "optionsFn"
                 ]
                 |> CG.letExpr [ optionsFn model ]
@@ -459,3 +460,32 @@ coreHttpMod =
 coreDecodeMod : List String
 coreDecodeMod =
     [ "AWS", "Core", "Decode" ]
+
+
+signerExpr : Signer -> Expression
+signerExpr signer =
+    case signer of
+        SignV4 ->
+            CG.fqVal coreServiceMod "SignV4"
+
+        SignS3 ->
+            CG.fqVal coreServiceMod "SignS3"
+
+
+protocolExpr : Protocol -> Expression
+protocolExpr protocol =
+    case protocol of
+        EC2 ->
+            CG.fqVal coreServiceMod "EC2"
+
+        JSON ->
+            CG.fqVal coreServiceMod "JSON"
+
+        QUERY ->
+            CG.fqVal coreServiceMod "QUERY"
+
+        REST_JSON ->
+            CG.fqVal coreServiceMod "REST_JSON"
+
+        REST_XML ->
+            CG.fqVal coreServiceMod "REST_XML"

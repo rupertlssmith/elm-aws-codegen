@@ -1,5 +1,6 @@
 module AWSApiModel exposing (AWSApiModel, Endpoint)
 
+import AWS.Core.Service exposing (Protocol, Signer)
 import Dict exposing (Dict)
 import HttpMethod exposing (HttpMethod)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Outlined, Type(..))
@@ -18,8 +19,8 @@ type alias AWSApiModel =
     , isRegional : Bool
     , endpointPrefix : String
     , apiVersion : String
-    , protocol : String
-    , signer : String
+    , protocol : Protocol
+    , signer : Signer
     , docs : String
     , xmlNamespace : Maybe String
     , targetPrefix : Maybe String

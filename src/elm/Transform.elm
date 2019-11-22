@@ -1,5 +1,6 @@
 module Transform exposing (transform)
 
+import AWS.Core.Service exposing (Signer(..))
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Console
@@ -103,14 +104,11 @@ transform service =
       , protocol = service.metaData.protocol
       , signer =
             case service.metaData.signatureVersion of
-                Just "v4" ->
-                    "signV4"
-
-                Just "s3" ->
-                    "signS3"
+                Just signer ->
+                    signer
 
                 _ ->
-                    "signV4"
+                    SignV4
       , docs = Maybe.withDefault "" service.documentation
       , xmlNamespace = service.metaData.xmlNamespace
       , targetPrefix = service.metaData.targetPrefix

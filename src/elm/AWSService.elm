@@ -13,6 +13,7 @@ module AWSService exposing
 {-| AWS Service2 Descriptor. This module provides the data model and decoders.
 -}
 
+import AWS.Core.Service exposing (Protocol(..), Signer(..), TimestampFormat(..), protocolEnum, signerEnum, timestampFormatEnum)
 import Codec exposing (Codec)
 import Dict exposing (Dict)
 import Enum exposing (Enum)
@@ -43,14 +44,14 @@ awsServiceCodec =
 type alias MetaData =
     { apiVersion : String
     , endpointPrefix : String
-    , protocol : String
+    , protocol : Protocol
     , serviceId : String
     , checksumFormat : Maybe String
     , globalEndpoint : Maybe String
     , jsonVersion : Maybe String
     , serviceAbbreviation : Maybe String
     , serviceFullName : Maybe String
-    , signatureVersion : Maybe String
+    , signatureVersion : Maybe Signer
     , signingName : Maybe String
     , targetPrefix : Maybe String
     , uid : Maybe String
@@ -58,18 +59,26 @@ type alias MetaData =
     }
 
 
+protocolCodec =
+    Codec.build (Enum.encoder protocolEnum) (Enum.decoder protocolEnum)
+
+
+signerCodec =
+    Codec.build (Enum.encoder signerEnum) (Enum.decoder signerEnum)
+
+
 metaDataCodec =
     Codec.object MetaData
         |> Codec.field "apiVersion" .apiVersion Codec.string
         |> Codec.field "endpointPrefix" .endpointPrefix Codec.string
-        |> Codec.field "protocol" .protocol Codec.string
+        |> Codec.field "protocol" .protocol protocolCodec
         |> Codec.field "serviceId" .serviceId Codec.string
         |> Codec.optionalField "checksumFormat" .checksumFormat Codec.string
         |> Codec.optionalField "globalEndpoint" .globalEndpoint Codec.string
         |> Codec.optionalField "jsonVersion" .jsonVersion Codec.string
         |> Codec.optionalField "serviceAbbreviation" .serviceAbbreviation Codec.string
         |> Codec.optionalField "serviceFullName" .serviceFullName Codec.string
-        |> Codec.optionalField "signatureVersion" .signatureVersion Codec.string
+        |> Codec.optionalField "signatureVersion" .signatureVersion signerCodec
         |> Codec.optionalField "signingName" .signingName Codec.string
         |> Codec.optionalField "targetPrefix" .targetPrefix Codec.string
         |> Codec.optionalField "uid" .uid Codec.string
@@ -209,10 +218,14 @@ type alias ShapeRef =
     , queryName : Maybe String
     , resultWrapper : Maybe String
     , streaming : Maybe Bool
-    , timestampFormat : Maybe String
+    , timestampFormat : Maybe TimestampFormat
     , xmlAttribute : Maybe String
     , xmlNamespace : Maybe String
     }
+
+
+timestampFormatCodec =
+    Codec.build (Enum.encoder timestampFormatEnum) (Enum.decoder timestampFormatEnum)
 
 
 shapeRefCodec =
@@ -231,7 +244,7 @@ shapeRefCodec =
         |> Codec.optionalField "queryName" .queryName Codec.string
         |> Codec.optionalField "resultWrapper" .resultWrapper Codec.string
         |> Codec.optionalField "streaming" .streaming Codec.bool
-        |> Codec.optionalField "timestampFormat" .timestampFormat Codec.string
+        |> Codec.optionalField "timestampFormat" .timestampFormat timestampFormatCodec
         |> Codec.optionalField "xmlAttribute" .xmlAttribute Codec.string
         |> Codec.optionalField "xmlNamespace" .xmlNamespace Codec.string
         |> Codec.buildObject
@@ -261,7 +274,7 @@ type alias Shape =
     , required : Maybe (List String)
     , sensitive : Maybe Bool
     , streaming : Maybe Bool
-    , timestampFormat : Maybe String
+    , timestampFormat : Maybe TimestampFormat
     , value : Maybe ShapeRef
     , wrapper : Maybe Bool
     , xmlNamespace : Maybe String
@@ -294,7 +307,7 @@ shapeCodec =
         |> Codec.optionalField "required" .required (Codec.list Codec.string)
         |> Codec.optionalField "sensitive" .sensitive Codec.bool
         |> Codec.optionalField "streaming" .streaming Codec.bool
-        |> Codec.optionalField "timestampFormat" .timestampFormat Codec.string
+        |> Codec.optionalField "timestampFormat" .timestampFormat timestampFormatCodec
         |> Codec.optionalField "value" .value shapeRefCodec
         |> Codec.optionalField "wrapper" .wrapper Codec.bool
         |> Codec.optionalField "xmlNamespace" .xmlNamespace Codec.string
