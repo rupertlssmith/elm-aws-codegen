@@ -488,7 +488,7 @@ modelOperation typeDict name operation =
     case ( requestRes, responseRes ) of
         ( Ok request, Ok response ) ->
             { httpMethod = operation.http.method
-            , url = "/"
+            , url = operation.http.requestUri |> Maybe.withDefault "/"
             , request = request
             , response = response
             }
