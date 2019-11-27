@@ -20,6 +20,7 @@ const specs = [
   "cloudformation-2010-05-15.normal.json",
   "cloudtrail-2013-11-01.normal.json",
   "cognito-identity-2014-06-30.normal.json",
+  "cognito-idp-2016-04-18.normal.json",
   "dynamodb-2012-08-10.normal.json",
   "ec2-2016-11-15.normal.json",
   "iam-2010-05-08.normal.json",
