@@ -75,12 +75,12 @@ restrictedInt name res =
     let
         minGuard =
             Maybe.map
-                (\minValue -> CG.apply [ CG.fqFun refinedMod "gt", CG.int minValue ])
+                (\minValue -> CG.apply [ CG.fqFun refinedMod "gte", CG.int minValue ])
                 res.min
 
         maxGuard =
             Maybe.map
-                (\maxValue -> CG.apply [ CG.fqFun refinedMod "lt", CG.int maxValue ])
+                (\maxValue -> CG.apply [ CG.fqFun refinedMod "lte", CG.int maxValue ])
                 res.max
 
         guards =
