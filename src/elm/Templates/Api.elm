@@ -28,14 +28,12 @@ serviceFile model =
             jsonCodecs model
 
         declarations =
-            -- types
             codecs
                 |> List.append types
                 |> List.append endpoints
                 |> (::) serviceFn
 
         linkages =
-            --linkage3
             linkage4
                 |> List.append linkage3
                 |> List.append linkage2
@@ -263,7 +261,9 @@ requestFn name op =
     , CG.combineLinkage
         [ requestLinkage
         , responseLinkage
-        , CG.emptyLinkage |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+        , CG.emptyLinkage
+            |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+            |> CG.addExposing (CG.funExpose (Util.safeCCL name))
         ]
     )
 
@@ -396,6 +396,7 @@ typeDeclarations model =
         (\name decl ( declAccum, linkageAccum ) ->
             Templates.L1.typeDecl name decl
                 |> Tuple.mapFirst (List.append declAccum)
+                |> Tuple.mapSecond (List.append [ CG.emptyLinkage |> CG.addExposing (CG.closedTypeExpose (Util.safeCCU name)) ])
                 |> Tuple.mapSecond (List.append linkageAccum)
         )
         ( [], [] )
@@ -404,8 +405,17 @@ typeDeclarations model =
 
 jsonCodecs : AWSApiModel -> ( List Declaration, List Linkage )
 jsonCodecs model =
+    let
+        exposedCodec name decl =
+            case Templates.L1.codec name decl of
+                ( codec, linkage ) ->
+                    ( codec
+                    , linkage
+                        |> CG.addExposing (CG.funExpose (Util.safeCCL (name ++ "Codec")))
+                    )
+    in
     Dict.foldl
-        (\name decl accum -> Templates.L1.codec name decl :: accum)
+        (\name decl accum -> exposedCodec name decl :: accum)
         []
         model.declarations
         |> List.unzip
