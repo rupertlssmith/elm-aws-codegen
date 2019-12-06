@@ -230,15 +230,7 @@ requestFn name op =
             requestFnResponse name op
 
         wrappedResponseType =
-            CG.fqTyped coreHttpMod "Request" [ CG.fqTyped coreDecodeMod "ResponseWrapper" [ responseType ] ]
-
-        wrappedDecoder =
-            CG.apply
-                [ CG.fqVal coreDecodeMod "responseWrapperDecoder"
-                , CG.string (Util.safeCCU name)
-                , responseDecoder
-                    |> CG.parens
-                ]
+            CG.fqTyped coreHttpMod "Request" [ responseType ]
 
         requestSig =
             case maybeRequestType of
@@ -251,14 +243,15 @@ requestFn name op =
         requestImpl =
             CG.apply
                 [ CG.fqFun coreHttpMod "request"
+                , CG.string (Util.safeCCU name)
                 , CG.fqVal coreHttpMod (Enum.toString HttpMethod.httpMethodEnum op.httpMethod)
                 , CG.string op.url
                 , CG.val "jsonBody"
-                , CG.val "wrappedDecoder"
+                , CG.val "decoder"
                 ]
                 |> CG.letExpr
                     [ jsonBody |> CG.letVal "jsonBody"
-                    , wrappedDecoder |> CG.letVal "wrappedDecoder"
+                    , responseDecoder |> CG.letVal "decoder"
                     ]
     in
     ( CG.funDecl
@@ -368,14 +361,10 @@ requestFnResponse name op =
 
                 decoder =
                     CG.apply
-                        [ CG.fqFun coreDecodeMod "ResultDecoder"
-                        , CG.string responseTypeName
-                        , CG.apply
-                            [ CG.fqFun codecMod "decoder"
-                            , CG.val (Util.safeCCL responseTypeName ++ "Codec")
-                            ]
-                            |> CG.parens
+                        [ CG.fqFun codecMod "decoder"
+                        , CG.val (Util.safeCCL responseTypeName ++ "Codec")
                         ]
+                        |> CG.parens
             in
             ( responseType, decoder, linkage )
 
