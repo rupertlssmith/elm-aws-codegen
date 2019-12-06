@@ -3,7 +3,7 @@ module Templates.Api exposing (coreServiceMod, docs, globalService, module_, reg
 import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
-import Elm.CodeGen as CG exposing (Declaration, Expression, File, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
+import Elm.CodeGen as CG exposing (Declaration, Expression, File, Import, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
 import Enum
 import HttpMethod exposing (HttpMethod)
 import L1
@@ -373,10 +373,11 @@ requestFnResponse name op =
                 linkage =
                     CG.emptyLinkage
                         |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
+                        |> CG.addImport decodeImport
 
                 decoder =
                     CG.apply
-                        [ CG.fqVal coreDecodeMod "FixedResult"
+                        [ CG.fqVal decodeMod "succeed"
                         , CG.unit
                         ]
 
@@ -446,21 +447,6 @@ requests =
 -- Helpers
 
 
-codecMod : List String
-codecMod =
-    [ "Codec" ]
-
-
-coreHttpMod : List String
-coreHttpMod =
-    [ "AWS", "Core", "Http" ]
-
-
-coreDecodeMod : List String
-coreDecodeMod =
-    [ "AWS", "Core", "Decode" ]
-
-
 signerExpr : Signer -> Expression
 signerExpr signer =
     case signer of
@@ -488,3 +474,28 @@ protocolExpr protocol =
 
         REST_XML ->
             CG.fqVal coreServiceMod "REST_XML"
+
+
+decodeMod : List String
+decodeMod =
+    [ "Json", "Decode" ]
+
+
+codecMod : List String
+codecMod =
+    [ "Codec" ]
+
+
+coreHttpMod : List String
+coreHttpMod =
+    [ "AWS", "Core", "Http" ]
+
+
+coreDecodeMod : List String
+coreDecodeMod =
+    [ "AWS", "Core", "Decode" ]
+
+
+decodeImport : Import
+decodeImport =
+    CG.importStmt decodeMod Nothing Nothing
