@@ -397,7 +397,6 @@ typeDeclarations model =
         (\name decl ( declAccum, linkageAccum ) ->
             Templates.L1.typeDecl name decl
                 |> Tuple.mapFirst (List.append declAccum)
-                |> Tuple.mapSecond (List.append [ CG.emptyLinkage |> CG.addExposing (CG.closedTypeExpose (Util.safeCCU name)) ])
                 |> Tuple.mapSecond (List.append linkageAccum)
         )
         ( [], [] )
@@ -406,17 +405,8 @@ typeDeclarations model =
 
 jsonCodecs : AWSApiModel -> ( List Declaration, List Linkage )
 jsonCodecs model =
-    let
-        exposedCodec name decl =
-            case Templates.L1.codec name decl of
-                ( codec, linkage ) ->
-                    ( codec
-                    , linkage
-                        |> CG.addExposing (CG.funExpose (Util.safeCCL (name ++ "Codec")))
-                    )
-    in
     Dict.foldl
-        (\name decl accum -> exposedCodec name decl :: accum)
+        (\name decl accum -> Templates.L1.codec name decl :: accum)
         []
         model.declarations
         |> List.unzip
