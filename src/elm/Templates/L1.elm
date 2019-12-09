@@ -986,7 +986,7 @@ codecOptionalField : String -> Expression -> Expression
 codecOptionalField name expr =
     CG.apply
         [ codecFn "optionalField"
-        , CG.string (Util.safeCCL name)
+        , CG.string name
         , CG.accessFun ("." ++ Util.safeCCL name)
         , expr
         ]
