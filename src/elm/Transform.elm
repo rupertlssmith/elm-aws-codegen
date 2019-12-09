@@ -353,6 +353,33 @@ modelInt outlineDict shape name =
 
 modelStructure : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
 modelStructure outlineDict shape name =
+    let
+        -- shape.required lists names of fields that are required.
+        modelField memberName shapeRef ( errAccum, fieldAccum ) =
+            case shapeRefToL1Type shapeRef outlineDict of
+                Nothing ->
+                    ( Errors.single (UnresolvedRef "Structure .members") :: errAccum
+                    , fieldAccum
+                    )
+
+                Just type_ ->
+                    case shape.required of
+                        Nothing ->
+                            ( errAccum
+                            , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
+                            )
+
+                        Just requiredFields ->
+                            if List.member memberName requiredFields then
+                                ( errAccum
+                                , ( memberName, type_ ) :: fieldAccum
+                                )
+
+                            else
+                                ( errAccum
+                                , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
+                                )
+    in
     case shape.members of
         Nothing ->
             NoMembers name |> Errors.single |> Err
@@ -360,21 +387,7 @@ modelStructure outlineDict shape name =
         Just members ->
             let
                 ( fieldErrors, fields ) =
-                    Dict.foldl
-                        (\memberName shapeRef ( errAccum, fieldAccum ) ->
-                            case shapeRefToL1Type shapeRef outlineDict of
-                                Nothing ->
-                                    ( Errors.single (UnresolvedRef "Structure .members") :: errAccum
-                                    , fieldAccum
-                                    )
-
-                                Just type_ ->
-                                    ( errAccum
-                                    , ( memberName, type_ ) :: fieldAccum
-                                    )
-                        )
-                        ( [], [] )
-                        members
+                    Dict.foldl modelField ( [], [] ) members
             in
             case fieldErrors of
                 [] ->
