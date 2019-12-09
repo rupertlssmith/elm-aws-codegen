@@ -145,6 +145,7 @@ restrictedInt name res =
                 |> CG.addImport (guardedImportExposing [ "Refined", "IntError" ])
                 |> CG.addImport decodeImport
                 |> CG.addImport encodeImport
+                |> CG.addExposing (CG.funExpose (Util.safeCCL name))
             )
 
 
@@ -231,6 +232,7 @@ restrictedString name res =
                 |> CG.addImport (guardedImportExposing [ "Refined", "StringError" ])
                 |> CG.addImport decodeImport
                 |> CG.addImport encodeImport
+                |> CG.addExposing (CG.funExpose (Util.safeCCL name))
             )
 
 
@@ -244,6 +246,7 @@ typeAlias name l1Type =
     in
     ( CG.aliasDecl Nothing (Util.safeCCU name) [] loweredType
     , linkage
+        |> CG.addExposing (CG.typeOrAliasExpose (Util.safeCCU name))
     )
 
 
@@ -271,6 +274,7 @@ customType name constructors =
     in
     ( CG.customTypeDecl Nothing (Util.safeCCU name) [] mappedConstructors
     , CG.combineLinkage linkages
+        |> CG.addExposing (CG.openTypeExpose (Util.safeCCU name))
     )
 
 
@@ -316,7 +320,10 @@ enumCustomType name labels =
     ( [ CG.customTypeDecl Nothing (Util.safeCCU name) [] constructors
       , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
       ]
-    , CG.emptyLinkage |> CG.addImport enumImport
+    , CG.emptyLinkage
+        |> CG.addImport enumImport
+        |> CG.addExposing (CG.funExpose (Util.safeCCL name))
+        |> CG.addExposing (CG.openTypeExpose (Util.safeCCU name))
     )
 
 
@@ -354,7 +361,9 @@ enumRefinedType name labels =
     ( [ CG.customTypeDecl Nothing (Util.safeCCU name) [] guardedConstructor
       , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
       ]
-    , CG.emptyLinkage |> CG.addImport enumImport
+    , CG.emptyLinkage
+        |> CG.addImport enumImport
+        |> CG.addExposing (CG.funExpose (Util.safeCCL name))
     )
 
 
@@ -553,6 +562,7 @@ typeAliasCodec name l1Type =
         impl
     , CG.emptyLinkage
         |> CG.addImport codecImport
+        |> CG.addExposing (CG.funExpose codecFnName)
     )
 
 
@@ -581,6 +591,7 @@ customTypeCodec name constructors =
         impl
     , CG.emptyLinkage
         |> CG.addImport codecImport
+        |> CG.addExposing (CG.funExpose codecFnName)
     )
 
 
@@ -615,6 +626,7 @@ enumCodec name constructors =
     , CG.emptyLinkage
         |> CG.addImport codecImport
         |> CG.addImport enumImport
+        |> CG.addExposing (CG.funExpose codecFnName)
     )
 
 
@@ -649,6 +661,7 @@ restrictedCodec name _ =
     , CG.emptyLinkage
         |> CG.addImport codecImport
         |> CG.addImport enumImport
+        |> CG.addExposing (CG.funExpose codecFnName)
     )
 
 
