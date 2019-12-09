@@ -33,16 +33,16 @@ A type can result in a list of declarations - enums in addition to declaring a
 type can also declare the permitted enum values.
 
 -}
-typeDecl : String -> Declarable Outlined -> ( List Declaration, List Linkage )
+typeDecl : String -> Declarable Outlined -> ( List Declaration, Linkage )
 typeDecl name decl =
     case decl of
         DAlias l1Type ->
             typeAlias name l1Type
-                |> Tuple.mapBoth List.singleton List.singleton
+                |> Tuple.mapFirst List.singleton
 
         DSum constructors ->
             customType name constructors
-                |> Tuple.mapBoth List.singleton List.singleton
+                |> Tuple.mapFirst List.singleton
 
         DEnum labels ->
             enumCustomType name labels
@@ -57,7 +57,7 @@ This will result in a list of declarations - the type declaration in addition
 to the functions needed to create or unbox the restricted type.
 
 -}
-restrictedType : String -> Restricted -> ( List Declaration, List Linkage )
+restrictedType : String -> Restricted -> ( List Declaration, Linkage )
 restrictedType name restricted =
     case restricted of
         RInt res ->
@@ -70,7 +70,7 @@ restrictedType name restricted =
 restrictedInt :
     String
     -> { min : Maybe Int, max : Maybe Int, width : Maybe Int }
-    -> ( List Declaration, List Linkage )
+    -> ( List Declaration, Linkage )
 restrictedInt name res =
     let
         minGuard =
@@ -90,7 +90,7 @@ restrictedInt name res =
         [] ->
             -- If there are no guard clauses, it is just an int.
             typeAlias name (BInt |> TBasic)
-                |> Tuple.mapBoth List.singleton List.singleton
+                |> Tuple.mapFirst List.singleton
 
         gd :: gds ->
             let
@@ -141,18 +141,17 @@ restrictedInt name res =
             ( [ boxedTypeDecl
               , restrictedDecl
               ]
-            , [ CG.emptyLinkage
-                    |> CG.addImport (guardedImportExposing [ "Refined", "IntError" ])
-                    |> CG.addImport decodeImport
-                    |> CG.addImport encodeImport
-              ]
+            , CG.emptyLinkage
+                |> CG.addImport (guardedImportExposing [ "Refined", "IntError" ])
+                |> CG.addImport decodeImport
+                |> CG.addImport encodeImport
             )
 
 
 restrictedString :
     String
     -> { minLength : Maybe Int, maxLength : Maybe Int, regex : Maybe String }
-    -> ( List Declaration, List Linkage )
+    -> ( List Declaration, Linkage )
 restrictedString name res =
     let
         minLenGuard =
@@ -177,7 +176,7 @@ restrictedString name res =
         [] ->
             -- If there are no guard clauses, it is just an string.
             typeAlias name (BString |> TBasic)
-                |> Tuple.mapBoth List.singleton List.singleton
+                |> Tuple.mapFirst List.singleton
 
         gd :: gds ->
             let
@@ -228,11 +227,10 @@ restrictedString name res =
             ( [ boxedTypeDecl
               , restrictedDecl
               ]
-            , [ CG.emptyLinkage
-                    |> CG.addImport (guardedImportExposing [ "Refined", "StringError" ])
-                    |> CG.addImport decodeImport
-                    |> CG.addImport encodeImport
-              ]
+            , CG.emptyLinkage
+                |> CG.addImport (guardedImportExposing [ "Refined", "StringError" ])
+                |> CG.addImport decodeImport
+                |> CG.addImport encodeImport
             )
 
 
@@ -282,7 +280,7 @@ This produces 2 declarations, one for the guarded type, and one for the enum
 declaring its allowed values.
 
 -}
-enumCustomType : String -> List String -> ( List Declaration, List Linkage )
+enumCustomType : String -> List String -> ( List Declaration, Linkage )
 enumCustomType name labels =
     let
         constructors =
@@ -318,7 +316,7 @@ enumCustomType name labels =
     ( [ CG.customTypeDecl Nothing (Util.safeCCU name) [] constructors
       , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
       ]
-    , [ CG.emptyLinkage |> CG.addImport enumImport ]
+    , CG.emptyLinkage |> CG.addImport enumImport
     )
 
 
@@ -328,7 +326,7 @@ This produces 2 declarations, one for the refined type, and one for the enum
 declaring its allowed values.
 
 -}
-enumRefinedType : String -> List String -> ( List Declaration, List Linkage )
+enumRefinedType : String -> List String -> ( List Declaration, Linkage )
 enumRefinedType name labels =
     let
         guardedConstructor =
@@ -356,7 +354,7 @@ enumRefinedType name labels =
     ( [ CG.customTypeDecl Nothing (Util.safeCCU name) [] guardedConstructor
       , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
       ]
-    , [ CG.emptyLinkage |> CG.addImport enumImport ]
+    , CG.emptyLinkage |> CG.addImport enumImport
     )
 
 

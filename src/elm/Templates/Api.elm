@@ -34,10 +34,7 @@ serviceFile model =
                 |> (::) serviceFn
 
         linkages =
-            linkage4
-                |> List.append linkage3
-                |> List.append linkage2
-                |> (::) linkage
+            [ linkage, linkage2, linkage3, linkage4 ]
 
         ( imports, exposings ) =
             CG.combineLinkage linkages
@@ -206,15 +203,15 @@ globalService model =
 --== Operations
 
 
-operations : AWSApiModel -> ( List Declaration, List Linkage )
+operations : AWSApiModel -> ( List Declaration, Linkage )
 operations model =
     Dict.foldl
         (\name operation ( declAccum, linkageAccum ) ->
             requestFn name operation
                 |> Tuple.mapFirst (\decl -> decl :: declAccum)
-                |> Tuple.mapSecond (\linkage -> linkage :: linkageAccum)
+                |> Tuple.mapSecond (\linkage -> CG.combineLinkage [ linkageAccum, linkage ])
         )
-        ( [], [] )
+        ( [], CG.emptyLinkage )
         model.operations
 
 
@@ -391,25 +388,26 @@ requestFnResponse name op =
 --== Types and Codecs
 
 
-typeDeclarations : AWSApiModel -> ( List Declaration, List Linkage )
+typeDeclarations : AWSApiModel -> ( List Declaration, Linkage )
 typeDeclarations model =
     Dict.foldl
         (\name decl ( declAccum, linkageAccum ) ->
             Templates.L1.typeDecl name decl
                 |> Tuple.mapFirst (List.append declAccum)
-                |> Tuple.mapSecond (List.append linkageAccum)
+                |> Tuple.mapSecond (\innerLinkage -> CG.combineLinkage [ linkageAccum, innerLinkage ])
         )
-        ( [], [] )
+        ( [], CG.emptyLinkage )
         model.declarations
 
 
-jsonCodecs : AWSApiModel -> ( List Declaration, List Linkage )
+jsonCodecs : AWSApiModel -> ( List Declaration, Linkage )
 jsonCodecs model =
     Dict.foldl
         (\name decl accum -> Templates.L1.codec name decl :: accum)
         []
         model.declarations
         |> List.unzip
+        |> Tuple.mapSecond CG.combineLinkage
 
 
 
