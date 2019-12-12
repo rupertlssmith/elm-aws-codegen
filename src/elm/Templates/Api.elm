@@ -42,7 +42,7 @@ serviceFile model =
         moduleSpec =
             module_ model exposings
     in
-    CG.file moduleSpec imports declarations []
+    CG.file moduleSpec imports declarations Nothing
 
 
 coreServiceMod : List String
@@ -157,9 +157,13 @@ regionalService model =
                 , CG.fun "optionsFn"
                 ]
                 |> CG.letExpr [ optionsFn model ]
+
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown "Configuration for this service."
     in
     ( CG.funDecl
-        (Just "{-| Configuration for this service. -}")
+        (Just doc)
         (Just sig)
         "service"
         []
@@ -186,9 +190,13 @@ globalService model =
                 , CG.fun "optionsFn"
                 ]
                 |> CG.letExpr [ optionsFn model ]
+
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown "Configuration for this service."
     in
     ( CG.funDecl
-        (Just "{-| Configuration for this service. -}")
+        (Just doc)
         (Just sig)
         "service"
         []
@@ -248,9 +256,13 @@ requestFn name op =
                     [ jsonBody |> CG.letVal "jsonBody"
                     , responseDecoder |> CG.letVal "decoder"
                     ]
+
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown "AWS Endpoint."
     in
     ( CG.funDecl
-        (Just "{-| AWS Endpoint. -}")
+        (Just doc)
         (Just requestSig)
         (Util.safeCCL name)
         argPatterns

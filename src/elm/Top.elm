@@ -104,8 +104,7 @@ processServiceModel name val seed =
                 ( codegen, errors ) =
                     Transform.transform service
                         |> Tuple.mapFirst Templates.Api.serviceFile
-                        |> Tuple.mapFirst Elm.Pretty.pretty
-                        |> Tuple.mapFirst (Pretty.pretty 120)
+                        |> Tuple.mapFirst (Elm.Pretty.pretty 120)
             in
             ( Seeded { seed = seed }
             , ( Case.toCamelCaseUpper service.metaData.serviceId ++ ".elm", codegen, errors ) |> codeOutPort

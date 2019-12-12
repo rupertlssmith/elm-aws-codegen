@@ -111,11 +111,11 @@ restrictedInt name res =
                         ]
 
                 guardFn =
-                    CG.opApply "|>"
-                        CG.infixLeft
+                    CG.applyBinOp
                         (Util.mChainResult (CG.apply [ gd, CG.val "val" ])
                             (List.map CG.parens gds)
                         )
+                        CG.piper
                         typeWrapper
                         |> CG.letFunction "guardFn" [ CG.varPattern "val" ]
 
@@ -198,11 +198,11 @@ restrictedString name res =
                         ]
 
                 guardFn =
-                    CG.opApply "|>"
-                        CG.infixLeft
+                    CG.applyBinOp
                         (Util.mChainResult (CG.apply [ gd, CG.val "val" ])
                             (List.map CG.parens gds)
                         )
+                        CG.piper
                         typeWrapper
                         |> CG.letFunction "guardFn" [ CG.varPattern "val" ]
 
@@ -553,9 +553,13 @@ typeAliasCodec name l1Type =
 
         impl =
             codecNamedType name l1Type
+
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown ("Codec for " ++ typeName ++ ".")
     in
     ( CG.funDecl
-        (Just <| "{-| Codec for " ++ typeName ++ ". -}")
+        (Just doc)
         (Just sig)
         codecFnName
         []
@@ -582,9 +586,13 @@ customTypeCodec name constructors =
 
         impl =
             codecCustomType constructors
+
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown ("Codec for " ++ typeName ++ ".")
     in
     ( CG.funDecl
-        (Just <| "{-| Codec for " ++ typeName ++ ". -}")
+        (Just doc)
         (Just sig)
         codecFnName
         []
@@ -616,9 +624,13 @@ enumCodec name constructors =
                 , CG.parens (CG.apply [ CG.fqFun enumMod "encoder", CG.val enumName ])
                 , CG.parens (CG.apply [ CG.fqFun enumMod "decoder", CG.val enumName ])
                 ]
+
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown ("Codec for " ++ typeName ++ ".")
     in
     ( CG.funDecl
-        (Just <| "{-| Codec for " ++ typeName ++ ". -}")
+        (Just doc)
         (Just sig)
         codecFnName
         []
@@ -651,9 +663,13 @@ restrictedCodec name _ =
                 , CG.parens (CG.apply [ CG.fqFun refinedMod "encoder", CG.val enumName ])
                 , CG.parens (CG.apply [ CG.fqFun refinedMod "decoder", CG.val enumName ])
                 ]
+
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown ("Codec for " ++ typeName ++ ".")
     in
     ( CG.funDecl
-        (Just <| "{-| Codec for " ++ typeName ++ ". -}")
+        (Just doc)
         (Just sig)
         codecFnName
         []
