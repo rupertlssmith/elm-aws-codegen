@@ -15,16 +15,16 @@ import Templates.Util as Util
 serviceFile : AWSApiModel -> File
 serviceFile model =
     let
-        ( serviceFn, linkage ) =
+        ( serviceFn, serviceLinkage ) =
             service model
 
-        ( endpoints, linkage2 ) =
+        ( endpoints, operationsLinkage ) =
             operations model
 
-        ( types, linkage3 ) =
+        ( types, typeDeclLinkage ) =
             typeDeclarations model
 
-        ( codecs, linkage4 ) =
+        ( codecs, codecsLinkage ) =
             jsonCodecs model
 
         declarations =
@@ -34,7 +34,7 @@ serviceFile model =
                 |> (::) serviceFn
 
         linkages =
-            [ linkage, linkage2, linkage3, linkage4 ]
+            [ serviceLinkage, operationsLinkage, typeDeclLinkage, codecsLinkage ]
 
         ( imports, exposings ) =
             CG.combineLinkage linkages
@@ -45,8 +45,14 @@ serviceFile model =
         doc =
             CG.emptyFileComment
                 |> CG.markdown "AWS Stubs."
-                |> CG.code "fun x = blah"
-                |> CG.docTags [ "one", "two", "three" ]
+                |> CG.markdown "# Service definition."
+                |> CG.docTagsFromExposings (Tuple.second serviceLinkage)
+                |> CG.markdown "# Service endpoints."
+                |> CG.docTagsFromExposings (Tuple.second operationsLinkage)
+                |> CG.markdown "# API data model."
+                |> CG.docTagsFromExposings (Tuple.second typeDeclLinkage)
+                |> CG.markdown "# Codecs for the data model."
+                |> CG.docTagsFromExposings (Tuple.second codecsLinkage)
     in
     CG.file moduleSpec imports declarations (Just doc)
 
