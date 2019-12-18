@@ -41,8 +41,14 @@ serviceFile model =
 
         moduleSpec =
             module_ model exposings
+
+        doc =
+            CG.emptyFileComment
+                |> CG.markdown "AWS Stubs."
+                |> CG.code "fun x = blah"
+                |> CG.docTags [ "one", "two", "three" ]
     in
-    CG.file moduleSpec imports declarations Nothing
+    CG.file moduleSpec imports declarations (Just doc)
 
 
 coreServiceMod : List String
