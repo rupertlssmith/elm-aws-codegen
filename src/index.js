@@ -1,8 +1,42 @@
 var fs = require('fs');
 var glob = require('glob');
+const path = require('path');
+const { spawn } = require('child_process');
 
 const { Elm } = require('./elm.js');
 const app = Elm.Top.init();
+
+//---=== Find and run elm-format.
+
+const formatLocations = [
+  // Running locally during dev of this package
+  path.join(__dirname, '..', 'node_modules', '.bin', 'elm-format'),
+
+  // Installed in the npm .bin folder.
+  // webpack-dev-server should be along side it
+  path.join(__dirname, 'elm-format'),
+];
+
+const findFormat = () => formatLocations
+  .filter(fs.existsSync)[0];
+
+const formatFile = (filename) => {
+  const format = findFormat();
+
+  if (!format) {
+    console.error(`Unable to find elm-format among:
+${formatLocations.join('\n')}`);
+    return;
+  }
+
+  spawn(format, [filename, '--yes'], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: ['ignore', 'ignore', process.stderr],
+  });
+};
+
+//---=== Find API specs and process them.
 
 // glob("api/*.normal.json", function(er, files) {
 //   files.forEach(function(file) {
@@ -46,7 +80,11 @@ app.ports.codeOutPort.subscribe(request => {
     console.log(item + "\n");
   });
 
-  fs.writeFile('stubs/AWS/' + request[0], request[1], (err) => {
+  var filename = 'stubs/AWS/' + request[0];
+
+  fs.writeFile(filename, request[1], (err) => {
     if (err) throw err;
   })
+
+  formatFile(filename);
 });
