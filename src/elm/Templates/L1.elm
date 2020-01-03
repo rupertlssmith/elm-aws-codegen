@@ -16,7 +16,7 @@ Lowerings of L1 into Elm type annotations:
 -}
 
 import Codec
-import Elm.CodeGen as CG exposing (Declaration, Expression, Import, Linkage, TypeAnnotation)
+import Elm.CodeGen as CG exposing (Comment, Declaration, DocComment, Expression, Import, Linkage, TypeAnnotation)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Outlined(..), Restricted(..), Type(..))
 import Maybe.Extra
 import Set exposing (Set)
@@ -33,22 +33,22 @@ A type can result in a list of declarations - enums in addition to declaring a
 type can also declare the permitted enum values.
 
 -}
-typeDecl : String -> Declarable Outlined -> ( List Declaration, Linkage )
-typeDecl name decl =
+typeDecl : String -> Comment DocComment -> Declarable Outlined -> ( List Declaration, Linkage )
+typeDecl name doc decl =
     case decl of
         DAlias l1Type ->
-            typeAlias name l1Type
+            typeAlias name (Just doc) l1Type
                 |> Tuple.mapFirst List.singleton
 
         DSum constructors ->
-            customType name constructors
+            customType name (Just doc) constructors
                 |> Tuple.mapFirst List.singleton
 
         DEnum labels ->
-            enumCustomType name labels
+            enumCustomType name (Just doc) labels
 
         DRestricted res ->
-            restrictedType name res
+            restrictedType name (Just doc) res
 
 
 {-| Turns an L1 restricted type into Elm code.
@@ -57,21 +57,22 @@ This will result in a list of declarations - the type declaration in addition
 to the functions needed to create or unbox the restricted type.
 
 -}
-restrictedType : String -> Restricted -> ( List Declaration, Linkage )
-restrictedType name restricted =
+restrictedType : String -> Maybe (Comment DocComment) -> Restricted -> ( List Declaration, Linkage )
+restrictedType name maybeDoc restricted =
     case restricted of
         RInt res ->
-            restrictedInt name res
+            restrictedInt name maybeDoc res
 
         RString res ->
-            restrictedString name res
+            restrictedString name maybeDoc res
 
 
 restrictedInt :
     String
+    -> Maybe (Comment DocComment)
     -> { min : Maybe Int, max : Maybe Int, width : Maybe Int }
     -> ( List Declaration, Linkage )
-restrictedInt name res =
+restrictedInt name maybeDoc res =
     let
         minGuard =
             Maybe.map
@@ -89,7 +90,7 @@ restrictedInt name res =
     case guards of
         [] ->
             -- If there are no guard clauses, it is just an int.
-            typeAlias name (BInt |> TBasic)
+            typeAlias name Nothing (BInt |> TBasic)
                 |> Tuple.mapFirst List.singleton
 
         gd :: gds ->
@@ -136,7 +137,7 @@ restrictedInt name res =
                         |> CG.letExpr [ guardFn, unboxFn ]
 
                 restrictedDecl =
-                    CG.valDecl Nothing (Just restrictedSig) (Util.safeCCL name) restrictedImpl
+                    CG.valDecl maybeDoc (Just restrictedSig) (Util.safeCCL name) restrictedImpl
             in
             ( [ boxedTypeDecl
               , restrictedDecl
@@ -151,9 +152,10 @@ restrictedInt name res =
 
 restrictedString :
     String
+    -> Maybe (Comment DocComment)
     -> { minLength : Maybe Int, maxLength : Maybe Int, regex : Maybe String }
     -> ( List Declaration, Linkage )
-restrictedString name res =
+restrictedString name maybeDoc res =
     let
         minLenGuard =
             Maybe.map
@@ -176,7 +178,7 @@ restrictedString name res =
     case guards of
         [] ->
             -- If there are no guard clauses, it is just an string.
-            typeAlias name (BString |> TBasic)
+            typeAlias name Nothing (BString |> TBasic)
                 |> Tuple.mapFirst List.singleton
 
         gd :: gds ->
@@ -223,7 +225,7 @@ restrictedString name res =
                         |> CG.letExpr [ guardFn, unboxFn ]
 
                 restrictedDecl =
-                    CG.valDecl Nothing (Just restrictedSig) (Util.safeCCL name) restrictedImpl
+                    CG.valDecl maybeDoc (Just restrictedSig) (Util.safeCCL name) restrictedImpl
             in
             ( [ boxedTypeDecl
               , restrictedDecl
@@ -238,13 +240,13 @@ restrictedString name res =
 
 {-| Turns an L1 `Type` into a type alias in Elm code.
 -}
-typeAlias : String -> Type Outlined -> ( Declaration, Linkage )
-typeAlias name l1Type =
+typeAlias : String -> Maybe (Comment DocComment) -> Type Outlined -> ( Declaration, Linkage )
+typeAlias name maybeDoc l1Type =
     let
         ( loweredType, linkage ) =
             lowerType l1Type
     in
-    ( CG.aliasDecl Nothing (Util.safeCCU name) [] loweredType
+    ( CG.aliasDecl maybeDoc (Util.safeCCU name) [] loweredType
     , linkage
         |> CG.addExposing (CG.typeOrAliasExpose (Util.safeCCU name))
     )
@@ -252,8 +254,8 @@ typeAlias name l1Type =
 
 {-| Turns an L1 sum type into a custom type in Elm code.
 -}
-customType : String -> List ( String, List ( String, Type Outlined ) ) -> ( Declaration, Linkage )
-customType name constructors =
+customType : String -> Maybe (Comment DocComment) -> List ( String, List ( String, Type Outlined ) ) -> ( Declaration, Linkage )
+customType name maybeDoc constructors =
     let
         lowerArgs ( _, l1Type ) =
             lowerType l1Type
@@ -272,7 +274,7 @@ customType name constructors =
                 constructors
                 |> List.unzip
     in
-    ( CG.customTypeDecl Nothing (Util.safeCCU name) [] mappedConstructors
+    ( CG.customTypeDecl maybeDoc (Util.safeCCU name) [] mappedConstructors
     , CG.combineLinkage linkages
         |> CG.addExposing (CG.openTypeExpose (Util.safeCCU name))
     )
@@ -284,8 +286,8 @@ This produces 2 declarations, one for the guarded type, and one for the enum
 declaring its allowed values.
 
 -}
-enumCustomType : String -> List String -> ( List Declaration, Linkage )
-enumCustomType name labels =
+enumCustomType : String -> Maybe (Comment DocComment) -> List String -> ( List Declaration, Linkage )
+enumCustomType name maybeDoc labels =
     let
         constructors =
             List.map
@@ -317,7 +319,7 @@ enumCustomType name labels =
         enumSig =
             CG.typed "Enum" [ CG.typed (Util.safeCCU name) [] ]
     in
-    ( [ CG.customTypeDecl Nothing (Util.safeCCU name) [] constructors
+    ( [ CG.customTypeDecl maybeDoc (Util.safeCCU name) [] constructors
       , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
       ]
     , CG.emptyLinkage
