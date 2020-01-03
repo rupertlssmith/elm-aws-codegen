@@ -320,7 +320,7 @@ enumCustomType name maybeDoc labels =
             CG.typed "Enum" [ CG.typed (Util.safeCCU name) [] ]
     in
     ( [ CG.customTypeDecl maybeDoc (Util.safeCCU name) [] constructors
-      , CG.valDecl Nothing (Just enumSig) (Util.safeCCL name) enumValues
+      , CG.valDecl maybeDoc (Just enumSig) (Util.safeCCL name) enumValues
       ]
     , CG.emptyLinkage
         |> CG.addImport enumImport
