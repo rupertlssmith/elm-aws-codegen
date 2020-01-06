@@ -44,7 +44,7 @@ serviceFile model =
 
         doc =
             CG.emptyFileComment
-                |> CG.markdown "AWS Stubs."
+                |> CG.markdown (model.documentation |> Maybe.withDefault "AWS Stubs.")
                 |> CG.markdown "# Service definition."
                 |> CG.docTagsFromExposings (Tuple.second serviceLinkage)
                 |> CG.markdown "# Service endpoints."
@@ -271,7 +271,7 @@ requestFn name op =
 
         doc =
             CG.emptyDocComment
-                |> CG.markdown "AWS Endpoint."
+                |> CG.markdown (op.documentation |> Maybe.withDefault "AWS Endpoint.")
     in
     ( CG.funDecl
         (Just doc)

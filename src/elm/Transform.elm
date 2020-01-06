@@ -110,7 +110,6 @@ transform service =
 
                 _ ->
                     SignV4
-      , docs = Maybe.withDefault "" service.documentation
       , xmlNamespace = service.metaData.xmlNamespace
       , targetPrefix = service.metaData.targetPrefix
       , signingName = service.metaData.signingName
@@ -517,3 +516,12 @@ modelOperation typeDict name operation =
 
         ( _, Err responseErr ) ->
             Err responseErr
+
+
+
+--== HTML Documentation to Markdown conversion.
+
+
+htmlToMarkdown : String -> String
+htmlToMarkdown val =
+    val
