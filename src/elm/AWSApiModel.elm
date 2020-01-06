@@ -2,6 +2,7 @@ module AWSApiModel exposing (AWSApiModel, Endpoint)
 
 import AWS.Core.Service exposing (Protocol, Signer)
 import Dict exposing (Dict)
+import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import HttpMethod exposing (HttpMethod)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Outlined, Type(..))
 
@@ -11,7 +12,7 @@ type alias Endpoint =
     , url : String
     , request : Type Outlined
     , response : Type Outlined
-    , documentation : Maybe String
+    , documentation : Maybe (Comment DocComment)
     }
 
 
@@ -28,5 +29,5 @@ type alias AWSApiModel =
     , jsonVersion : Maybe String
     , declarations : Declarations Outlined
     , operations : Dict String Endpoint
-    , documentation : Maybe String
+    , documentation : Maybe (Comment FileComment)
     }

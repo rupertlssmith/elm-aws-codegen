@@ -5,6 +5,7 @@ import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Console
 import Dict exposing (Dict)
+import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Errors exposing (Error)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Outlined(..), Restricted(..), Type(..))
@@ -114,7 +115,7 @@ transform service =
       , targetPrefix = service.metaData.targetPrefix
       , signingName = service.metaData.signingName
       , jsonVersion = service.metaData.jsonVersion
-      , documentation = service.documentation
+      , documentation = Maybe.map htmlToFileComment service.documentation
       }
     , transformErrors
     )
@@ -504,7 +505,7 @@ modelOperation typeDict name operation =
             , url = operation.http.requestUri |> Maybe.withDefault "/"
             , request = request
             , response = response
-            , documentation = operation.documentation
+            , documentation = Maybe.map htmlToDocComment operation.documentation
             }
                 |> Ok
 
@@ -522,6 +523,13 @@ modelOperation typeDict name operation =
 --== HTML Documentation to Markdown conversion.
 
 
-htmlToMarkdown : String -> String
-htmlToMarkdown val =
-    val
+htmlToFileComment : String -> Comment FileComment
+htmlToFileComment val =
+    CG.emptyFileComment
+        |> CG.markdown val
+
+
+htmlToDocComment : String -> Comment DocComment
+htmlToDocComment val =
+    CG.emptyDocComment
+        |> CG.markdown val

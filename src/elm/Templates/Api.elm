@@ -43,8 +43,8 @@ serviceFile model =
             module_ model exposings
 
         doc =
-            CG.emptyFileComment
-                |> CG.markdown (model.documentation |> Maybe.withDefault "AWS Stubs.")
+            model.documentation
+                |> Maybe.withDefault CG.emptyFileComment
                 |> CG.markdown "# Service definition."
                 |> CG.docTagsFromExposings (Tuple.second serviceLinkage)
                 |> CG.markdown "# Service endpoints."
@@ -270,8 +270,8 @@ requestFn name op =
                     ]
 
         doc =
-            CG.emptyDocComment
-                |> CG.markdown (op.documentation |> Maybe.withDefault "AWS Endpoint.")
+            op.documentation
+                |> Maybe.withDefault CG.emptyDocComment
     in
     ( CG.funDecl
         (Just doc)
