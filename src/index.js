@@ -84,7 +84,7 @@ app.ports.codeOutPort.subscribe(request => {
 
   fs.writeFile(filename, request[1], (err) => {
     if (err) throw err;
-  })
 
-  formatFile(filename);
+    formatFile(filename);
+  })
 });
