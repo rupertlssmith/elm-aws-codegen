@@ -526,11 +526,60 @@ modelOperation typeDict name operation =
 
 htmlToFileComment : String -> Comment FileComment
 htmlToFileComment val =
-    CG.emptyFileComment
-        |> CG.markdown val
+    let
+        parsedHtmlResult =
+            HP.run val
+
+        empty =
+            CG.emptyFileComment
+    in
+    case parsedHtmlResult of
+        Err _ ->
+            empty
+                |> CG.markdown val
+
+        Ok nodes ->
+            htmlToComment nodes empty
 
 
 htmlToDocComment : String -> Comment DocComment
 htmlToDocComment val =
-    CG.emptyDocComment
-        |> CG.markdown val
+    let
+        parsedHtmlResult =
+            HP.run val
+
+        empty =
+            CG.emptyDocComment
+    in
+    case parsedHtmlResult of
+        Err _ ->
+            empty
+                |> CG.markdown val
+
+        Ok nodes ->
+            htmlToComment nodes empty
+
+
+htmlToComment : List HP.Node -> Comment a -> Comment a
+htmlToComment nodes comment =
+    case nodes of
+        [] ->
+            comment
+
+        node :: ns ->
+            htmlToComment ns (nodeToComment node comment)
+
+
+nodeToComment : HP.Node -> Comment a -> Comment a
+nodeToComment node comment =
+    case node of
+        HP.Text text ->
+            comment
+                |> CG.markdown text
+
+        HP.Element el attr children ->
+            comment
+                |> htmlToComment children
+
+        HP.Comment _ ->
+            comment
