@@ -5,7 +5,6 @@ import AWSApiModel exposing (AWSApiModel, Endpoint)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Declaration, Expression, File, Import, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
 import Enum
-import Html.Parser as HP
 import HttpMethod exposing (HttpMethod)
 import L1
 import Maybe.Extra

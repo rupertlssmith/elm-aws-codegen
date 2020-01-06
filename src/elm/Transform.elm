@@ -8,6 +8,7 @@ import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Errors exposing (Error)
+import Html.Parser as HP
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Outlined(..), Restricted(..), Type(..))
 import Maybe.Extra
 import String.Case as Case
