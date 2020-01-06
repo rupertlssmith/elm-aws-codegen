@@ -414,13 +414,13 @@ requestFnResponse name op =
 
 typeDeclarations : AWSApiModel -> ( List Declaration, Linkage )
 typeDeclarations model =
-    let
-        doc =
-            CG.emptyDocComment
-                |> CG.markdown "Some type - blah blah blah."
-    in
     Dict.foldl
         (\name decl ( declAccum, linkageAccum ) ->
+            let
+                doc =
+                    CG.emptyDocComment
+                        |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
+            in
             Templates.L1.typeDecl name doc decl
                 |> Tuple.mapFirst (List.append declAccum)
                 |> Tuple.mapSecond (\innerLinkage -> CG.combineLinkage [ linkageAccum, innerLinkage ])
