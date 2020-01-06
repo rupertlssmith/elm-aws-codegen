@@ -11,6 +11,7 @@ type alias Endpoint =
     , url : String
     , request : Type Outlined
     , response : Type Outlined
+    , documentation : Maybe String
     }
 
 
@@ -28,4 +29,5 @@ type alias AWSApiModel =
     , jsonVersion : Maybe String
     , declarations : Declarations Outlined
     , operations : Dict String Endpoint
+    , documentation : Maybe String
     }

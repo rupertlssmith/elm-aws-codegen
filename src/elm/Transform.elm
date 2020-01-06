@@ -115,6 +115,7 @@ transform service =
       , targetPrefix = service.metaData.targetPrefix
       , signingName = service.metaData.signingName
       , jsonVersion = service.metaData.jsonVersion
+      , documentation = service.documentation
       }
     , transformErrors
     )
@@ -504,6 +505,7 @@ modelOperation typeDict name operation =
             , url = operation.http.requestUri |> Maybe.withDefault "/"
             , request = request
             , response = response
+            , documentation = operation.documentation
             }
                 |> Ok
 
