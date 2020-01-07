@@ -591,6 +591,13 @@ nodeToComment node accum comment =
                 ( "p", _ ) ->
                     ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
 
+                ( "fullname", hd :: tl ) ->
+                    let
+                        titledAccum =
+                            ("## " ++ hd) :: tl
+                    in
+                    ( [], CG.markdown (List.reverse titledAccum |> String.join "") innerComment )
+
                 ( "ul", _ ) ->
                     ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
 
