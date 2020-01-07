@@ -539,7 +539,8 @@ htmlToFileComment val =
                 |> CG.markdown val
 
         Ok nodes ->
-            htmlToComment nodes empty
+            htmlToComment nodes [] empty
+                |> Tuple.second
 
 
 htmlToDocComment : String -> Comment DocComment
@@ -557,29 +558,57 @@ htmlToDocComment val =
                 |> CG.markdown val
 
         Ok nodes ->
-            htmlToComment nodes empty
+            htmlToComment nodes [] empty
+                |> Tuple.second
 
 
-htmlToComment : List HP.Node -> Comment a -> Comment a
-htmlToComment nodes comment =
+htmlToComment : List HP.Node -> List String -> Comment a -> ( List String, Comment a )
+htmlToComment nodes accum comment =
     case nodes of
         [] ->
-            comment
+            ( accum, comment )
 
         node :: ns ->
-            htmlToComment ns (nodeToComment node comment)
+            let
+                ( innerAccum, innerComment ) =
+                    nodeToComment node accum comment
+            in
+            htmlToComment ns innerAccum innerComment
 
 
-nodeToComment : HP.Node -> Comment a -> Comment a
-nodeToComment node comment =
+nodeToComment : HP.Node -> List String -> Comment a -> ( List String, Comment a )
+nodeToComment node accum comment =
     case node of
         HP.Text text ->
-            comment
-                |> CG.markdown text
+            ( text :: accum, comment )
 
         HP.Element el attr children ->
-            comment
-                |> htmlToComment children
+            let
+                ( innerAccum, innerComment ) =
+                    htmlToComment children accum comment
+            in
+            case ( el, innerAccum ) of
+                ( "p", _ ) ->
+                    ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
+
+                ( "ul", _ ) ->
+                    ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
+
+                ( "li", hd :: tl ) ->
+                    ( (" - " ++ hd) :: tl, innerComment )
+
+                ( "code", hd :: tl ) ->
+                    ( ("`" ++ hd ++ "`") :: tl, innerComment )
+
+                ( "a", hd :: tl ) ->
+                    ( ("`" ++ hd ++ "`") :: tl, innerComment )
+
+                _ ->
+                    let
+                        _ =
+                            Debug.log "unhandled" el
+                    in
+                    ( innerAccum, innerComment )
 
         HP.Comment _ ->
-            comment
+            ( accum, comment )
