@@ -539,7 +539,7 @@ htmlToFileComment val =
                 |> CG.markdown val
 
         Ok nodes ->
-            htmlToComment nodes [] empty
+            htmlToComment nodes True [] empty
                 |> Tuple.second
 
 
@@ -558,12 +558,12 @@ htmlToDocComment val =
                 |> CG.markdown val
 
         Ok nodes ->
-            htmlToComment nodes [] empty
+            htmlToComment nodes True [] empty
                 |> Tuple.second
 
 
-htmlToComment : List HP.Node -> List String -> Comment a -> ( List String, Comment a )
-htmlToComment nodes accum comment =
+htmlToComment : List HP.Node -> Bool -> List String -> Comment a -> ( List String, Comment a )
+htmlToComment nodes isTop accum comment =
     case nodes of
         [] ->
             ( accum, comment )
@@ -571,13 +571,13 @@ htmlToComment nodes accum comment =
         node :: ns ->
             let
                 ( innerAccum, innerComment ) =
-                    nodeToComment node accum comment
+                    nodeToComment node isTop accum comment
             in
-            htmlToComment ns innerAccum innerComment
+            htmlToComment ns isTop innerAccum innerComment
 
 
-nodeToComment : HP.Node -> List String -> Comment a -> ( List String, Comment a )
-nodeToComment node accum comment =
+nodeToComment : HP.Node -> Bool -> List String -> Comment a -> ( List String, Comment a )
+nodeToComment node isTop accum comment =
     case node of
         HP.Text text ->
             ( text :: accum, comment )
@@ -585,37 +585,40 @@ nodeToComment node accum comment =
         HP.Element el attr children ->
             let
                 ( innerAccum, innerComment ) =
-                    htmlToComment children accum comment
+                    htmlToComment children False accum comment
+
+                ( taggedAccum, taggedInnerComment ) =
+                    case ( el, innerAccum ) of
+                        -- ( "p", _ ) ->
+                        --     ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
+                        ( "fullname", hd :: tl ) ->
+                            ( ("## " ++ hd) :: tl, innerComment )
+
+                        -- ( "ul", _ ) ->
+                        --     ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
+                        ( "li", _ ) ->
+                            let
+                                _ =
+                                    Debug.log "innerAccum" innerAccum
+                            in
+                            ( [ "\n - " ++ (List.reverse innerAccum |> String.join "") ]
+                            , innerComment
+                            )
+
+                        ( "code", hd :: tl ) ->
+                            ( ("`" ++ hd ++ "`") :: tl, innerComment )
+
+                        ( "a", hd :: tl ) ->
+                            ( ("`" ++ hd ++ "`") :: tl, innerComment )
+
+                        _ ->
+                            ( innerAccum, innerComment )
             in
-            case ( el, innerAccum ) of
-                ( "p", _ ) ->
-                    ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
+            if isTop then
+                ( [], CG.markdown (List.reverse taggedAccum |> String.join "") taggedInnerComment )
 
-                ( "fullname", hd :: tl ) ->
-                    let
-                        titledAccum =
-                            ("## " ++ hd) :: tl
-                    in
-                    ( [], CG.markdown (List.reverse titledAccum |> String.join "") innerComment )
-
-                ( "ul", _ ) ->
-                    ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
-
-                ( "li", hd :: tl ) ->
-                    ( (" - " ++ hd) :: tl, innerComment )
-
-                ( "code", hd :: tl ) ->
-                    ( ("`" ++ hd ++ "`") :: tl, innerComment )
-
-                ( "a", hd :: tl ) ->
-                    ( ("`" ++ hd ++ "`") :: tl, innerComment )
-
-                _ ->
-                    let
-                        _ =
-                            Debug.log "unhandled" el
-                    in
-                    ( innerAccum, innerComment )
+            else
+                ( taggedAccum, taggedInnerComment )
 
         HP.Comment _ ->
             ( accum, comment )
