@@ -147,6 +147,7 @@ restrictedInt name maybeDoc res =
                 |> CG.addImport decodeImport
                 |> CG.addImport encodeImport
                 |> CG.addExposing (CG.funExpose (Util.safeCCL name))
+                |> CG.addExposing (CG.closedTypeExpose (Util.safeCCU name))
             )
 
 
@@ -235,6 +236,7 @@ restrictedString name maybeDoc res =
                 |> CG.addImport decodeImport
                 |> CG.addImport encodeImport
                 |> CG.addExposing (CG.funExpose (Util.safeCCL name))
+                |> CG.addExposing (CG.closedTypeExpose (Util.safeCCU name))
             )
 
 
