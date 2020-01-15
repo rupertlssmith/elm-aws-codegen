@@ -96,7 +96,7 @@ restrictedInt name maybeDoc res =
         gd :: gds ->
             let
                 boxedTypeDecl =
-                    CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.intAnn ] ) ]
+                    CG.customTypeDecl maybeDoc (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.intAnn ] ) ]
 
                 restrictedSig =
                     CG.typed "Refined"
@@ -184,7 +184,7 @@ restrictedString name maybeDoc res =
         gd :: gds ->
             let
                 boxedTypeDecl =
-                    CG.customTypeDecl Nothing (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.stringAnn ] ) ]
+                    CG.customTypeDecl maybeDoc (Util.safeCCU name) [] [ ( Util.safeCCU name, [ CG.stringAnn ] ) ]
 
                 restrictedSig =
                     CG.typed "Refined"
