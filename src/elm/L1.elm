@@ -6,7 +6,6 @@ module L1 exposing
     , Outlined(..)
     , Restricted(..)
     , Type(..)
-    , Unresolved
     )
 
 {-| L1 is a data modelling language.
@@ -47,9 +46,18 @@ type Type a
     | TFunction (Type a) (Type a)
 
 
+
+-- Do I want Restricted separate or merge into BInt and BString?
+
+
 type Restricted
     = RInt { min : Maybe Int, max : Maybe Int, width : Maybe Int }
     | RString { minLength : Maybe Int, maxLength : Maybe Int, regex : Maybe String }
+
+
+
+-- Should enum and sum be distinct? Better to check and indicate dynamically as the model evolves?
+-- All args lists empty means its an enum.
 
 
 type Declarable a
@@ -61,10 +69,6 @@ type Declarable a
 
 
 -- Processing steps
-
-
-type Unresolved
-    = Unresolved
 
 
 type Outlined
