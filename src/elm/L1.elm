@@ -69,6 +69,8 @@ type Declarable a
 
 
 -- Processing steps
+-- This is a well-formedness check on L1. All references to types provide an
+-- outline of the type in the reference. This is L2.
 
 
 type Outlined
