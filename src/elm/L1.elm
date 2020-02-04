@@ -3,7 +3,7 @@ module L1 exposing
     , Container(..)
     , Declarable(..)
     , Declarations
-    , Outlined(..)
+    , Flagged(..)
     , Restricted(..)
     , Type(..)
     )
@@ -55,11 +55,6 @@ type Restricted
     | RString { minLength : Maybe Int, maxLength : Maybe Int, regex : Maybe String }
 
 
-
--- Should enum and sum be distinct? Better to check and indicate dynamically as the model evolves?
--- All args lists empty means its an enum.
-
-
 type Declarable a
     = DAlias (Type a)
     | DSum (List ( String, List ( String, Type a ) ))
@@ -68,16 +63,14 @@ type Declarable a
 
 
 
--- Processing steps
--- This is a well-formedness check on L1. All references to types provide an
--- outline of the type in the reference. This is L2.
+-- Purpose is to pull up some information about what kind of thing an alias
+-- is referring to.
 
 
-type Outlined
-    = OlBasic Basic
-    | OlEnum String
-    | OlRestricted String Basic
-    | OlNamed String
+type Flagged
+    = FlEnum
+    | FlRestricted Basic
+    | FlNone
 
 
 

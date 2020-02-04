@@ -9,7 +9,7 @@ import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Errors exposing (Error)
 import Html.Parser as HP
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Outlined(..), Restricted(..), Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Flagged(..), Restricted(..), Type(..))
 import Maybe.Extra
 import String.Case as Case
 
@@ -22,6 +22,13 @@ type TransformError
     | MapValueEmpty
     | ListMemberEmpty
     | UnknownNotImplemented
+
+
+type Outlined
+    = OlBasic Basic
+    | OlEnum String
+    | OlRestricted String Basic
+    | OlNamed String
 
 
 errorToString : TransformError -> String
@@ -126,7 +133,7 @@ transform service =
 --== Error reporting.
 --== First pass.
 -- In the first pass all the named shapes are discovered and an approximate
--- outline of how they will transalate into L1 is generated. Either they are
+-- outline of how they will translate into L1 is generated. Either they are
 -- basic types, or refer to things that will be given declared names.
 
 
@@ -214,17 +221,17 @@ outlineInt shape name =
             OlBasic BInt
 
 
-shapeRefToL1Type : ShapeRef -> Dict String Outlined -> Maybe (Type Outlined)
+shapeRefToL1Type : ShapeRef -> Dict String Outlined -> Maybe (Type Flagged)
 shapeRefToL1Type ref outlineDict =
     case Dict.get ref.shape outlineDict of
         Just (OlNamed memberName) ->
-            TNamed memberName (OlNamed memberName) |> Just
+            TNamed memberName FlNone |> Just
 
         Just (OlEnum memberName) ->
-            TNamed memberName (OlEnum memberName) |> Just
+            TNamed memberName FlEnum |> Just
 
         Just (OlRestricted memberName basic) ->
-            TNamed memberName (OlRestricted memberName basic) |> Just
+            TNamed memberName (FlRestricted basic) |> Just
 
         Just (OlBasic basic) ->
             TBasic basic |> Just
@@ -271,14 +278,14 @@ shapeRefIsBasic ref outlineDict =
 -- names will be used by referring to them.
 
 
-modelShapes : Dict String Shape -> Dict String Outlined -> Dict String (Result (Error TransformError) (Declarable Outlined))
+modelShapes : Dict String Shape -> Dict String Outlined -> Dict String (Result (Error TransformError) (Declarable Flagged))
 modelShapes shapeDict outlineDict =
     Dict.map
         (\key value -> modelShape outlineDict value key)
         shapeDict
 
 
-modelShape : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
+modelShape : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
 modelShape outlineDict shape name =
     case shape.type_ of
         AString ->
@@ -318,7 +325,7 @@ modelShape outlineDict shape name =
             Errors.single UnknownNotImplemented |> Err
 
 
-modelString : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
+modelString : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
 modelString outlineDict shape name =
     case
         ( shape.enum
@@ -341,7 +348,7 @@ modelString outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
 
-modelInt : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
+modelInt : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
 modelInt outlineDict shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
@@ -353,7 +360,7 @@ modelInt outlineDict shape name =
             BInt |> TBasic |> DAlias |> Ok
 
 
-modelStructure : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
+modelStructure : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
 modelStructure outlineDict shape name =
     let
         -- shape.required lists names of fields that are required.
@@ -399,7 +406,7 @@ modelStructure outlineDict shape name =
                     Errors.combine fieldErrors |> Err
 
 
-modelList : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
+modelList : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
 modelList outlineDict shape name =
     case shape.member of
         Nothing ->
@@ -414,7 +421,7 @@ modelList outlineDict shape name =
                     Errors.single (UnresolvedRef "List .member") |> Err
 
 
-modelMap : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Outlined)
+modelMap : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
 modelMap outlineDict shape name =
     let
         keyTypeRes =
@@ -471,14 +478,14 @@ modelMap outlineDict shape name =
 --== Operations
 
 
-modelOperations : Dict String (Declarable Outlined) -> Dict String Operation -> Dict String (Result (Error TransformError) Endpoint)
+modelOperations : Dict String (Declarable Flagged) -> Dict String Operation -> Dict String (Result (Error TransformError) Endpoint)
 modelOperations typeDict operations =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
         operations
 
 
-modelOperation : Dict String (Declarable Outlined) -> String -> Operation -> Result (Error TransformError) Endpoint
+modelOperation : Dict String (Declarable Flagged) -> String -> Operation -> Result (Error TransformError) Endpoint
 modelOperation typeDict name operation =
     let
         paramType opShapeRef errHint =
@@ -489,7 +496,7 @@ modelOperation typeDict name operation =
                 Just shapeRef ->
                     case Dict.get shapeRef.shape typeDict of
                         Just decl ->
-                            TNamed shapeRef.shape (OlNamed shapeRef.shape) |> Ok
+                            TNamed shapeRef.shape FlNone |> Ok
 
                         Nothing ->
                             Errors.single (UnresolvedRef "Input") |> Err
