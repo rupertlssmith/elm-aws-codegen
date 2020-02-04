@@ -4,7 +4,8 @@ import AWS.Core.Service exposing (Protocol, Signer)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import HttpMethod exposing (HttpMethod)
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Flagged, Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
+import L2 exposing (Flagged)
 
 
 type alias Endpoint =

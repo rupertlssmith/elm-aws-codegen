@@ -17,7 +17,8 @@ Lowerings of L1 into Elm type annotations:
 
 import Codec
 import Elm.CodeGen as CG exposing (Comment, Declaration, DocComment, Expression, Import, Linkage, TypeAnnotation)
-import L1 exposing (Basic(..), Container(..), Declarable(..), Flagged(..), Restricted(..), Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Restricted(..), Type(..))
+import L2 exposing (Flagged(..))
 import Maybe.Extra
 import Set exposing (Set)
 import Templates.Util as Util

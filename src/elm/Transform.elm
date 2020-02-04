@@ -9,7 +9,8 @@ import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Errors exposing (Error)
 import Html.Parser as HP
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Flagged(..), Restricted(..), Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
+import L2 exposing (Flagged(..))
 import Maybe.Extra
 import String.Case as Case
 

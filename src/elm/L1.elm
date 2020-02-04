@@ -3,9 +3,9 @@ module L1 exposing
     , Container(..)
     , Declarable(..)
     , Declarations
-    , Flagged(..)
     , Restricted(..)
     , Type(..)
+    , Unchecked(..)
     )
 
 {-| L1 is a data modelling language.
@@ -63,14 +63,11 @@ type Declarable a
 
 
 
--- Purpose is to pull up some information about what kind of thing an alias
--- is referring to.
+-- Indicates that the AST has not been reference checked.
 
 
-type Flagged
-    = FlEnum
-    | FlRestricted Basic
-    | FlNone
+type Unchecked
+    = Unchecked
 
 
 
@@ -79,3 +76,7 @@ type Flagged
 
 type alias Declarations a =
     Dict String (Declarable a)
+
+
+type alias L1 =
+    Declarations Unchecked
