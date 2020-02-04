@@ -2,7 +2,8 @@
     "type": "application",
     "source-directories": [
         "src/elm",
-        "/home/rupert/sc/github/the-sett/elm-syntax-dsl/src"
+        "/home/rupert/sc/github/the-sett/elm-syntax-dsl/src",
+        "/home/rupert/sc/gitlab/stack-gen/src"
     ],
     "elm-version": "0.19.0",
     "dependencies": {
