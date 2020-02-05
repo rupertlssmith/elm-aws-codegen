@@ -5,14 +5,14 @@ import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import HttpMethod exposing (HttpMethod)
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
-import L2 exposing (Flagged)
+import L2 exposing (RefChecked)
 
 
 type alias Endpoint =
     { httpMethod : HttpMethod
     , url : String
-    , request : Type Flagged
-    , response : Type Flagged
+    , request : Type RefChecked
+    , response : Type RefChecked
     , documentation : Maybe (Comment DocComment)
     }
 
@@ -28,7 +28,7 @@ type alias AWSApiModel =
     , targetPrefix : Maybe String
     , signingName : Maybe String
     , jsonVersion : Maybe String
-    , declarations : Declarations Flagged
+    , declarations : Declarations RefChecked
     , operations : Dict String Endpoint
     , documentation : Maybe (Comment FileComment)
     }

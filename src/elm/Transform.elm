@@ -10,7 +10,7 @@ import Enum exposing (Enum)
 import Errors exposing (Error)
 import Html.Parser as HP
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
-import L2 exposing (Flagged(..))
+import L2 exposing (RefChecked(..))
 import Maybe.Extra
 import String.Case as Case
 
@@ -222,17 +222,17 @@ outlineInt shape name =
             OlBasic BInt
 
 
-shapeRefToL1Type : ShapeRef -> Dict String Outlined -> Maybe (Type Flagged)
+shapeRefToL1Type : ShapeRef -> Dict String Outlined -> Maybe (Type RefChecked)
 shapeRefToL1Type ref outlineDict =
     case Dict.get ref.shape outlineDict of
         Just (OlNamed memberName) ->
-            TNamed memberName FlNone |> Just
+            TNamed memberName RcNone |> Just
 
         Just (OlEnum memberName) ->
-            TNamed memberName FlEnum |> Just
+            TNamed memberName RcEnum |> Just
 
         Just (OlRestricted memberName basic) ->
-            TNamed memberName (FlRestricted basic) |> Just
+            TNamed memberName (RcRestricted basic) |> Just
 
         Just (OlBasic basic) ->
             TBasic basic |> Just
@@ -279,14 +279,14 @@ shapeRefIsBasic ref outlineDict =
 -- names will be used by referring to them.
 
 
-modelShapes : Dict String Shape -> Dict String Outlined -> Dict String (Result (Error TransformError) (Declarable Flagged))
+modelShapes : Dict String Shape -> Dict String Outlined -> Dict String (Result (Error TransformError) (Declarable RefChecked))
 modelShapes shapeDict outlineDict =
     Dict.map
         (\key value -> modelShape outlineDict value key)
         shapeDict
 
 
-modelShape : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
+modelShape : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
 modelShape outlineDict shape name =
     case shape.type_ of
         AString ->
@@ -326,7 +326,7 @@ modelShape outlineDict shape name =
             Errors.single UnknownNotImplemented |> Err
 
 
-modelString : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
+modelString : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
 modelString outlineDict shape name =
     case
         ( shape.enum
@@ -349,7 +349,7 @@ modelString outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
 
-modelInt : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
+modelInt : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
 modelInt outlineDict shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
@@ -361,7 +361,7 @@ modelInt outlineDict shape name =
             BInt |> TBasic |> DAlias |> Ok
 
 
-modelStructure : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
+modelStructure : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
 modelStructure outlineDict shape name =
     let
         -- shape.required lists names of fields that are required.
@@ -407,7 +407,7 @@ modelStructure outlineDict shape name =
                     Errors.combine fieldErrors |> Err
 
 
-modelList : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
+modelList : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
 modelList outlineDict shape name =
     case shape.member of
         Nothing ->
@@ -422,7 +422,7 @@ modelList outlineDict shape name =
                     Errors.single (UnresolvedRef "List .member") |> Err
 
 
-modelMap : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable Flagged)
+modelMap : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
 modelMap outlineDict shape name =
     let
         keyTypeRes =
@@ -479,14 +479,14 @@ modelMap outlineDict shape name =
 --== Operations
 
 
-modelOperations : Dict String (Declarable Flagged) -> Dict String Operation -> Dict String (Result (Error TransformError) Endpoint)
+modelOperations : Dict String (Declarable RefChecked) -> Dict String Operation -> Dict String (Result (Error TransformError) Endpoint)
 modelOperations typeDict operations =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
         operations
 
 
-modelOperation : Dict String (Declarable Flagged) -> String -> Operation -> Result (Error TransformError) Endpoint
+modelOperation : Dict String (Declarable RefChecked) -> String -> Operation -> Result (Error TransformError) Endpoint
 modelOperation typeDict name operation =
     let
         paramType opShapeRef errHint =
@@ -497,7 +497,7 @@ modelOperation typeDict name operation =
                 Just shapeRef ->
                     case Dict.get shapeRef.shape typeDict of
                         Just decl ->
-                            TNamed shapeRef.shape FlNone |> Ok
+                            TNamed shapeRef.shape RcNone |> Ok
 
                         Nothing ->
                             Errors.single (UnresolvedRef "Input") |> Err
