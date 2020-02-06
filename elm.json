@@ -18,6 +18,7 @@
             "elm/time": "1.0.0",
             "elm-community/maybe-extra": "5.0.0",
             "hecrj/html-parser": "2.3.4",
+            "mgold/elm-nonempty-list": "4.1.0",
             "miniBill/elm-codec": "1.2.0",
             "rtfeldman/elm-hex": "1.0.0",
             "stil4m/elm-syntax": "7.1.0",

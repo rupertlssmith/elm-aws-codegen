@@ -2,6 +2,10 @@ module Errors exposing (Error, append, combine, map, single, toList)
 
 {-| Utility for building up multiple errors during some process that can report
 one or more error cases.
+
+TODO: Get rid of this, as its really just a nonempty list, for which libs already
+exist.
+
 -}
 
 

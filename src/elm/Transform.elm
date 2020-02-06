@@ -11,6 +11,7 @@ import Errors exposing (Error)
 import Html.Parser as HP
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
 import L2 exposing (RefChecked(..))
+import List.Nonempty
 import Maybe.Extra
 import String.Case as Case
 
@@ -336,9 +337,14 @@ modelString outlineDict shape name =
         )
     of
         ( Just enumVals, False ) ->
-            enumVals
-                |> DEnum
-                |> Ok
+            case List.Nonempty.fromList enumVals of
+                Just nonemptyEnumVals ->
+                    nonemptyEnumVals
+                        |> DEnum
+                        |> Ok
+
+                Nothing ->
+                    NoMembers name |> Errors.single |> Err
 
         ( Nothing, True ) ->
             RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
@@ -401,7 +407,12 @@ modelStructure outlineDict shape name =
             in
             case fieldErrors of
                 [] ->
-                    fields |> TProduct |> DAlias |> Ok
+                    case List.Nonempty.fromList fields of
+                        Just nonemptyFields ->
+                            nonemptyFields |> TProduct |> DAlias |> Ok
+
+                        Nothing ->
+                            TEmptyProduct |> DAlias |> Ok
 
                 _ ->
                     Errors.combine fieldErrors |> Err
