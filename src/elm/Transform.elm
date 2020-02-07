@@ -64,10 +64,11 @@ transform service =
         outlineDict =
             outline service.shapes
 
+        -- outlineDict =
+        --     Dict.empty
         mappingsResult : ResultME TransformError (Dict String (Declarable RefChecked))
         mappingsResult =
             modelShapes service.shapes outlineDict
-                |> MultiError.combineDict
 
         operationsResult : ResultME TransformError (Dict String Endpoint)
         operationsResult =
@@ -75,7 +76,6 @@ transform service =
                 |> MultiError.andThen
                     (\okMappings ->
                         modelOperations okMappings service.operations
-                            |> MultiError.combineDict
                     )
 
         mappingsAndOperations =
@@ -261,11 +261,15 @@ shapeRefIsBasic ref outlineDict =
 -- names will be used by referring to them.
 
 
-modelShapes : Dict String Shape -> Dict String Outlined -> Dict String (ResultME TransformError (Declarable RefChecked))
+modelShapes :
+    Dict String Shape
+    -> Dict String Outlined
+    -> ResultME TransformError (Dict String (Declarable RefChecked))
 modelShapes shapeDict outlineDict =
     Dict.map
         (\key value -> modelShape outlineDict value key)
         shapeDict
+        |> MultiError.combineDict
 
 
 modelShape : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
@@ -464,11 +468,15 @@ modelMap outlineDict shape name =
 --== Operations
 
 
-modelOperations : Dict String (Declarable RefChecked) -> Dict String Operation -> Dict String (ResultME TransformError Endpoint)
+modelOperations :
+    Dict String (Declarable RefChecked)
+    -> Dict String Operation
+    -> ResultME TransformError (Dict String Endpoint)
 modelOperations typeDict operations =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
         operations
+        |> MultiError.combineDict
 
 
 modelOperation : Dict String (Declarable RefChecked) -> String -> Operation -> ResultME TransformError Endpoint
