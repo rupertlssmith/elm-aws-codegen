@@ -69,18 +69,6 @@ transform service =
             modelShapes service.shapes outlineDict
                 |> MultiError.combineDict
 
-        -- ( okMappings, errMappings ) =
-        --     Dict.foldl
-        --         (\key val ( okAccum, errAccum ) ->
-        --             case val of
-        --                 Ok decl ->
-        --                     ( Dict.insert key decl okAccum, errAccum )
-        --
-        --                 Err err ->
-        --                     ( okAccum, Dict.insert key err errAccum )
-        --         )
-        --         ( Dict.empty, Dict.empty )
-        --         mappings
         operationsResult : ResultME TransformError (Dict String Endpoint)
         operationsResult =
             mappingsResult
@@ -96,28 +84,8 @@ transform service =
                 mappingsResult
                 operationsResult
 
-        -- ( okOperations, errOperations ) =
-        --     Dict.foldl
-        --         (\key val ( okAccum, errAccum ) ->
-        --             case val of
-        --                 Ok endpoint ->
-        --                     ( Dict.insert key endpoint okAccum, errAccum )
-        --
-        --                 Err err ->
-        --                     ( okAccum, Dict.insert key err errAccum )
-        --         )
-        --         ( Dict.empty, Dict.empty )
-        --         operations
         enrichError key error =
             List.Nonempty.map (\err -> Console.fgCyan ++ key ++ Console.reset ++ ": " ++ errorToString err) error
-
-        -- transformErrors =
-        --     [ Dict.map enrichError errMappings |> Dict.values
-        --     , Dict.map enrichError errOperations |> Dict.values
-        --     ]
-        --         |> List.concat
-        --         |> Errors.combine
-        --         |> Errors.toList
     in
     MultiError.map
         (\( mappings, operations ) ->
@@ -146,7 +114,6 @@ transform service =
 
 
 
---== Error reporting.
 --== First pass.
 -- In the first pass all the named shapes are discovered and an approximate
 -- outline of how they will translate into L1 is generated. Either they are
