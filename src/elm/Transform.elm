@@ -9,7 +9,7 @@ import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Html.Parser as HP
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, L1, Restricted(..), Type(..), Unchecked)
 import L2 exposing (RefChecked(..))
 import List.Nonempty
 import Maybe.Extra
@@ -73,7 +73,7 @@ transform service =
         --     Dict.empty
         mappingsResult : ResultME TransformError (Dict String (Declarable RefChecked))
         mappingsResult =
-            modelShapes service.shapes outlineDict
+            modelShapes service.shapes
 
         -- l2mappingsResult =
         --     mappingsResult
@@ -225,36 +225,6 @@ shapeRefToL1Type ref outlineDict =
             Nothing
 
 
-shapeRefIsEnum : ShapeRef -> Dict String Outlined -> Bool
-shapeRefIsEnum ref outlineDict =
-    case Dict.get ref.shape outlineDict of
-        Just (OlEnum memberName) ->
-            True
-
-        _ ->
-            False
-
-
-shapeRefIsRestricted : ShapeRef -> Dict String Outlined -> Bool
-shapeRefIsRestricted ref outlineDict =
-    case Dict.get ref.shape outlineDict of
-        Just (OlRestricted memberName _) ->
-            True
-
-        _ ->
-            False
-
-
-shapeRefIsBasic : ShapeRef -> Dict String Outlined -> Bool
-shapeRefIsBasic ref outlineDict =
-    case Dict.get ref.shape outlineDict of
-        Just (OlBasic basic) ->
-            True
-
-        _ ->
-            False
-
-
 
 --== Second pass.
 -- In the second pass a complete L1 model is generated for each shape. The
@@ -265,26 +235,25 @@ shapeRefIsBasic ref outlineDict =
 
 modelShapes :
     Dict String Shape
-    -> Dict String Outlined
-    -> ResultME TransformError (Dict String (Declarable RefChecked))
-modelShapes shapeDict outlineDict =
+    -> ResultME TransformError L1
+modelShapes shapeDict =
     Dict.map
-        (\key value -> modelShape outlineDict value key)
+        (\key value -> modelShape value key)
         shapeDict
         |> MultiError.combineDict
 
 
-modelShape : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
-modelShape outlineDict shape name =
+modelShape : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelShape shape name =
     case shape.type_ of
         AString ->
-            modelString outlineDict shape name
+            modelString shape name
 
         ABoolean ->
             BBool |> TBasic |> DAlias |> Ok
 
         AInteger ->
-            modelInt outlineDict shape name
+            modelInt shape name
 
         ALong ->
             BInt |> TBasic |> DAlias |> Ok
@@ -299,13 +268,13 @@ modelShape outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
         AStructure ->
-            modelStructure outlineDict shape name
+            modelStructure shape name
 
         AList ->
-            modelList outlineDict shape name
+            modelList shape name
 
         AMap ->
-            modelMap outlineDict shape name
+            modelMap shape name
 
         ATimestamp ->
             BString |> TBasic |> DAlias |> Ok
@@ -314,8 +283,8 @@ modelShape outlineDict shape name =
             MultiError.error UnknownNotImplemented
 
 
-modelString : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
-modelString outlineDict shape name =
+modelString : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelString shape name =
     case
         ( shape.enum
         , Maybe.Extra.isJust shape.max
@@ -342,8 +311,8 @@ modelString outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
 
-modelInt : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
-modelInt outlineDict shape name =
+modelInt : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelInt shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
             RInt { min = shape.min, max = shape.max, width = Nothing }
@@ -354,8 +323,8 @@ modelInt outlineDict shape name =
             BInt |> TBasic |> DAlias |> Ok
 
 
-modelStructure : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
-modelStructure outlineDict shape name =
+modelStructure : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelStructure shape name =
     let
         -- shape.required lists names of fields that are required.
         modelField memberName shapeRef ( errAccum, fieldAccum ) =
@@ -406,8 +375,8 @@ modelStructure outlineDict shape name =
                     Debug.todo "Fix error handling"
 
 
-modelList : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
-modelList outlineDict shape name =
+modelList : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelList shape name =
     case shape.member of
         Nothing ->
             ListMemberEmpty |> MultiError.error
@@ -421,8 +390,8 @@ modelList outlineDict shape name =
                     UnresolvedRef "List .member" |> MultiError.error
 
 
-modelMap : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
-modelMap outlineDict shape name =
+modelMap : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelMap shape name =
     let
         keyTypeRes =
             case shape.key of
