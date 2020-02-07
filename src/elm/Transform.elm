@@ -7,12 +7,12 @@ import Console
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
-import Errors exposing (Error)
 import Html.Parser as HP
 import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Restricted(..), Type(..))
 import L2 exposing (RefChecked(..))
 import List.Nonempty
 import Maybe.Extra
+import MultiError exposing (ResultME)
 import String.Case as Case
 
 
@@ -58,77 +58,91 @@ errorToString err =
             "Unknown not implemented."
 
 
-transform : AWSService -> ( AWSApiModel, List String )
+transform : AWSService -> ResultME TransformError AWSApiModel
 transform service =
     let
         outlineDict =
             outline service.shapes
 
-        mappings =
+        mappingsResult : ResultME TransformError (Dict String (Declarable RefChecked))
+        mappingsResult =
             modelShapes service.shapes outlineDict
+                |> MultiError.combineDict
 
-        ( okMappings, errMappings ) =
-            Dict.foldl
-                (\key val ( okAccum, errAccum ) ->
-                    case val of
-                        Ok decl ->
-                            ( Dict.insert key decl okAccum, errAccum )
+        -- ( okMappings, errMappings ) =
+        --     Dict.foldl
+        --         (\key val ( okAccum, errAccum ) ->
+        --             case val of
+        --                 Ok decl ->
+        --                     ( Dict.insert key decl okAccum, errAccum )
+        --
+        --                 Err err ->
+        --                     ( okAccum, Dict.insert key err errAccum )
+        --         )
+        --         ( Dict.empty, Dict.empty )
+        --         mappings
+        operationsResult : ResultME TransformError (Dict String Endpoint)
+        operationsResult =
+            mappingsResult
+                |> MultiError.andThen
+                    (\okMappings ->
+                        modelOperations okMappings service.operations
+                            |> MultiError.combineDict
+                    )
 
-                        Err err ->
-                            ( okAccum, Dict.insert key err errAccum )
-                )
-                ( Dict.empty, Dict.empty )
-                mappings
+        mappingsAndOperations =
+            MultiError.combine2
+                Tuple.pair
+                mappingsResult
+                operationsResult
 
-        operations =
-            modelOperations okMappings service.operations
-
-        ( okOperations, errOperations ) =
-            Dict.foldl
-                (\key val ( okAccum, errAccum ) ->
-                    case val of
-                        Ok endpoint ->
-                            ( Dict.insert key endpoint okAccum, errAccum )
-
-                        Err err ->
-                            ( okAccum, Dict.insert key err errAccum )
-                )
-                ( Dict.empty, Dict.empty )
-                operations
-
+        -- ( okOperations, errOperations ) =
+        --     Dict.foldl
+        --         (\key val ( okAccum, errAccum ) ->
+        --             case val of
+        --                 Ok endpoint ->
+        --                     ( Dict.insert key endpoint okAccum, errAccum )
+        --
+        --                 Err err ->
+        --                     ( okAccum, Dict.insert key err errAccum )
+        --         )
+        --         ( Dict.empty, Dict.empty )
+        --         operations
         enrichError key error =
-            Errors.map (\err -> Console.fgCyan ++ key ++ Console.reset ++ ": " ++ errorToString err) error
+            List.Nonempty.map (\err -> Console.fgCyan ++ key ++ Console.reset ++ ": " ++ errorToString err) error
 
-        transformErrors =
-            [ Dict.map enrichError errMappings |> Dict.values
-            , Dict.map enrichError errOperations |> Dict.values
-            ]
-                |> List.concat
-                |> Errors.combine
-                |> Errors.toList
+        -- transformErrors =
+        --     [ Dict.map enrichError errMappings |> Dict.values
+        --     , Dict.map enrichError errOperations |> Dict.values
+        --     ]
+        --         |> List.concat
+        --         |> Errors.combine
+        --         |> Errors.toList
     in
-    ( { declarations = okMappings
-      , operations = okOperations
-      , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
-      , isRegional = Maybe.Extra.isNothing service.metaData.globalEndpoint
-      , endpointPrefix = service.metaData.endpointPrefix
-      , apiVersion = service.metaData.apiVersion
-      , protocol = service.metaData.protocol
-      , signer =
-            case service.metaData.signatureVersion of
-                Just signer ->
-                    signer
+    MultiError.map
+        (\( mappings, operations ) ->
+            { declarations = mappings
+            , operations = operations
+            , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
+            , isRegional = Maybe.Extra.isNothing service.metaData.globalEndpoint
+            , endpointPrefix = service.metaData.endpointPrefix
+            , apiVersion = service.metaData.apiVersion
+            , protocol = service.metaData.protocol
+            , signer =
+                case service.metaData.signatureVersion of
+                    Just signer ->
+                        signer
 
-                _ ->
-                    SignV4
-      , xmlNamespace = service.metaData.xmlNamespace
-      , targetPrefix = service.metaData.targetPrefix
-      , signingName = service.metaData.signingName
-      , jsonVersion = service.metaData.jsonVersion
-      , documentation = Maybe.map htmlToFileComment service.documentation
-      }
-    , transformErrors
-    )
+                    _ ->
+                        SignV4
+            , xmlNamespace = service.metaData.xmlNamespace
+            , targetPrefix = service.metaData.targetPrefix
+            , signingName = service.metaData.signingName
+            , jsonVersion = service.metaData.jsonVersion
+            , documentation = Maybe.map htmlToFileComment service.documentation
+            }
+        )
+        mappingsAndOperations
 
 
 
@@ -280,14 +294,14 @@ shapeRefIsBasic ref outlineDict =
 -- names will be used by referring to them.
 
 
-modelShapes : Dict String Shape -> Dict String Outlined -> Dict String (Result (Error TransformError) (Declarable RefChecked))
+modelShapes : Dict String Shape -> Dict String Outlined -> Dict String (ResultME TransformError (Declarable RefChecked))
 modelShapes shapeDict outlineDict =
     Dict.map
         (\key value -> modelShape outlineDict value key)
         shapeDict
 
 
-modelShape : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
+modelShape : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
 modelShape outlineDict shape name =
     case shape.type_ of
         AString ->
@@ -324,10 +338,10 @@ modelShape outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
         AUnknown ->
-            Errors.single UnknownNotImplemented |> Err
+            MultiError.error UnknownNotImplemented
 
 
-modelString : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
+modelString : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
 modelString outlineDict shape name =
     case
         ( shape.enum
@@ -344,7 +358,7 @@ modelString outlineDict shape name =
                         |> Ok
 
                 Nothing ->
-                    NoMembers name |> Errors.single |> Err
+                    NoMembers name |> MultiError.error
 
         ( Nothing, True ) ->
             RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
@@ -355,7 +369,7 @@ modelString outlineDict shape name =
             BString |> TBasic |> DAlias |> Ok
 
 
-modelInt : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
+modelInt : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
 modelInt outlineDict shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
@@ -367,14 +381,14 @@ modelInt outlineDict shape name =
             BInt |> TBasic |> DAlias |> Ok
 
 
-modelStructure : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
+modelStructure : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
 modelStructure outlineDict shape name =
     let
         -- shape.required lists names of fields that are required.
         modelField memberName shapeRef ( errAccum, fieldAccum ) =
             case shapeRefToL1Type shapeRef outlineDict of
                 Nothing ->
-                    ( Errors.single (UnresolvedRef "Structure .members") :: errAccum
+                    ( MultiError.error (UnresolvedRef "Structure .members") :: errAccum
                     , fieldAccum
                     )
 
@@ -398,7 +412,7 @@ modelStructure outlineDict shape name =
     in
     case shape.members of
         Nothing ->
-            NoMembers name |> Errors.single |> Err
+            NoMembers name |> MultiError.error
 
         Just members ->
             let
@@ -414,15 +428,16 @@ modelStructure outlineDict shape name =
                         Nothing ->
                             TEmptyProduct |> DAlias |> Ok
 
-                _ ->
-                    Errors.combine fieldErrors |> Err
+                err :: errs ->
+                    -- MultiError.errors err errs
+                    Debug.todo "Fix error handling"
 
 
-modelList : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
+modelList : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
 modelList outlineDict shape name =
     case shape.member of
         Nothing ->
-            Errors.single ListMemberEmpty |> Err
+            ListMemberEmpty |> MultiError.error
 
         Just ref ->
             case shapeRefToL1Type ref outlineDict of
@@ -430,16 +445,16 @@ modelList outlineDict shape name =
                     CList type_ |> TContainer |> DAlias |> Ok
 
                 Nothing ->
-                    Errors.single (UnresolvedRef "List .member") |> Err
+                    UnresolvedRef "List .member" |> MultiError.error
 
 
-modelMap : Dict String Outlined -> Shape -> String -> Result (Error TransformError) (Declarable RefChecked)
+modelMap : Dict String Outlined -> Shape -> String -> ResultME TransformError (Declarable RefChecked)
 modelMap outlineDict shape name =
     let
         keyTypeRes =
             case shape.key of
                 Nothing ->
-                    Errors.single MapKeyEmpty |> Err
+                    MapKeyEmpty |> MultiError.error
 
                 Just keyRef ->
                     case shapeRefToL1Type keyRef outlineDict of
@@ -454,15 +469,15 @@ modelMap outlineDict shape name =
                                 type_ |> Ok
 
                             else
-                                Errors.single MapKeyTypeNotAllowed |> Err
+                                MapKeyTypeNotAllowed |> MultiError.error
 
                         Nothing ->
-                            Errors.single (UnresolvedRef "Map .key") |> Err
+                            UnresolvedRef "Map .key" |> MultiError.error
 
         valTypeRes =
             case shape.value of
                 Nothing ->
-                    Errors.single MapValueEmpty |> Err
+                    MapValueEmpty |> MultiError.error
 
                 Just valRef ->
                     case shapeRefToL1Type valRef outlineDict of
@@ -470,34 +485,26 @@ modelMap outlineDict shape name =
                             type_ |> Ok
 
                         Nothing ->
-                            Errors.single (UnresolvedRef "Map .value") |> Err
+                            UnresolvedRef "Map .value" |> MultiError.error
     in
-    case ( keyTypeRes, valTypeRes ) of
-        ( Err keyError, Err valError ) ->
-            Errors.combine [ keyError, valError ] |> Err
-
-        ( Err keyError, _ ) ->
-            Err keyError
-
-        ( _, Err valError ) ->
-            Err valError
-
-        ( Ok keyType, Ok valType ) ->
-            CDict keyType valType |> TContainer |> DAlias |> Ok
+    MultiError.combine2
+        (\keyType valType -> CDict keyType valType |> TContainer |> DAlias)
+        keyTypeRes
+        valTypeRes
 
 
 
 --== Operations
 
 
-modelOperations : Dict String (Declarable RefChecked) -> Dict String Operation -> Dict String (Result (Error TransformError) Endpoint)
+modelOperations : Dict String (Declarable RefChecked) -> Dict String Operation -> Dict String (ResultME TransformError Endpoint)
 modelOperations typeDict operations =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
         operations
 
 
-modelOperation : Dict String (Declarable RefChecked) -> String -> Operation -> Result (Error TransformError) Endpoint
+modelOperation : Dict String (Declarable RefChecked) -> String -> Operation -> ResultME TransformError Endpoint
 modelOperation typeDict name operation =
     let
         paramType opShapeRef errHint =
@@ -511,7 +518,7 @@ modelOperation typeDict name operation =
                             TNamed shapeRef.shape RcNone |> Ok
 
                         Nothing ->
-                            Errors.single (UnresolvedRef "Input") |> Err
+                            UnresolvedRef "Input" |> MultiError.error
 
         requestRes =
             paramType operation.input "Input"
@@ -519,24 +526,17 @@ modelOperation typeDict name operation =
         responseRes =
             paramType operation.output "Output"
     in
-    case ( requestRes, responseRes ) of
-        ( Ok request, Ok response ) ->
+    MultiError.combine2
+        (\request response ->
             { httpMethod = operation.http.method
             , url = operation.http.requestUri |> Maybe.withDefault "/"
             , request = request
             , response = response
             , documentation = Maybe.map htmlToDocComment operation.documentation
             }
-                |> Ok
-
-        ( Err requestErr, Err responseErr ) ->
-            Errors.combine [ requestErr, responseErr ] |> Err
-
-        ( Err requestErr, _ ) ->
-            Err requestErr
-
-        ( _, Err responseErr ) ->
-            Err responseErr
+        )
+        requestRes
+        responseRes
 
 
 
