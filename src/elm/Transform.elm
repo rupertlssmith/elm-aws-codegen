@@ -3,6 +3,7 @@ module Transform exposing (transform)
 import AWS.Core.Service exposing (Signer(..))
 import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
+import Checker
 import Console
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
@@ -31,6 +32,10 @@ type Outlined
     | OlEnum String
     | OlRestricted String Basic
     | OlNamed String
+
+
+enrichError key error =
+    List.Nonempty.map (\err -> Console.fgCyan ++ key ++ Console.reset ++ ": " ++ errorToString err) error
 
 
 errorToString : TransformError -> String
@@ -70,6 +75,9 @@ transform service =
         mappingsResult =
             modelShapes service.shapes outlineDict
 
+        -- l2mappingsResult =
+        --     mappingsResult
+        --         |> MultiError.andThen Checker.check
         operationsResult : ResultME TransformError (Dict String Endpoint)
         operationsResult =
             mappingsResult
@@ -80,9 +88,6 @@ transform service =
                 Tuple.pair
                 mappingsResult
                 operationsResult
-
-        enrichError key error =
-            List.Nonempty.map (\err -> Console.fgCyan ++ key ++ Console.reset ++ ": " ++ errorToString err) error
     in
     MultiError.map
         (\( mappings, operations ) ->
