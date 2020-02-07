@@ -73,10 +73,7 @@ transform service =
         operationsResult : ResultME TransformError (Dict String Endpoint)
         operationsResult =
             mappingsResult
-                |> MultiError.andThen
-                    (\okMappings ->
-                        modelOperations okMappings service.operations
-                    )
+                |> MultiError.andThen (modelOperations service.operations)
 
         mappingsAndOperations =
             MultiError.combine2
@@ -469,10 +466,10 @@ modelMap outlineDict shape name =
 
 
 modelOperations :
-    Dict String (Declarable RefChecked)
-    -> Dict String Operation
+    Dict String Operation
+    -> Dict String (Declarable RefChecked)
     -> ResultME TransformError (Dict String Endpoint)
-modelOperations typeDict operations =
+modelOperations operations typeDict =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
         operations
