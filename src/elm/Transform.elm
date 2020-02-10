@@ -9,8 +9,8 @@ import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Html.Parser as HP
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, L1, Restricted(..), Type(..), Unchecked(..))
-import L2 exposing (RefChecked(..))
+import L1 exposing (Basic(..), Container(..), Declarable(..), L1, Restricted(..), Type(..), Unchecked(..))
+import L2 exposing (L2, RefChecked(..))
 import List.Nonempty
 import Maybe.Extra
 import MultiError exposing (ResultME)

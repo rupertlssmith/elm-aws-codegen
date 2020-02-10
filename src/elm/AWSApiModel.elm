@@ -4,8 +4,8 @@ import AWS.Core.Service exposing (Protocol, Signer)
 import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import HttpMethod exposing (HttpMethod)
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, Type(..))
-import L2 exposing (RefChecked)
+import L1 exposing (Basic(..), Container(..), Declarable(..), Type(..))
+import L2 exposing (L2, RefChecked)
 
 
 type alias Endpoint =
@@ -28,7 +28,7 @@ type alias AWSApiModel =
     , targetPrefix : Maybe String
     , signingName : Maybe String
     , jsonVersion : Maybe String
-    , declarations : Declarations RefChecked
+    , declarations : L2
     , operations : Dict String Endpoint
     , documentation : Maybe (Comment FileComment)
     }
