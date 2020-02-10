@@ -116,106 +116,16 @@ transform service =
         mappingsAndOperations
 
 
-
---== First pass.
--- In the first pass all the named shapes are discovered and an approximate
--- outline of how they will translate into L1 is generated. Either they are
--- basic types, or refer to things that will be given declared names.
--- outline : Dict String Shape -> Dict String Outlined
--- outline shapes =
---     Dict.foldl
---         (\key value accum ->
---             case outlineShape value key of
---                 Nothing ->
---                     accum
---
---                 Just ol ->
---                     Dict.insert key ol accum
---         )
---         Dict.empty
---         shapes
---
---
--- outlineShape : Shape -> String -> Maybe Outlined
--- outlineShape shape name =
---     case shape.type_ of
---         AString ->
---             outlineString shape name |> Just
---
---         ABoolean ->
---             BBool |> OlBasic |> Just
---
---         AInteger ->
---             outlineInt shape name |> Just
---
---         ALong ->
---             BInt |> OlBasic |> Just
---
---         AFloat ->
---             BReal |> OlBasic |> Just
---
---         ADouble ->
---             BReal |> OlBasic |> Just
---
---         ABlob ->
---             BString |> OlBasic |> Just
---
---         AStructure ->
---             name |> OlNamed |> Just
---
---         AList ->
---             name |> OlNamed |> Just
---
---         AMap ->
---             name |> OlNamed |> Just
---
---         ATimestamp ->
---             name |> OlNamed |> Just
---
---         AUnknown ->
---             Nothing
---
---
--- outlineString : Shape -> String -> Outlined
--- outlineString shape name =
---     case
---         ( shape.enum
---         , Maybe.Extra.isJust shape.max
---             || Maybe.Extra.isJust shape.min
---             || Maybe.Extra.isJust shape.pattern
---         )
---     of
---         ( Just enumVals, False ) ->
---             OlEnum name
---
---         ( Nothing, True ) ->
---             OlRestricted name BString
---
---         ( _, _ ) ->
---             OlBasic BString
---
---
--- outlineInt : Shape -> String -> Outlined
--- outlineInt shape name =
---     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
---         True ->
---             OlRestricted name BInt
---
---         _ ->
---             OlBasic BInt
-
-
 shapeRefToL1Type : ShapeRef -> Type Unchecked
 shapeRefToL1Type ref =
     TNamed ref.shape Unchecked
 
 
 
---== Second pass.
--- In the second pass a complete L1 model is generated for each shape. The
--- outline from the first pass is used to guide this, as all basic types are
--- inlined without being given intermediate names, and all types with declared
--- names will be used by referring to them.
+--=== L1 Model Assembly Pass
+-- A complete L1 model is generated for each shape.
+-- Errors in the shape definitions are detected, but checking of the L1 model
+-- is handled when it is lowered into L2.
 
 
 modelShapes :
@@ -339,6 +249,8 @@ modelStructure shape name =
             NoMembers name |> MultiError.error
 
         Just members ->
+            -- TODO: Rewrite this part as should just combine errors over the
+            -- fields.
             let
                 ( fieldErrors, fields ) =
                     Dict.foldl modelField ( [], [] ) members
@@ -409,6 +321,7 @@ modelOperations operations typeDict =
 
 modelOperation : Dict String (Declarable RefChecked) -> String -> Operation -> ResultME TransformError Endpoint
 modelOperation typeDict name operation =
+    -- TODO: The ref checking should be done by the L2 checker.
     let
         paramType opShapeRef errHint =
             case opShapeRef of
