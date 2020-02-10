@@ -52,7 +52,7 @@ errorToString err =
 transform : AWSService -> ResultME String AWSApiModel
 transform service =
     let
-        mappingsResult : ResultME String (Dict String (Declarable Unchecked))
+        mappingsResult : ResultME String L1
         mappingsResult =
             modelShapes service.shapes
                 |> MultiError.mapError errorToString
@@ -122,6 +122,7 @@ modelShapes shapeDict =
         (\key value -> modelShape value key)
         shapeDict
         |> MultiError.combineDict
+        |> Result.map Dict.toList
 
 
 modelShape : Shape -> String -> ResultME TransformError (Declarable Unchecked)
