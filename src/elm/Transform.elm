@@ -9,7 +9,7 @@ import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Html.Parser as HP
-import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, L1, Restricted(..), Type(..), Unchecked)
+import L1 exposing (Basic(..), Container(..), Declarable(..), Declarations, L1, Restricted(..), Type(..), Unchecked(..))
 import L2 exposing (RefChecked(..))
 import List.Nonempty
 import Maybe.Extra
@@ -63,30 +63,31 @@ errorToString err =
             "Unknown not implemented."
 
 
-transform : AWSService -> ResultME TransformError AWSApiModel
+transform : AWSService -> ResultME String AWSApiModel
 transform service =
     let
-        outlineDict =
-            outline service.shapes
-
-        -- outlineDict =
-        --     Dict.empty
-        mappingsResult : ResultME TransformError (Dict String (Declarable RefChecked))
+        mappingsResult : ResultME String (Dict String (Declarable Unchecked))
         mappingsResult =
             modelShapes service.shapes
+                |> MultiError.mapError errorToString
 
-        -- l2mappingsResult =
-        --     mappingsResult
-        --         |> MultiError.andThen Checker.check
-        operationsResult : ResultME TransformError (Dict String Endpoint)
-        operationsResult =
+        l2mappingsResult =
             mappingsResult
-                |> MultiError.andThen (modelOperations service.operations)
+                |> MultiError.andThen
+                    (Checker.check >> MultiError.mapError Checker.errorToString)
+
+        operationsResult : ResultME String (Dict String Endpoint)
+        operationsResult =
+            l2mappingsResult
+                |> MultiError.andThen
+                    (modelOperations service.operations
+                        >> MultiError.mapError errorToString
+                    )
 
         mappingsAndOperations =
             MultiError.combine2
                 Tuple.pair
-                mappingsResult
+                l2mappingsResult
                 operationsResult
     in
     MultiError.map
@@ -120,109 +121,93 @@ transform service =
 -- In the first pass all the named shapes are discovered and an approximate
 -- outline of how they will translate into L1 is generated. Either they are
 -- basic types, or refer to things that will be given declared names.
+-- outline : Dict String Shape -> Dict String Outlined
+-- outline shapes =
+--     Dict.foldl
+--         (\key value accum ->
+--             case outlineShape value key of
+--                 Nothing ->
+--                     accum
+--
+--                 Just ol ->
+--                     Dict.insert key ol accum
+--         )
+--         Dict.empty
+--         shapes
+--
+--
+-- outlineShape : Shape -> String -> Maybe Outlined
+-- outlineShape shape name =
+--     case shape.type_ of
+--         AString ->
+--             outlineString shape name |> Just
+--
+--         ABoolean ->
+--             BBool |> OlBasic |> Just
+--
+--         AInteger ->
+--             outlineInt shape name |> Just
+--
+--         ALong ->
+--             BInt |> OlBasic |> Just
+--
+--         AFloat ->
+--             BReal |> OlBasic |> Just
+--
+--         ADouble ->
+--             BReal |> OlBasic |> Just
+--
+--         ABlob ->
+--             BString |> OlBasic |> Just
+--
+--         AStructure ->
+--             name |> OlNamed |> Just
+--
+--         AList ->
+--             name |> OlNamed |> Just
+--
+--         AMap ->
+--             name |> OlNamed |> Just
+--
+--         ATimestamp ->
+--             name |> OlNamed |> Just
+--
+--         AUnknown ->
+--             Nothing
+--
+--
+-- outlineString : Shape -> String -> Outlined
+-- outlineString shape name =
+--     case
+--         ( shape.enum
+--         , Maybe.Extra.isJust shape.max
+--             || Maybe.Extra.isJust shape.min
+--             || Maybe.Extra.isJust shape.pattern
+--         )
+--     of
+--         ( Just enumVals, False ) ->
+--             OlEnum name
+--
+--         ( Nothing, True ) ->
+--             OlRestricted name BString
+--
+--         ( _, _ ) ->
+--             OlBasic BString
+--
+--
+-- outlineInt : Shape -> String -> Outlined
+-- outlineInt shape name =
+--     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
+--         True ->
+--             OlRestricted name BInt
+--
+--         _ ->
+--             OlBasic BInt
 
 
-outline : Dict String Shape -> Dict String Outlined
-outline shapes =
-    Dict.foldl
-        (\key value accum ->
-            case outlineShape value key of
-                Nothing ->
-                    accum
-
-                Just ol ->
-                    Dict.insert key ol accum
-        )
-        Dict.empty
-        shapes
-
-
-outlineShape : Shape -> String -> Maybe Outlined
-outlineShape shape name =
-    case shape.type_ of
-        AString ->
-            outlineString shape name |> Just
-
-        ABoolean ->
-            BBool |> OlBasic |> Just
-
-        AInteger ->
-            outlineInt shape name |> Just
-
-        ALong ->
-            BInt |> OlBasic |> Just
-
-        AFloat ->
-            BReal |> OlBasic |> Just
-
-        ADouble ->
-            BReal |> OlBasic |> Just
-
-        ABlob ->
-            BString |> OlBasic |> Just
-
-        AStructure ->
-            name |> OlNamed |> Just
-
-        AList ->
-            name |> OlNamed |> Just
-
-        AMap ->
-            name |> OlNamed |> Just
-
-        ATimestamp ->
-            name |> OlNamed |> Just
-
-        AUnknown ->
-            Nothing
-
-
-outlineString : Shape -> String -> Outlined
-outlineString shape name =
-    case
-        ( shape.enum
-        , Maybe.Extra.isJust shape.max
-            || Maybe.Extra.isJust shape.min
-            || Maybe.Extra.isJust shape.pattern
-        )
-    of
-        ( Just enumVals, False ) ->
-            OlEnum name
-
-        ( Nothing, True ) ->
-            OlRestricted name BString
-
-        ( _, _ ) ->
-            OlBasic BString
-
-
-outlineInt : Shape -> String -> Outlined
-outlineInt shape name =
-    case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
-        True ->
-            OlRestricted name BInt
-
-        _ ->
-            OlBasic BInt
-
-
-shapeRefToL1Type : ShapeRef -> Dict String Outlined -> Maybe (Type RefChecked)
-shapeRefToL1Type ref outlineDict =
-    case Dict.get ref.shape outlineDict of
-        Just (OlNamed memberName) ->
-            TNamed memberName RcNone |> Just
-
-        Just (OlEnum memberName) ->
-            TNamed memberName RcEnum |> Just
-
-        Just (OlRestricted memberName basic) ->
-            TNamed memberName (RcRestricted basic) |> Just
-
-        Just (OlBasic basic) ->
-            TBasic basic |> Just
-
-        Nothing ->
-            Nothing
+shapeRefToL1Type : ShapeRef -> Type Unchecked
+shapeRefToL1Type ref =
+    TNamed ref.shape Unchecked
 
 
 
@@ -328,29 +313,26 @@ modelStructure shape name =
     let
         -- shape.required lists names of fields that are required.
         modelField memberName shapeRef ( errAccum, fieldAccum ) =
-            case shapeRefToL1Type shapeRef outlineDict of
+            let
+                type_ =
+                    shapeRefToL1Type shapeRef
+            in
+            case shape.required of
                 Nothing ->
-                    ( MultiError.error (UnresolvedRef "Structure .members") :: errAccum
-                    , fieldAccum
+                    ( errAccum
+                    , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
                     )
 
-                Just type_ ->
-                    case shape.required of
-                        Nothing ->
-                            ( errAccum
-                            , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
-                            )
+                Just requiredFields ->
+                    if List.member memberName requiredFields then
+                        ( errAccum
+                        , ( memberName, type_ ) :: fieldAccum
+                        )
 
-                        Just requiredFields ->
-                            if List.member memberName requiredFields then
-                                ( errAccum
-                                , ( memberName, type_ ) :: fieldAccum
-                                )
-
-                            else
-                                ( errAccum
-                                , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
-                                )
+                    else
+                        ( errAccum
+                        , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
+                        )
     in
     case shape.members of
         Nothing ->
@@ -382,12 +364,7 @@ modelList shape name =
             ListMemberEmpty |> MultiError.error
 
         Just ref ->
-            case shapeRefToL1Type ref outlineDict of
-                Just type_ ->
-                    CList type_ |> TContainer |> DAlias |> Ok
-
-                Nothing ->
-                    UnresolvedRef "List .member" |> MultiError.error
+            shapeRefToL1Type ref |> CList |> TContainer |> DAlias |> Ok
 
 
 modelMap : Shape -> String -> ResultME TransformError (Declarable Unchecked)
@@ -399,22 +376,7 @@ modelMap shape name =
                     MapKeyEmpty |> MultiError.error
 
                 Just keyRef ->
-                    case shapeRefToL1Type keyRef outlineDict of
-                        Just type_ ->
-                            if shapeRefIsEnum keyRef outlineDict then
-                                type_ |> Ok
-
-                            else if shapeRefIsRestricted keyRef outlineDict then
-                                type_ |> Ok
-
-                            else if shapeRefIsBasic keyRef outlineDict then
-                                type_ |> Ok
-
-                            else
-                                MapKeyTypeNotAllowed |> MultiError.error
-
-                        Nothing ->
-                            UnresolvedRef "Map .key" |> MultiError.error
+                    shapeRefToL1Type keyRef |> Ok
 
         valTypeRes =
             case shape.value of
@@ -422,12 +384,7 @@ modelMap shape name =
                     MapValueEmpty |> MultiError.error
 
                 Just valRef ->
-                    case shapeRefToL1Type valRef outlineDict of
-                        Just type_ ->
-                            type_ |> Ok
-
-                        Nothing ->
-                            UnresolvedRef "Map .value" |> MultiError.error
+                    shapeRefToL1Type valRef |> Ok
     in
     MultiError.combine2
         (\keyType valType -> CDict keyType valType |> TContainer |> DAlias)
