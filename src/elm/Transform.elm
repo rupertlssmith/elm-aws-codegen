@@ -327,7 +327,7 @@ modelOperation typeDict name operation =
                 Just shapeRef ->
                     case Dict.get shapeRef.shape typeDict of
                         Just decl ->
-                            TNamed shapeRef.shape RcNone |> Ok
+                            TNamed shapeRef.shape RcTUnit |> Ok
 
                         Nothing ->
                             UnresolvedRef "Input" |> MultiError.error
