@@ -26,17 +26,6 @@ type TransformError
     | UnknownNotImplemented
 
 
-type Outlined
-    = OlBasic Basic
-    | OlEnum String
-    | OlRestricted String Basic
-    | OlNamed String
-
-
-enrichError key error =
-    List.Nonempty.map (\err -> Console.fgCyan ++ key ++ Console.reset ++ ": " ++ errorToString err) error
-
-
 errorToString : TransformError -> String
 errorToString err =
     case err of
