@@ -20,7 +20,6 @@ import String.Case as Case
 type TransformError
     = UnresolvedRef String
     | NoMembers String
-    | MapKeyTypeNotAllowed
     | MapKeyEmpty
     | MapValueEmpty
     | ListMemberEmpty
@@ -46,9 +45,6 @@ errorToString err =
 
         NoMembers name ->
             name ++ ": structure has no members"
-
-        MapKeyTypeNotAllowed ->
-            "Map .key is not an enum, restricted, or basic."
 
         MapKeyEmpty ->
             "Map .key is empty."
