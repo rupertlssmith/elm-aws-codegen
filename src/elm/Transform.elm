@@ -14,6 +14,7 @@ import L2 exposing (RefChecked(..))
 import List.Nonempty
 import Maybe.Extra
 import MultiError exposing (ResultME)
+import Naming
 import String.Case as Case
 
 
@@ -244,7 +245,11 @@ modelStructure shape name =
                 [] ->
                     case List.Nonempty.fromList fields of
                         Just nonemptyFields ->
-                            nonemptyFields |> TProduct |> DAlias |> Ok
+                            nonemptyFields
+                                |> Naming.sortNonemptyNamed
+                                |> TProduct
+                                |> DAlias
+                                |> Ok
 
                         Nothing ->
                             TEmptyProduct |> DAlias |> Ok
