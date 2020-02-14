@@ -18,34 +18,34 @@ import Naming
 import String.Case as Case
 
 
-type TransformError
-    = UnresolvedRef String
-    | NoMembers String
-    | MapKeyEmpty
-    | MapValueEmpty
-    | ListMemberEmpty
-    | UnknownNotImplemented
+type TransformError pos
+    = UnresolvedRef pos String
+    | NoMembers pos String
+    | MapKeyEmpty pos
+    | MapValueEmpty pos
+    | ListMemberEmpty pos
+    | UnknownNotImplemented pos
 
 
-errorToString : TransformError -> String
+errorToString : TransformError pos -> String
 errorToString err =
     case err of
-        UnresolvedRef hint ->
+        UnresolvedRef _ hint ->
             hint ++ " reference did not resolve."
 
-        NoMembers name ->
+        NoMembers _ name ->
             name ++ ": structure has no members"
 
-        MapKeyEmpty ->
+        MapKeyEmpty _ ->
             "Map .key is empty."
 
-        MapValueEmpty ->
+        MapValueEmpty _ ->
             "Map .value is empty."
 
-        ListMemberEmpty ->
+        ListMemberEmpty _ ->
             "List .member is empty, but should be a shape reference."
 
-        UnknownNotImplemented ->
+        UnknownNotImplemented _ ->
             "Unknown not implemented."
 
 
@@ -116,7 +116,7 @@ shapeRefToL1Type ref =
 
 modelShapes :
     Dict String Shape
-    -> ResultME TransformError (L1 ())
+    -> ResultME (TransformError ()) (L1 ())
 modelShapes shapeDict =
     Dict.map
         (\key value -> modelShape value key)
@@ -125,7 +125,7 @@ modelShapes shapeDict =
         |> Result.map Dict.toList
 
 
-modelShape : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
+modelShape : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
 modelShape shape name =
     case shape.type_ of
         AString ->
@@ -162,10 +162,10 @@ modelShape shape name =
             BString |> TBasic () |> DAlias () |> Ok
 
         AUnknown ->
-            MultiError.error UnknownNotImplemented
+            UnknownNotImplemented () |> MultiError.error
 
 
-modelString : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
+modelString : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
 modelString shape name =
     case
         ( shape.enum
@@ -182,7 +182,7 @@ modelString shape name =
                         |> Ok
 
                 Nothing ->
-                    NoMembers name |> MultiError.error
+                    NoMembers () name |> MultiError.error
 
         ( Nothing, True ) ->
             RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
@@ -193,7 +193,7 @@ modelString shape name =
             BString |> TBasic () |> DAlias () |> Ok
 
 
-modelInt : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
+modelInt : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
 modelInt shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
@@ -205,7 +205,7 @@ modelInt shape name =
             BInt |> TBasic () |> DAlias () |> Ok
 
 
-modelStructure : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
+modelStructure : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
 modelStructure shape name =
     let
         -- shape.required lists names of fields that are required.
@@ -233,7 +233,7 @@ modelStructure shape name =
     in
     case shape.members of
         Nothing ->
-            NoMembers name |> MultiError.error
+            NoMembers () name |> MultiError.error
 
         Just members ->
             -- TODO: Rewrite this part as should just combine errors over the
@@ -260,23 +260,23 @@ modelStructure shape name =
                     Debug.todo "Fix error handling"
 
 
-modelList : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
+modelList : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
 modelList shape name =
     case shape.member of
         Nothing ->
-            ListMemberEmpty |> MultiError.error
+            ListMemberEmpty () |> MultiError.error
 
         Just ref ->
             shapeRefToL1Type ref |> CList |> TContainer () |> DAlias () |> Ok
 
 
-modelMap : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
+modelMap : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
 modelMap shape name =
     let
         keyTypeRes =
             case shape.key of
                 Nothing ->
-                    MapKeyEmpty |> MultiError.error
+                    MapKeyEmpty () |> MultiError.error
 
                 Just keyRef ->
                     shapeRefToL1Type keyRef |> Ok
@@ -284,7 +284,7 @@ modelMap shape name =
         valTypeRes =
             case shape.value of
                 Nothing ->
-                    MapValueEmpty |> MultiError.error
+                    MapValueEmpty () |> MultiError.error
 
                 Just valRef ->
                     shapeRefToL1Type valRef |> Ok
@@ -302,7 +302,7 @@ modelMap shape name =
 modelOperations :
     Dict String Operation
     -> Dict String (Declarable () RefChecked)
-    -> ResultME TransformError (Dict String Endpoint)
+    -> ResultME (TransformError ()) (Dict String Endpoint)
 modelOperations operations typeDict =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
@@ -310,7 +310,7 @@ modelOperations operations typeDict =
         |> MultiError.combineDict
 
 
-modelOperation : Dict String (Declarable () RefChecked) -> String -> Operation -> ResultME TransformError Endpoint
+modelOperation : Dict String (Declarable () RefChecked) -> String -> Operation -> ResultME (TransformError ()) Endpoint
 modelOperation typeDict name operation =
     -- TODO: The ref checking should be done by the L2 checker.
     let
@@ -325,7 +325,7 @@ modelOperation typeDict name operation =
                             TNamed () shapeRef.shape RcTUnit |> Ok
 
                         Nothing ->
-                            UnresolvedRef "Input" |> MultiError.error
+                            UnresolvedRef () "Input" |> MultiError.error
 
         requestRes =
             paramType operation.input "Input"
