@@ -309,7 +309,7 @@ requestFnRequest :
         }
 requestFnRequest name op =
     case op.request of
-        (L1.TNamed requestTypeName _) as l1RequestType ->
+        (L1.TNamed _ requestTypeName _) as l1RequestType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1RequestType
@@ -365,7 +365,7 @@ When there is no response shape, the decoder will be `(AWS.Core.Decode.FixedResu
 requestFnResponse : String -> Endpoint -> ( TypeAnnotation, Expression, Linkage )
 requestFnResponse name op =
     case op.response of
-        (L1.TNamed responseTypeName _) as l1ResponseType ->
+        (L1.TNamed _ responseTypeName _) as l1ResponseType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1ResponseType

@@ -52,7 +52,7 @@ errorToString err =
 transform : AWSService -> ResultME String AWSApiModel
 transform service =
     let
-        mappingsResult : ResultME String L1
+        mappingsResult : ResultME String (L1 ())
         mappingsResult =
             modelShapes service.shapes
                 |> MultiError.mapError errorToString
@@ -102,9 +102,9 @@ transform service =
         mappingsAndOperations
 
 
-shapeRefToL1Type : ShapeRef -> Type Unchecked
+shapeRefToL1Type : ShapeRef -> Type () Unchecked
 shapeRefToL1Type ref =
-    TNamed ref.shape Unchecked
+    TNamed () ref.shape Unchecked
 
 
 
@@ -116,7 +116,7 @@ shapeRefToL1Type ref =
 
 modelShapes :
     Dict String Shape
-    -> ResultME TransformError L1
+    -> ResultME TransformError (L1 ())
 modelShapes shapeDict =
     Dict.map
         (\key value -> modelShape value key)
@@ -125,29 +125,29 @@ modelShapes shapeDict =
         |> Result.map Dict.toList
 
 
-modelShape : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelShape : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
 modelShape shape name =
     case shape.type_ of
         AString ->
             modelString shape name
 
         ABoolean ->
-            BBool |> TBasic |> DAlias |> Ok
+            BBool |> TBasic () |> DAlias () |> Ok
 
         AInteger ->
             modelInt shape name
 
         ALong ->
-            BInt |> TBasic |> DAlias |> Ok
+            BInt |> TBasic () |> DAlias () |> Ok
 
         AFloat ->
-            BReal |> TBasic |> DAlias |> Ok
+            BReal |> TBasic () |> DAlias () |> Ok
 
         ADouble ->
-            BReal |> TBasic |> DAlias |> Ok
+            BReal |> TBasic () |> DAlias () |> Ok
 
         ABlob ->
-            BString |> TBasic |> DAlias |> Ok
+            BString |> TBasic () |> DAlias () |> Ok
 
         AStructure ->
             modelStructure shape name
@@ -159,13 +159,13 @@ modelShape shape name =
             modelMap shape name
 
         ATimestamp ->
-            BString |> TBasic |> DAlias |> Ok
+            BString |> TBasic () |> DAlias () |> Ok
 
         AUnknown ->
             MultiError.error UnknownNotImplemented
 
 
-modelString : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelString : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
 modelString shape name =
     case
         ( shape.enum
@@ -178,7 +178,7 @@ modelString shape name =
             case List.Nonempty.fromList enumVals of
                 Just nonemptyEnumVals ->
                     nonemptyEnumVals
-                        |> DEnum
+                        |> DEnum ()
                         |> Ok
 
                 Nothing ->
@@ -186,26 +186,26 @@ modelString shape name =
 
         ( Nothing, True ) ->
             RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
-                |> DRestricted
+                |> DRestricted ()
                 |> Ok
 
         ( _, _ ) ->
-            BString |> TBasic |> DAlias |> Ok
+            BString |> TBasic () |> DAlias () |> Ok
 
 
-modelInt : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelInt : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
 modelInt shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
             RInt { min = shape.min, max = shape.max, width = Nothing }
-                |> DRestricted
+                |> DRestricted ()
                 |> Ok
 
         _ ->
-            BInt |> TBasic |> DAlias |> Ok
+            BInt |> TBasic () |> DAlias () |> Ok
 
 
-modelStructure : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelStructure : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
 modelStructure shape name =
     let
         -- shape.required lists names of fields that are required.
@@ -217,7 +217,7 @@ modelStructure shape name =
             case shape.required of
                 Nothing ->
                     ( errAccum
-                    , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
+                    , ( memberName, type_ |> COptional |> TContainer () ) :: fieldAccum
                     )
 
                 Just requiredFields ->
@@ -228,7 +228,7 @@ modelStructure shape name =
 
                     else
                         ( errAccum
-                        , ( memberName, type_ |> COptional |> TContainer ) :: fieldAccum
+                        , ( memberName, type_ |> COptional |> TContainer () ) :: fieldAccum
                         )
     in
     case shape.members of
@@ -248,29 +248,29 @@ modelStructure shape name =
                         Just nonemptyFields ->
                             nonemptyFields
                                 |> Naming.sortNonemptyNamed
-                                |> TProduct
-                                |> DAlias
+                                |> TProduct ()
+                                |> DAlias ()
                                 |> Ok
 
                         Nothing ->
-                            TEmptyProduct |> DAlias |> Ok
+                            TEmptyProduct () |> DAlias () |> Ok
 
                 err :: errs ->
                     -- MultiError.errors err errs
                     Debug.todo "Fix error handling"
 
 
-modelList : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelList : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
 modelList shape name =
     case shape.member of
         Nothing ->
             ListMemberEmpty |> MultiError.error
 
         Just ref ->
-            shapeRefToL1Type ref |> CList |> TContainer |> DAlias |> Ok
+            shapeRefToL1Type ref |> CList |> TContainer () |> DAlias () |> Ok
 
 
-modelMap : Shape -> String -> ResultME TransformError (Declarable Unchecked)
+modelMap : Shape -> String -> ResultME TransformError (Declarable () Unchecked)
 modelMap shape name =
     let
         keyTypeRes =
@@ -290,7 +290,7 @@ modelMap shape name =
                     shapeRefToL1Type valRef |> Ok
     in
     MultiError.combine2
-        (\keyType valType -> CDict keyType valType |> TContainer |> DAlias)
+        (\keyType valType -> CDict keyType valType |> TContainer () |> DAlias ())
         keyTypeRes
         valTypeRes
 
@@ -301,7 +301,7 @@ modelMap shape name =
 
 modelOperations :
     Dict String Operation
-    -> Dict String (Declarable RefChecked)
+    -> Dict String (Declarable () RefChecked)
     -> ResultME TransformError (Dict String Endpoint)
 modelOperations operations typeDict =
     Dict.map
@@ -310,19 +310,19 @@ modelOperations operations typeDict =
         |> MultiError.combineDict
 
 
-modelOperation : Dict String (Declarable RefChecked) -> String -> Operation -> ResultME TransformError Endpoint
+modelOperation : Dict String (Declarable () RefChecked) -> String -> Operation -> ResultME TransformError Endpoint
 modelOperation typeDict name operation =
     -- TODO: The ref checking should be done by the L2 checker.
     let
         paramType opShapeRef errHint =
             case opShapeRef of
                 Nothing ->
-                    TUnit |> Ok
+                    TUnit () |> Ok
 
                 Just shapeRef ->
                     case Dict.get shapeRef.shape typeDict of
                         Just decl ->
-                            TNamed shapeRef.shape RcTUnit |> Ok
+                            TNamed () shapeRef.shape RcTUnit |> Ok
 
                         Nothing ->
                             UnresolvedRef "Input" |> MultiError.error

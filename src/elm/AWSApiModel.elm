@@ -11,8 +11,8 @@ import L2 exposing (L2, RefChecked)
 type alias Endpoint =
     { httpMethod : HttpMethod
     , url : String
-    , request : Type RefChecked
-    , response : Type RefChecked
+    , request : Type () RefChecked
+    , response : Type () RefChecked
     , documentation : Maybe (Comment DocComment)
     }
 
@@ -28,7 +28,7 @@ type alias AWSApiModel =
     , targetPrefix : Maybe String
     , signingName : Maybe String
     , jsonVersion : Maybe String
-    , declarations : L2
+    , declarations : L2 ()
     , operations : Dict String Endpoint
     , documentation : Maybe (Comment FileComment)
     }
