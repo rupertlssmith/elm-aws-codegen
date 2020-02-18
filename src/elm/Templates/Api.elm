@@ -1,4 +1,4 @@
-module Templates.Api exposing (coreServiceMod, docs, globalService, module_, regionalService, service, serviceFile)
+module Templates.Api exposing (coreServiceMod, globalService, module_, regionalService, service, serviceFile)
 
 import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import AWSApiModel exposing (AWSApiModel, Endpoint)
@@ -69,38 +69,6 @@ coreServiceMod =
 module_ : AWSApiModel -> List TopLevelExpose -> Module
 module_ model exposings =
     CG.normalModule model.name exposings
-
-
-
---== Module Documentation
--- {-| {{= it.documentation }}
---
--- @docs service
---
--- ## Table of Contents
---
--- * [Operations](#operations){{~ it.categories :c }}
--- * [{{= c.name }}](#{{= c.name.toLowerCase() }}){{~}}
---
--- ## Operations
---
--- {{~ it.operationNames :name }}* [{{= name }}](#{{= name }})
--- {{~}}
---
--- @docs {{= it.operationNames.join(',') }}
--- {{~ it.categories :c }}
--- ## {{= c.name }}
---
--- {{~ c.types.filter(t => t.exposeAs).map(t => t.type) :t }}* [{{= t }}](#{{= t }})
--- {{~}}
---
--- @docs {{= c.types.filter(t => t.exposeAs).map(t => t.type).join(',') }}
--- {{~}}
--- -}
-
-
-docs =
-    ""
 
 
 
@@ -437,27 +405,6 @@ jsonCodecs model =
         model.declarations
         |> List.unzip
         |> Tuple.mapSecond CG.combineLinkage
-
-
-
--- {{? t.toStringDef }}
--- {{= t.toStringDef }}
--- {{?}}
--- {{~}}
-
-
-toParams =
-    ()
-
-
-
--- {{~ it.types.filter(t => t.category === 'request') :t }}
--- {{= t.typeDef }}
--- {{~}}
-
-
-requests =
-    ()
 
 
 
