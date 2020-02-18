@@ -13,6 +13,7 @@ import Pretty
 import Random exposing (Seed)
 import String.Case as Case
 import Task
+import Templates.AWSStubs
 import Templates.Api
 import Time exposing (Posix)
 import Transform
