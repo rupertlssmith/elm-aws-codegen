@@ -13,7 +13,7 @@ import L1 exposing (Basic(..), Container(..), Declarable(..), L1, Restricted(..)
 import L2 exposing (L2, RefChecked(..))
 import List.Nonempty
 import Maybe.Extra
-import MultiError exposing (ResultME)
+import ResultME exposing (ResultME)
 import Naming
 import String.Case as Case
 
@@ -55,28 +55,28 @@ transform service =
         mappingsResult : ResultME String (L1 ())
         mappingsResult =
             modelShapes service.shapes
-                |> MultiError.mapError errorToString
+                |> ResultME.mapError errorToString
 
         l2mappingsResult =
             mappingsResult
-                |> MultiError.andThen
-                    (Checker.check >> MultiError.mapError Checker.errorToString)
+                |> ResultME.andThen
+                    (Checker.check >> ResultME.mapError Checker.errorToString)
 
         operationsResult : ResultME String (Dict String Endpoint)
         operationsResult =
             l2mappingsResult
-                |> MultiError.andThen
+                |> ResultME.andThen
                     (modelOperations service.operations
-                        >> MultiError.mapError errorToString
+                        >> ResultME.mapError errorToString
                     )
 
         mappingsAndOperations =
-            MultiError.combine2
+            ResultME.combine2
                 Tuple.pair
                 l2mappingsResult
                 operationsResult
     in
-    MultiError.map
+    ResultME.map
         (\( mappings, operations ) ->
             { declarations = mappings
             , operations = operations
@@ -121,7 +121,7 @@ modelShapes shapeDict =
     Dict.map
         (\key value -> modelShape value key)
         shapeDict
-        |> MultiError.combineDict
+        |> ResultME.combineDict
         |> Result.map Dict.toList
 
 
@@ -162,7 +162,7 @@ modelShape shape name =
             BString |> TBasic () |> DAlias () |> Ok
 
         AUnknown ->
-            UnknownNotImplemented () |> MultiError.error
+            UnknownNotImplemented () |> ResultME.error
 
 
 modelString : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
@@ -182,7 +182,7 @@ modelString shape name =
                         |> Ok
 
                 Nothing ->
-                    NoMembers () name |> MultiError.error
+                    NoMembers () name |> ResultME.error
 
         ( Nothing, True ) ->
             RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
@@ -233,7 +233,7 @@ modelStructure shape name =
     in
     case shape.members of
         Nothing ->
-            NoMembers () name |> MultiError.error
+            NoMembers () name |> ResultME.error
 
         Just members ->
             -- TODO: Rewrite this part as should just combine errors over the
@@ -256,7 +256,7 @@ modelStructure shape name =
                             TEmptyProduct () |> DAlias () |> Ok
 
                 err :: errs ->
-                    -- MultiError.errors err errs
+                    -- ResultME.errors err errs
                     Debug.todo "Fix error handling"
 
 
@@ -264,7 +264,7 @@ modelList : Shape -> String -> ResultME (TransformError ()) (Declarable () Unche
 modelList shape name =
     case shape.member of
         Nothing ->
-            ListMemberEmpty () |> MultiError.error
+            ListMemberEmpty () |> ResultME.error
 
         Just ref ->
             shapeRefToL1Type ref |> CList |> TContainer () |> DAlias () |> Ok
@@ -276,7 +276,7 @@ modelMap shape name =
         keyTypeRes =
             case shape.key of
                 Nothing ->
-                    MapKeyEmpty () |> MultiError.error
+                    MapKeyEmpty () |> ResultME.error
 
                 Just keyRef ->
                     shapeRefToL1Type keyRef |> Ok
@@ -284,12 +284,12 @@ modelMap shape name =
         valTypeRes =
             case shape.value of
                 Nothing ->
-                    MapValueEmpty () |> MultiError.error
+                    MapValueEmpty () |> ResultME.error
 
                 Just valRef ->
                     shapeRefToL1Type valRef |> Ok
     in
-    MultiError.combine2
+    ResultME.combine2
         (\keyType valType -> CDict keyType valType |> TContainer () |> DAlias ())
         keyTypeRes
         valTypeRes
@@ -307,7 +307,7 @@ modelOperations operations typeDict =
     Dict.map
         (\name operation -> modelOperation typeDict name operation)
         operations
-        |> MultiError.combineDict
+        |> ResultME.combineDict
 
 
 modelOperation : Dict String (Declarable () RefChecked) -> String -> Operation -> ResultME (TransformError ()) Endpoint
@@ -325,7 +325,7 @@ modelOperation typeDict name operation =
                             TNamed () shapeRef.shape RcTUnit |> Ok
 
                         Nothing ->
-                            UnresolvedRef () "Input" |> MultiError.error
+                            UnresolvedRef () "Input" |> ResultME.error
 
         requestRes =
             paramType operation.input "Input"
@@ -333,7 +333,7 @@ modelOperation typeDict name operation =
         responseRes =
             paramType operation.output "Output"
     in
-    MultiError.combine2
+    ResultME.combine2
         (\request response ->
             { httpMethod = operation.http.method
             , url = operation.http.requestUri |> Maybe.withDefault "/"
