@@ -17,11 +17,11 @@ defaultProperties =
             , ( "apiVersion", PString "1.0" )
             , ( "protocol", PEnum "JSON" )
             , ( "signer", PEnum "V4" )
-            , ( "xmlNamespace", PString "" )
-            , ( "targetPrefix", PString "" )
-            , ( "signingName", PString "" )
-            , ( "jsonVersion", PString "" )
-            , ( "documentation", PString "" )
+            , ( "xmlNamespace", POptional Nothing )
+            , ( "targetPrefix", POptional Nothing )
+            , ( "signingName", POptional Nothing )
+            , ( "jsonVersion", POptional Nothing )
+            , ( "documentation", POptional Nothing )
             ]
     , alias =
         Dict.fromList
