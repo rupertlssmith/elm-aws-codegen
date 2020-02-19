@@ -13,8 +13,8 @@ import L1 exposing (Basic(..), Container(..), Declarable(..), L1, Restricted(..)
 import L2 exposing (L2, RefChecked(..))
 import List.Nonempty
 import Maybe.Extra
-import ResultME exposing (ResultME)
 import Naming
+import ResultME exposing (ResultME)
 import String.Case as Case
 
 
@@ -132,22 +132,22 @@ modelShape shape name =
             modelString shape name
 
         ABoolean ->
-            BBool |> TBasic () |> DAlias () |> Ok
+            DAlias () (BBool |> TBasic ()) L1.emptyProperties |> Ok
 
         AInteger ->
             modelInt shape name
 
         ALong ->
-            BInt |> TBasic () |> DAlias () |> Ok
+            DAlias () (BInt |> TBasic ()) L1.emptyProperties |> Ok
 
         AFloat ->
-            BReal |> TBasic () |> DAlias () |> Ok
+            DAlias () (BReal |> TBasic ()) L1.emptyProperties |> Ok
 
         ADouble ->
-            BReal |> TBasic () |> DAlias () |> Ok
+            DAlias () (BReal |> TBasic ()) L1.emptyProperties |> Ok
 
         ABlob ->
-            BString |> TBasic () |> DAlias () |> Ok
+            DAlias () (BString |> TBasic ()) L1.emptyProperties |> Ok
 
         AStructure ->
             modelStructure shape name
@@ -159,7 +159,7 @@ modelShape shape name =
             modelMap shape name
 
         ATimestamp ->
-            BString |> TBasic () |> DAlias () |> Ok
+            DAlias () (BString |> TBasic ()) L1.emptyProperties |> Ok
 
         AUnknown ->
             UnknownNotImplemented () |> ResultME.error
@@ -177,8 +177,7 @@ modelString shape name =
         ( Just enumVals, False ) ->
             case List.Nonempty.fromList enumVals of
                 Just nonemptyEnumVals ->
-                    nonemptyEnumVals
-                        |> DEnum ()
+                    DEnum () nonemptyEnumVals L1.emptyProperties
                         |> Ok
 
                 Nothing ->
@@ -190,7 +189,7 @@ modelString shape name =
                 |> Ok
 
         ( _, _ ) ->
-            BString |> TBasic () |> DAlias () |> Ok
+            DAlias () (TBasic () BString) L1.emptyProperties |> Ok
 
 
 modelInt : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
@@ -202,7 +201,7 @@ modelInt shape name =
                 |> Ok
 
         _ ->
-            BInt |> TBasic () |> DAlias () |> Ok
+            DAlias () (BInt |> TBasic ()) L1.emptyProperties |> Ok
 
 
 modelStructure : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
@@ -217,18 +216,26 @@ modelStructure shape name =
             case shape.required of
                 Nothing ->
                     ( errAccum
-                    , ( memberName, type_ |> COptional |> TContainer () ) :: fieldAccum
+                    , ( memberName
+                      , type_ |> COptional |> TContainer ()
+                      , L1.emptyProperties
+                      )
+                        :: fieldAccum
                     )
 
                 Just requiredFields ->
                     if List.member memberName requiredFields then
                         ( errAccum
-                        , ( memberName, type_ ) :: fieldAccum
+                        , ( memberName, type_, L1.emptyProperties ) :: fieldAccum
                         )
 
                     else
                         ( errAccum
-                        , ( memberName, type_ |> COptional |> TContainer () ) :: fieldAccum
+                        , ( memberName
+                          , type_ |> COptional |> TContainer ()
+                          , L1.emptyProperties
+                          )
+                            :: fieldAccum
                         )
     in
     case shape.members of
@@ -246,14 +253,16 @@ modelStructure shape name =
                 [] ->
                     case List.Nonempty.fromList fields of
                         Just nonemptyFields ->
-                            nonemptyFields
-                                |> Naming.sortNonemptyNamed
-                                |> TProduct ()
-                                |> DAlias ()
-                                |> Ok
+                            let
+                                product =
+                                    nonemptyFields
+                                        |> Naming.sortNonemptyNamed
+                                        |> TProduct ()
+                            in
+                            DAlias () product L1.emptyProperties |> Ok
 
                         Nothing ->
-                            TEmptyProduct () |> DAlias () |> Ok
+                            DAlias () (TEmptyProduct ()) L1.emptyProperties |> Ok
 
                 err :: errs ->
                     -- ResultME.errors err errs
@@ -267,7 +276,7 @@ modelList shape name =
             ListMemberEmpty () |> ResultME.error
 
         Just ref ->
-            shapeRefToL1Type ref |> CList |> TContainer () |> DAlias () |> Ok
+            DAlias () (shapeRefToL1Type ref |> CList |> TContainer ()) L1.emptyProperties |> Ok
 
 
 modelMap : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
@@ -290,7 +299,7 @@ modelMap shape name =
                     shapeRefToL1Type valRef |> Ok
     in
     ResultME.combine2
-        (\keyType valType -> CDict keyType valType |> TContainer () |> DAlias ())
+        (\keyType valType -> DAlias () (TContainer () (CDict keyType valType)) L1.emptyProperties)
         keyTypeRes
         valTypeRes
 
