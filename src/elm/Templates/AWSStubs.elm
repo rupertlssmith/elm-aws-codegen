@@ -2,35 +2,54 @@ module Templates.AWSStubs exposing (AWSStubsError(..), check, defaultProperties,
 
 import Dict
 import Elm.CodeGen as CG exposing (File)
-import L1 exposing (Properties, Property(..))
+import Enum exposing (Enum)
+import L1 exposing (PropSpec(..), Properties, Property(..))
 import L2 exposing (L2)
 import L3 exposing (DefaultProperties, Processor)
 import ResultME exposing (ResultME)
 
 
+protocolEnum : Enum String
+protocolEnum =
+    Enum.define [ "JSON" ] identity
+
+
+signerEnum : Enum String
+signerEnum =
+    Enum.define [ "V4" ] identity
+
+
+elmEnumStyleEnum : Enum String
+elmEnumStyleEnum =
+    Enum.define [ "customType", "guardedType", "listOfStrings" ] identity
+
+
 defaultProperties : DefaultProperties
 defaultProperties =
     { top =
-        Dict.fromList
+        L1.defineProperties
+            []
             [ ( "name", PQName [ "AWS" ] "Stub" )
             , ( "isRegional", PBool False )
             , ( "apiVersion", PString "1.0" )
-            , ( "protocol", PEnum "JSON" )
-            , ( "signer", PEnum "V4" )
-            , ( "xmlNamespace", POptional Nothing )
-            , ( "targetPrefix", POptional Nothing )
-            , ( "signingName", POptional Nothing )
-            , ( "jsonVersion", POptional Nothing )
-            , ( "documentation", POptional Nothing )
+            , ( "protocol", PEnum protocolEnum "JSON" )
+            , ( "signer", PEnum signerEnum "V4" )
+            , ( "xmlNamespace", POptional PSString Nothing )
+            , ( "targetPrefix", POptional PSString Nothing )
+            , ( "signingName", POptional PSString Nothing )
+            , ( "jsonVersion", POptional PSString Nothing )
+            , ( "documentation", POptional PSString Nothing )
             ]
     , alias =
-        Dict.fromList
-            [ ( "awsStubGeneration", POptional Nothing ) ]
-    , sum = Dict.empty
+        L1.defineProperties
+            []
+            [ ( "awsStubGeneration", POptional PSString Nothing ) ]
+    , sum = L1.defineProperties [] []
     , enum =
-        Dict.fromList
-            [ ( "elmEnumStyle", PEnum "customType" ) ]
-    , fields = Dict.empty
+        L1.defineProperties
+            []
+            [ ( "elmEnumStyle", PEnum elmEnumStyleEnum "customType" ) ]
+    , fields = L1.defineProperties [] []
     }
 
 
