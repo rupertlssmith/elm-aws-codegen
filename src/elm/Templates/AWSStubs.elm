@@ -5,7 +5,7 @@ import Elm.CodeGen as CG exposing (File)
 import Enum exposing (Enum)
 import L1 exposing (PropSpec(..), Properties, Property(..))
 import L2 exposing (L2)
-import L3 exposing (DefaultProperties, Processor)
+import L3 exposing (DefaultProperties, L3, Processor)
 import ResultME exposing (ResultME)
 
 
@@ -76,11 +76,11 @@ errorToString =
     Debug.todo "errorToString"
 
 
-check : L2 pos -> ResultME err (L2 pos)
+check : L3 pos -> ResultME err (L3 pos)
 check =
     Debug.todo "check"
 
 
-generate : L2 pos -> File
+generate : L3 pos -> File
 generate =
     Debug.todo "generate"
