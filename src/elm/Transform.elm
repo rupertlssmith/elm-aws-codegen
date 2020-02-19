@@ -52,16 +52,25 @@ errorToString err =
 transform : AWSService -> ResultME String AWSApiModel
 transform service =
     let
+        -- TODO:
+        -- Fill in codegen property to generate these as the model.
         mappingsResult : ResultME String (L1 ())
         mappingsResult =
             modelShapes service.shapes
                 |> ResultME.mapError errorToString
 
+        -- TODO:
+        -- Push the L2 check until after the operations, as those can now be
+        -- checked too.
         l2mappingsResult =
             mappingsResult
                 |> ResultME.andThen
                     (Checker.check >> ResultME.mapError Checker.errorToString)
 
+        -- TODO:
+        -- Make operationsResult -> L1 ()
+        -- Turn operations into functions, mark for codegen as endpoints.
+        -- Fill in other endpoint properties.
         operationsResult : ResultME String (Dict String Endpoint)
         operationsResult =
             l2mappingsResult
@@ -78,6 +87,7 @@ transform service =
     in
     ResultME.map
         (\( mappings, operations ) ->
+            -- TODO: Lift all these fields into properties.
             { declarations = mappings
             , operations = operations
             , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
