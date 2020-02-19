@@ -24,26 +24,31 @@ elmEnumStyleEnum =
     Enum.define [ "customType", "guardedType", "listOfStrings" ] identity
 
 
+awsStubGenerationEnum : Enum String
+awsStubGenerationEnum =
+    Enum.define [ "model", "endpoint" ] identity
+
+
 defaultProperties : DefaultProperties
 defaultProperties =
     { top =
         L1.defineProperties
-            []
-            [ ( "name", PQName [ "AWS" ] "Stub" )
-            , ( "isRegional", PBool False )
+            [ ( "name", PSQName )
+            , ( "xmlNamespace", PSOptional PSString )
+            , ( "targetPrefix", PSOptional PSString )
+            , ( "signingName", PSOptional PSString )
+            , ( "jsonVersion", PSOptional PSString )
+            , ( "documentation", PSOptional PSString )
+            ]
+            [ ( "isRegional", PBool False )
             , ( "apiVersion", PString "1.0" )
             , ( "protocol", PEnum protocolEnum "JSON" )
             , ( "signer", PEnum signerEnum "V4" )
-            , ( "xmlNamespace", POptional PSString Nothing )
-            , ( "targetPrefix", POptional PSString Nothing )
-            , ( "signingName", POptional PSString Nothing )
-            , ( "jsonVersion", POptional PSString Nothing )
-            , ( "documentation", POptional PSString Nothing )
             ]
     , alias =
         L1.defineProperties
+            [ ( "awsStubGeneration", PSOptional (PSEnum awsStubGenerationEnum) ) ]
             []
-            [ ( "awsStubGeneration", POptional PSString Nothing ) ]
     , sum = L1.defineProperties [] []
     , enum =
         L1.defineProperties
