@@ -106,52 +106,49 @@ check =
     Debug.todo "check"
 
 
-generate : L3 pos -> ResultME String File
+
+--generate : L3 pos -> ResultME String File
+
+
+generate : L3 pos -> ResultME L3.PropCheckError File
 generate model =
-    let
-        ( serviceFn, serviceLinkage ) =
-            service model
+    ResultME.combine5
+        (\( serviceFn, serviceLinkage ) ( endpoints, operationsLinkage ) ( types, typeDeclLinkage ) ( codecs, codecsLinkage ) documentation ->
+            let
+                declarations =
+                    codecs
+                        |> List.append types
+                        |> List.append endpoints
+                        |> (::) serviceFn
 
-        ( endpoints, operationsLinkage ) =
-            operations model
+                linkages =
+                    [ serviceLinkage, operationsLinkage, typeDeclLinkage, codecsLinkage ]
 
-        ( types, typeDeclLinkage ) =
-            typeDeclarations model
+                ( imports, exposings ) =
+                    CG.combineLinkage linkages
 
-        ( codecs, codecsLinkage ) =
-            jsonCodecs model
-
-        declarations =
-            codecs
-                |> List.append types
-                |> List.append endpoints
-                |> (::) serviceFn
-
-        linkages =
-            [ serviceLinkage, operationsLinkage, typeDeclLinkage, codecsLinkage ]
-
-        ( imports, exposings ) =
-            CG.combineLinkage linkages
-
-        moduleSpec =
+                -- doc =
+                --     documentation
+                --         |> Maybe.withDefault CG.emptyFileComment
+                --         |> CG.markdown "# Service definition."
+                --         |> CG.docTagsFromExposings (Tuple.second serviceLinkage)
+                --         |> CG.markdown "# Service endpoints."
+                --         |> CG.docTagsFromExposings (Tuple.second operationsLinkage)
+                --         |> CG.markdown "# API data model."
+                --         |> CG.docTagsFromExposings (Tuple.second typeDeclLinkage)
+                --         |> CG.markdown "# Codecs for the data model."
+                --         |> CG.docTagsFromExposings (Tuple.second codecsLinkage)
+            in
+            -- CG.file moduleSpec imports declarations (Just doc)
             module_ model exposings
-
-        -- doc =
-        --     model.documentation
-        --         |> Maybe.withDefault CG.emptyFileComment
-        --         |> CG.markdown "# Service definition."
-        --         |> CG.docTagsFromExposings (Tuple.second serviceLinkage)
-        --         |> CG.markdown "# Service endpoints."
-        --         |> CG.docTagsFromExposings (Tuple.second operationsLinkage)
-        --         |> CG.markdown "# API data model."
-        --         |> CG.docTagsFromExposings (Tuple.second typeDeclLinkage)
-        --         |> CG.markdown "# Codecs for the data model."
-        --         |> CG.docTagsFromExposings (Tuple.second codecsLinkage)
-    in
-    -- CG.file moduleSpec imports declarations (Just doc)
-    moduleSpec
-        |> ResultME.map (\mod -> CG.file mod imports declarations Nothing)
-        |> ResultME.mapError L3.propCheckErrorToString
+                |> ResultME.map (\moduleSpec -> CG.file moduleSpec imports declarations Nothing)
+        )
+        (service model)
+        (operations model)
+        (typeDeclarations model)
+        (jsonCodecs model)
+        (L3.getOptionalStringProperty "documentation" model.properties)
+        |> ResultME.flatten
 
 
 
@@ -313,7 +310,7 @@ globalService model =
 --== Operations
 
 
-operations : L3 pos -> ( List Declaration, Linkage )
+operations : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 operations model =
     -- Dict.foldl
     --     (\name operation ( declAccum, linkageAccum ) ->
@@ -323,7 +320,7 @@ operations model =
     --     )
     --     ( [], CG.emptyLinkage )
     --     model.operations
-    ( [], CG.emptyLinkage )
+    ( [], CG.emptyLinkage ) |> Ok
 
 
 requestFn :
@@ -525,7 +522,7 @@ requestFnResponse name props pos request response =
 --== Types and Codecs
 
 
-typeDeclarations : L3 pos -> ( List Declaration, Linkage )
+typeDeclarations : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 typeDeclarations model =
     -- Dict.foldl
     --     (\name decl ( declAccum, linkageAccum ) ->
@@ -540,10 +537,10 @@ typeDeclarations model =
     --     )
     --     ( [], CG.emptyLinkage )
     --     model.declarations
-    ( [], CG.emptyLinkage )
+    ( [], CG.emptyLinkage ) |> Ok
 
 
-jsonCodecs : L3 pos -> ( List Declaration, Linkage )
+jsonCodecs : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 jsonCodecs model =
     -- Dict.foldl
     --     (\name decl accum -> Templates.L1.codec name decl :: accum)
@@ -551,7 +548,7 @@ jsonCodecs model =
     --     model.declarations
     --     |> List.unzip
     --     |> Tuple.mapSecond CG.combineLinkage
-    ( [], CG.emptyLinkage )
+    ( [], CG.emptyLinkage ) |> Ok
 
 
 
