@@ -194,8 +194,10 @@ modelString shape name =
                     NoMembers () name |> ResultME.error
 
         ( Nothing, True ) ->
-            RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
-                |> DRestricted ()
+            DRestricted
+                ()
+                (RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern })
+                L1.emptyProperties
                 |> Ok
 
         ( _, _ ) ->
@@ -206,8 +208,9 @@ modelInt : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchec
 modelInt shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
-            RInt { min = shape.min, max = shape.max, width = Nothing }
-                |> DRestricted ()
+            DRestricted ()
+                (RInt { min = shape.min, max = shape.max, width = Nothing })
+                L1.emptyProperties
                 |> Ok
 
         _ ->
