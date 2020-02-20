@@ -168,14 +168,17 @@ module_ model exposings =
 --== Service Definition
 
 
-service : L3 pos -> ( Declaration, Linkage )
+service : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
 service model =
-    -- if model.isRegional then
-    --     regionalService model
-    --
-    -- else
-    --     globalService model
-    ( CG.portDecl "dummy" CG.unitAnn, CG.emptyLinkage )
+    L3.getBoolProperty "isRegional" model.properties
+        |> ResultME.andThen
+            (\isRegional ->
+                if isRegional then
+                    regionalService model
+
+                else
+                    globalService model
+            )
 
 
 {-| optionsFn : L3 pos -> LetDeclaration
@@ -222,40 +225,47 @@ optionsFn model =
         (L3.getOptionalStringProperty "xmlNamespace" model.properties)
 
 
-regionalService : L3 pos -> ( Declaration, Linkage )
+regionalService : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
 regionalService model =
-    -- let
-    --     sig =
-    --         CG.funAnn
-    --             (CG.fqTyped coreServiceMod "Region" [])
-    --             (CG.fqTyped coreServiceMod "Service" [])
-    --
-    --     impl =
-    --         CG.apply
-    --             [ CG.fqFun coreServiceMod "defineRegional"
-    --             , CG.string model.endpointPrefix
-    --             , CG.string model.apiVersion
-    --             , protocolExpr model.protocol
-    --             , signerExpr model.signer
-    --             , CG.fun "optionsFn"
-    --             ]
-    --             |> CG.letExpr [ optionsFn model ]
-    --
-    --     doc =
-    --         CG.emptyDocComment
-    --             |> CG.markdown "Configuration for this service."
-    -- in
-    -- ( CG.funDecl
-    --     (Just doc)
-    --     (Just sig)
-    --     "service"
-    --     []
-    --     impl
-    -- , CG.emptyLinkage
-    --     |> CG.addImport (CG.importStmt coreServiceMod Nothing Nothing)
-    --     |> CG.addExposing (CG.funExpose "service")
-    -- )
-    ( CG.portDecl "dummy" CG.unitAnn, CG.emptyLinkage )
+    ResultME.combine5
+        (\endpointPrefix apiVersion protocol signer options ->
+            let
+                sig =
+                    CG.funAnn
+                        (CG.fqTyped coreServiceMod "Region" [])
+                        (CG.fqTyped coreServiceMod "Service" [])
+
+                impl =
+                    CG.apply
+                        [ CG.fqFun coreServiceMod "defineRegional"
+                        , CG.string endpointPrefix
+                        , CG.string apiVersion
+                        , CG.fqVal coreServiceMod protocol
+                        , CG.fqVal coreServiceMod signer
+                        , CG.fun "optionsFn"
+                        ]
+                        |> CG.letExpr [ options ]
+
+                doc =
+                    CG.emptyDocComment
+                        |> CG.markdown "Configuration for this service."
+            in
+            ( CG.funDecl
+                (Just doc)
+                (Just sig)
+                "service"
+                []
+                impl
+            , CG.emptyLinkage
+                |> CG.addImport (CG.importStmt coreServiceMod Nothing Nothing)
+                |> CG.addExposing (CG.funExpose "service")
+            )
+        )
+        (L3.getStringProperty "endpointPrefix" model.properties)
+        (L3.getStringProperty "apiVersion" model.properties)
+        (L3.getEnumProperty protocolEnum "protocol" model.properties)
+        (L3.getEnumProperty signerEnum "signer" model.properties)
+        (optionsFn model)
 
 
 globalService : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
