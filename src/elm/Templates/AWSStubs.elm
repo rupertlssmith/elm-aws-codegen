@@ -524,20 +524,28 @@ requestFnResponse name props pos request response =
 
 typeDeclarations : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 typeDeclarations model =
-    -- Dict.foldl
-    --     (\name decl ( declAccum, linkageAccum ) ->
-    --         let
-    --             doc =
-    --                 CG.emptyDocComment
-    --                     |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
-    --         in
-    --         Templates.L1.typeDecl name doc decl
-    --             |> Tuple.mapFirst (List.append declAccum)
-    --             |> Tuple.mapSecond (\innerLinkage -> CG.combineLinkage [ linkageAccum, innerLinkage ])
-    --     )
-    --     ( [], CG.emptyLinkage )
-    --     model.declarations
-    ( [], CG.emptyLinkage ) |> Ok
+    Dict.foldl
+        (\name decl ( declAccum, linkageAccum ) ->
+            let
+                doc =
+                    CG.emptyDocComment
+                        |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
+            in
+            L3.getOptionalEnumProperty awsStubGenerationEnum "awsStubGeneration" model.properties
+                |> ResultME.map
+                    (\stubGen ->
+                        case stubGen of
+                            Just "model" ->
+                                Templates.L1.typeDecl name doc decl
+                                    |> Tuple.mapFirst (List.append declAccum)
+                                    |> Tuple.mapSecond (\innerLinkage -> CG.combineLinkage [ linkageAccum, innerLinkage ])
+
+                            _ ->
+                                ( declAccum, linkageAccum )
+                    )
+        )
+        ( [], CG.emptyLinkage )
+        model.declarations
 
 
 jsonCodecs : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
