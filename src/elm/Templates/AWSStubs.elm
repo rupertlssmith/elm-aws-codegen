@@ -181,38 +181,45 @@ service model =
 {-| optionsFn : L3 pos -> LetDeclaration
 -}
 optionsFn model =
-    let
-        jsonVersionOption =
-            Maybe.map
-                (\name -> CG.apply [ CG.fqFun coreServiceMod "setJsonVersion", CG.string name ])
-                model.jsonVersion
+    ResultME.combine4
+        (\jsonVersion signingName targetPrefix xmlNamespace ->
+            let
+                jsonVersionOption =
+                    Maybe.map
+                        (\name -> CG.apply [ CG.fqFun coreServiceMod "setJsonVersion", CG.string name ])
+                        jsonVersion
 
-        signingNameOption =
-            Maybe.map
-                (\name -> CG.apply [ CG.fqFun coreServiceMod "setSigningName", CG.string name ])
-                model.signingName
+                signingNameOption =
+                    Maybe.map
+                        (\name -> CG.apply [ CG.fqFun coreServiceMod "setSigningName", CG.string name ])
+                        signingName
 
-        targetPrefixOption =
-            Maybe.map
-                (\name -> CG.apply [ CG.fqFun coreServiceMod "setTargetPrefix", CG.string name ])
-                model.targetPrefix
+                targetPrefixOption =
+                    Maybe.map
+                        (\name -> CG.apply [ CG.fqFun coreServiceMod "setTargetPrefix", CG.string name ])
+                        targetPrefix
 
-        xmlNamespaceOption =
-            Maybe.map
-                (\name -> CG.apply [ CG.fqFun coreServiceMod "setXmlNamespace", CG.string name ])
-                model.xmlNamespace
+                xmlNamespaceOption =
+                    Maybe.map
+                        (\name -> CG.apply [ CG.fqFun coreServiceMod "setXmlNamespace", CG.string name ])
+                        xmlNamespace
 
-        options =
-            [ jsonVersionOption, signingNameOption, targetPrefixOption, xmlNamespaceOption ] |> Maybe.Extra.values
-    in
-    (case options of
-        [] ->
-            CG.fun "identity"
+                options =
+                    [ jsonVersionOption, signingNameOption, targetPrefixOption, xmlNamespaceOption ] |> Maybe.Extra.values
+            in
+            (case options of
+                [] ->
+                    CG.fun "identity"
 
-        op :: ops ->
-            CG.chain op (List.map CG.parens ops)
-    )
-        |> CG.letFunction "optionsFn" []
+                op :: ops ->
+                    CG.chain op (List.map CG.parens ops)
+            )
+                |> CG.letFunction "optionsFn" []
+        )
+        (L3.getOptionalStringProperty "jsonVersion" model.properties)
+        (L3.getOptionalStringProperty "signingName" model.properties)
+        (L3.getOptionalStringProperty "targetPrefix" model.properties)
+        (L3.getOptionalStringProperty "xmlNamespace" model.properties)
 
 
 regionalService : L3 pos -> ( Declaration, Linkage )
@@ -253,8 +260,8 @@ regionalService model =
 
 globalService : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
 globalService model =
-    ResultME.combine4
-        (\endpointPrefix apiVersion protocol signer ->
+    ResultME.combine5
+        (\endpointPrefix apiVersion protocol signer options ->
             let
                 sig =
                     CG.fqTyped coreServiceMod "Service" []
@@ -268,7 +275,7 @@ globalService model =
                         , CG.fqVal coreServiceMod signer
                         , CG.fun "optionsFn"
                         ]
-                        |> CG.letExpr [ optionsFn model ]
+                        |> CG.letExpr [ options ]
 
                 doc =
                     CG.emptyDocComment
@@ -289,6 +296,7 @@ globalService model =
         (L3.getStringProperty "apiVersion" model.properties)
         (L3.getEnumProperty protocolEnum "protocol" model.properties)
         (L3.getEnumProperty signerEnum "signer" model.properties)
+        (optionsFn model)
 
 
 
