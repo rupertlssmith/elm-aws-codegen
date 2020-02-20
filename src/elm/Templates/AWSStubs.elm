@@ -106,7 +106,7 @@ check =
     Debug.todo "check"
 
 
-generate : L3 pos -> Result String File
+generate : L3 pos -> ResultME String File
 generate model =
     let
         ( serviceFn, serviceLinkage ) =
@@ -150,18 +150,18 @@ generate model =
     in
     -- CG.file moduleSpec imports declarations (Just doc)
     moduleSpec
-        |> Result.map (\mod -> CG.file mod imports declarations Nothing)
-        |> Result.mapError L3.propCheckErrorToString
+        |> ResultME.map (\mod -> CG.file mod imports declarations Nothing)
+        |> ResultME.mapError L3.propCheckErrorToString
 
 
 
 --== Module Specification (with exposing).
 
 
-module_ : L3 pos -> List TopLevelExpose -> Result L3.PropCheckError Module
+module_ : L3 pos -> List TopLevelExpose -> ResultME L3.PropCheckError Module
 module_ model exposings =
     L3.getQNameProperty "name" model.properties
-        |> Result.map (\( path, name ) -> CG.normalModule (name :: path) exposings)
+        |> ResultME.map (\( path, name ) -> CG.normalModule (name :: path) exposings)
 
 
 
@@ -249,38 +249,45 @@ regionalService model =
     ( CG.portDecl "dummy" CG.unitAnn, CG.emptyLinkage )
 
 
-globalService : L3 pos -> ( Declaration, Linkage )
+globalService : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
 globalService model =
-    -- let
-    --     sig =
-    --         CG.fqTyped coreServiceMod "Service" []
-    --
-    --     impl =
-    --         CG.apply
-    --             [ CG.fqFun coreServiceMod "defineGlobal"
-    --             , CG.string model.endpointPrefix
-    --             , CG.string model.apiVersion
-    --             , protocolExpr model.protocol
-    --             , signerExpr model.signer
-    --             , CG.fun "optionsFn"
-    --             ]
-    --             |> CG.letExpr [ optionsFn model ]
-    --
-    --     doc =
-    --         CG.emptyDocComment
-    --             |> CG.markdown "Configuration for this service."
-    -- in
-    -- ( CG.funDecl
-    --     (Just doc)
-    --     (Just sig)
-    --     "service"
-    --     []
-    --     impl
-    -- , CG.emptyLinkage
-    --     |> CG.addImport (CG.importStmt coreServiceMod Nothing Nothing)
-    --     |> CG.addExposing (CG.funExpose "service")
-    -- )
-    ( CG.portDecl "dummy" CG.unitAnn, CG.emptyLinkage )
+    ResultME.combine4
+        (\endpointPrefix apiVersion protocol signer ->
+            let
+                sig =
+                    CG.fqTyped coreServiceMod "Service" []
+
+                impl =
+                    CG.apply
+                        [ CG.fqFun coreServiceMod "defineGlobal"
+                        , CG.string endpointPrefix
+                        , CG.string apiVersion
+                        , CG.fqVal coreServiceMod protocol
+                        , CG.fqVal coreServiceMod signer
+                        , CG.fun "optionsFn"
+                        ]
+                        --|> CG.letExpr [ optionsFn model ]
+                        |> CG.letExpr []
+
+                doc =
+                    CG.emptyDocComment
+                        |> CG.markdown "Configuration for this service."
+            in
+            ( CG.funDecl
+                (Just doc)
+                (Just sig)
+                "service"
+                []
+                impl
+            , CG.emptyLinkage
+                |> CG.addImport (CG.importStmt coreServiceMod Nothing Nothing)
+                |> CG.addExposing (CG.funExpose "service")
+            )
+        )
+        (L3.getStringProperty "endpointPrefix" model.properties)
+        (L3.getStringProperty "apiVersion" model.properties)
+        (L3.getEnumProperty protocolEnum "protocol" model.properties)
+        (L3.getEnumProperty signerEnum "signer" model.properties)
 
 
 
@@ -530,35 +537,33 @@ jsonCodecs model =
 
 
 -- Helpers
-
-
-signerExpr : Signer -> Expression
-signerExpr signer =
-    case signer of
-        SignV4 ->
-            CG.fqVal coreServiceMod "SignV4"
-
-        SignS3 ->
-            CG.fqVal coreServiceMod "SignS3"
-
-
-protocolExpr : Protocol -> Expression
-protocolExpr protocol =
-    case protocol of
-        EC2 ->
-            CG.fqVal coreServiceMod "EC2"
-
-        JSON ->
-            CG.fqVal coreServiceMod "JSON"
-
-        QUERY ->
-            CG.fqVal coreServiceMod "QUERY"
-
-        REST_JSON ->
-            CG.fqVal coreServiceMod "REST_JSON"
-
-        REST_XML ->
-            CG.fqVal coreServiceMod "REST_XML"
+-- signerExpr : Signer -> Expression
+-- signerExpr signer =
+--     case signer of
+--         SignV4 ->
+--             CG.fqVal coreServiceMod "SignV4"
+--
+--         SignS3 ->
+--             CG.fqVal coreServiceMod "SignS3"
+--
+--
+-- protocolExpr : Protocol -> Expression
+-- protocolExpr protocol =
+--     case protocol of
+--         EC2 ->
+--             CG.fqVal coreServiceMod "EC2"
+--
+--         JSON ->
+--             CG.fqVal coreServiceMod "JSON"
+--
+--         QUERY ->
+--             CG.fqVal coreServiceMod "QUERY"
+--
+--         REST_JSON ->
+--             CG.fqVal coreServiceMod "REST_JSON"
+--
+--         REST_XML ->
+--             CG.fqVal coreServiceMod "REST_XML"
 
 
 decodeMod : List String
