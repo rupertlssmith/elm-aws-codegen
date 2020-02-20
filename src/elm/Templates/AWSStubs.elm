@@ -106,7 +106,7 @@ check =
     Debug.todo "check"
 
 
-generate : L3 pos -> File
+generate : L3 pos -> Result String File
 generate model =
     let
         ( serviceFn, serviceLinkage ) =
@@ -149,17 +149,19 @@ generate model =
         --         |> CG.docTagsFromExposings (Tuple.second codecsLinkage)
     in
     -- CG.file moduleSpec imports declarations (Just doc)
-    CG.file moduleSpec imports declarations Nothing
+    moduleSpec
+        |> Result.map (\mod -> CG.file mod imports declarations Nothing)
+        |> Result.mapError L3.propCheckErrorToString
 
 
 
 --== Module Specification (with exposing).
 
 
-module_ : L3 pos -> List TopLevelExpose -> Module
+module_ : L3 pos -> List TopLevelExpose -> Result L3.PropCheckError Module
 module_ model exposings =
-    -- CG.normalModule model.name exposings
-    CG.normalModule [ "dummy" ] exposings
+    L3.getQNameProperty "name" model.properties
+        |> Result.map (\( path, name ) -> CG.normalModule (name :: path) exposings)
 
 
 
