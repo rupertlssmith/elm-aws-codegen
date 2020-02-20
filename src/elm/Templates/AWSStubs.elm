@@ -266,8 +266,7 @@ globalService model =
                         , CG.fqVal coreServiceMod signer
                         , CG.fun "optionsFn"
                         ]
-                        --|> CG.letExpr [ optionsFn model ]
-                        |> CG.letExpr []
+                        |> CG.letExpr [ optionsFn model ]
 
                 doc =
                     CG.emptyDocComment
