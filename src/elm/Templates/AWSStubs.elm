@@ -178,6 +178,8 @@ service model =
     ( CG.portDecl "dummy" CG.unitAnn, CG.emptyLinkage )
 
 
+{-| optionsFn : L3 pos -> LetDeclaration
+-}
 optionsFn model =
     let
         jsonVersionOption =
