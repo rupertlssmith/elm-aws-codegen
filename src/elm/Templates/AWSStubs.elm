@@ -45,15 +45,6 @@ elmEnumStyleEnum =
         identity
 
 
-awsStubGenerationEnum : Enum String
-awsStubGenerationEnum =
-    Enum.define
-        [ "model"
-        , "endpoint"
-        ]
-        identity
-
-
 defaultProperties : DefaultProperties
 defaultProperties =
     { top =
@@ -72,7 +63,7 @@ defaultProperties =
             ]
     , alias =
         L1.defineProperties
-            [ ( "awsStubGeneration", PSOptional (PSEnum awsStubGenerationEnum) ) ]
+            [ ( "exclude", PBool False ) ]
             []
     , sum = L1.defineProperties [] []
     , enum =
@@ -531,7 +522,7 @@ typeDeclarations model =
                     CG.emptyDocComment
                         |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
             in
-            L3.getOptionalEnumProperty awsStubGenerationEnum "awsStubGeneration" model.properties
+            L3.getBoolProperty "exclude" model.properties
                 |> ResultME.map
                     (\stubGen ->
                         case stubGen of
