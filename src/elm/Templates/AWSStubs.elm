@@ -64,7 +64,12 @@ defaultProperties =
     , alias =
         L1.defineProperties
             []
-            [ ( "exclude", PBool False ) ]
+            [ ( "exclude", PBool False )
+
+            -- , "url"
+            -- , "httpMethod"
+            -- , "documentation"
+            ]
     , sum = L1.defineProperties [] []
     , enum =
         L1.defineProperties
@@ -319,64 +324,72 @@ operations propertiesApi model =
 
 
 requestFn :
-    String
-    -> Properties
+    L3.PropertyGet
+    -> String
     -> pos
     -> L1.Type pos L2.RefChecked
     -> L1.Type pos L2.RefChecked
-    -> ( Declaration, Linkage )
-requestFn name props pos request response =
-    -- let
-    --     { maybeRequestType, argPatterns, jsonBody, requestLinkage } =
-    --         requestFnRequest name op
-    --
-    --     ( responseType, responseDecoder, responseLinkage ) =
-    --         requestFnResponse name op
-    --
-    --     wrappedResponseType =
-    --         CG.fqTyped coreHttpMod "Request" [ responseType ]
-    --
-    --     requestSig =
-    --         case maybeRequestType of
-    --             Just requestType ->
-    --                 CG.funAnn requestType wrappedResponseType
-    --
-    --             Nothing ->
-    --                 wrappedResponseType
-    --
-    --     requestImpl =
-    --         CG.apply
-    --             [ CG.fqFun coreHttpMod "request"
-    --             , CG.string (Util.safeCCU name)
-    --             , CG.fqVal coreHttpMod (Enum.toString HttpMethod.httpMethodEnum op.httpMethod)
-    --             , CG.string op.url
-    --             , CG.val "jsonBody"
-    --             , CG.val "decoder"
-    --             ]
-    --             |> CG.letExpr
-    --                 [ jsonBody |> CG.letVal "jsonBody"
-    --                 , responseDecoder |> CG.letVal "decoder"
-    --                 ]
-    --
-    --     doc =
-    --         op.documentation
-    --             |> Maybe.withDefault CG.emptyDocComment
-    -- in
-    -- ( CG.funDecl
-    --     (Just doc)
-    --     (Just requestSig)
-    --     (Util.safeCCL name)
-    --     argPatterns
-    --     requestImpl
-    -- , CG.combineLinkage
-    --     [ requestLinkage
-    --     , responseLinkage
-    --     , CG.emptyLinkage
-    --         |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
-    --         |> CG.addExposing (CG.funExpose (Util.safeCCL name))
-    --     ]
-    -- )
-    ( CG.portDecl "dummy" CG.unitAnn, CG.emptyLinkage )
+    -> ResultME L3.PropCheckError ( Declaration, Linkage )
+requestFn propertyGet name pos request response =
+    let
+        { maybeRequestType, argPatterns, jsonBody, requestLinkage } =
+            requestFnRequest name request
+
+        ( responseType, responseDecoder, responseLinkage ) =
+            requestFnResponse name response
+
+        wrappedResponseType =
+            CG.fqTyped coreHttpMod "Request" [ responseType ]
+
+        requestSig =
+            case maybeRequestType of
+                Just requestType ->
+                    CG.funAnn requestType wrappedResponseType
+
+                Nothing ->
+                    wrappedResponseType
+    in
+    ResultME.combine3
+        (\url httpMethod documentation ->
+            let
+                requestImpl =
+                    CG.apply
+                        [ CG.fqFun coreHttpMod "request"
+                        , CG.string (Util.safeCCU name)
+                        , CG.fqVal coreHttpMod httpMethod
+                        , CG.string url
+                        , CG.val "jsonBody"
+                        , CG.val "decoder"
+                        ]
+                        |> CG.letExpr
+                            [ jsonBody |> CG.letVal "jsonBody"
+                            , responseDecoder |> CG.letVal "decoder"
+                            ]
+
+                -- doc =
+                --     documentation
+                --         |> Maybe.withDefault CG.emptyDocComment
+                doc =
+                    CG.emptyDocComment
+            in
+            ( CG.funDecl
+                (Just doc)
+                (Just requestSig)
+                (Util.safeCCL name)
+                argPatterns
+                requestImpl
+            , CG.combineLinkage
+                [ requestLinkage
+                , responseLinkage
+                , CG.emptyLinkage
+                    |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+                    |> CG.addExposing (CG.funExpose (Util.safeCCL name))
+                ]
+            )
+        )
+        (propertyGet.getStringProperty "url")
+        (propertyGet.getStringProperty "httpMethod")
+        (propertyGet.getStringProperty "documentation")
 
 
 {-| Figures out what the request type for the endpoint will be.
@@ -390,9 +403,6 @@ request functions arguments, the json body and any linkage that needs to be roll
 -}
 requestFnRequest :
     String
-    -> Properties
-    -> pos
-    -> L1.Type pos L2.RefChecked
     -> L1.Type pos L2.RefChecked
     ->
         { maybeRequestType : Maybe TypeAnnotation
@@ -400,53 +410,48 @@ requestFnRequest :
         , jsonBody : Expression
         , requestLinkage : Linkage
         }
-requestFnRequest name props pos request response =
-    -- case op.request of
-    --     (L1.TNamed _ requestTypeName _) as l1RequestType ->
-    --         let
-    --             ( loweredType, loweredLinkage ) =
-    --                 Templates.L1.lowerType l1RequestType
-    --
-    --             linkage =
-    --                 CG.combineLinkage
-    --                     [ CG.emptyLinkage
-    --                         |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
-    --                     , loweredLinkage
-    --                     ]
-    --
-    --             jsonBody =
-    --                 CG.pipe (CG.val "req")
-    --                     [ CG.apply
-    --                         [ CG.fqFun codecMod "encoder"
-    --                         , CG.val (Util.safeCCL requestTypeName ++ "Codec")
-    --                         ]
-    --                     , CG.fqVal coreHttpMod "jsonBody"
-    --                     ]
-    --         in
-    --         { maybeRequestType = Just loweredType
-    --         , argPatterns = [ CG.varPattern "req" ]
-    --         , jsonBody = jsonBody
-    --         , requestLinkage = linkage
-    --         }
-    --
-    --     _ ->
-    --         let
-    --             emptyJsonBody =
-    --                 CG.fqVal coreHttpMod "emptyBody"
-    --
-    --             linkage =
-    --                 CG.emptyLinkage |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
-    --         in
-    --         { maybeRequestType = Nothing
-    --         , argPatterns = []
-    --         , jsonBody = emptyJsonBody
-    --         , requestLinkage = linkage
-    --         }
-    { maybeRequestType = Nothing
-    , argPatterns = []
-    , jsonBody = CG.unit
-    , requestLinkage = CG.emptyLinkage
-    }
+requestFnRequest name request =
+    case request of
+        (L1.TNamed _ requestTypeName _) as l1RequestType ->
+            let
+                ( loweredType, loweredLinkage ) =
+                    Templates.L1.lowerType l1RequestType
+
+                linkage =
+                    CG.combineLinkage
+                        [ CG.emptyLinkage
+                            |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+                        , loweredLinkage
+                        ]
+
+                jsonBody =
+                    CG.pipe (CG.val "req")
+                        [ CG.apply
+                            [ CG.fqFun codecMod "encoder"
+                            , CG.val (Util.safeCCL requestTypeName ++ "Codec")
+                            ]
+                        , CG.fqVal coreHttpMod "jsonBody"
+                        ]
+            in
+            { maybeRequestType = Just loweredType
+            , argPatterns = [ CG.varPattern "req" ]
+            , jsonBody = jsonBody
+            , requestLinkage = linkage
+            }
+
+        _ ->
+            let
+                emptyJsonBody =
+                    CG.fqVal coreHttpMod "emptyBody"
+
+                linkage =
+                    CG.emptyLinkage |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
+            in
+            { maybeRequestType = Nothing
+            , argPatterns = []
+            , jsonBody = emptyJsonBody
+            , requestLinkage = linkage
+            }
 
 
 {-| Figures out what response type for the endpoint will be.
@@ -462,55 +467,51 @@ When there is no response shape, the decoder will be `(AWS.Core.Decode.FixedResu
 -}
 requestFnResponse :
     String
-    -> Properties
-    -> pos
-    -> L1.Type pos L2.RefChecked
     -> L1.Type pos L2.RefChecked
     -> ( TypeAnnotation, Expression, Linkage )
-requestFnResponse name props pos request response =
-    -- case op.response of
-    --     (L1.TNamed _ responseTypeName _) as l1ResponseType ->
-    --         let
-    --             ( loweredType, loweredLinkage ) =
-    --                 Templates.L1.lowerType l1ResponseType
-    --
-    --             responseType =
-    --                 loweredType
-    --
-    --             linkage =
-    --                 CG.combineLinkage
-    --                     [ CG.emptyLinkage
-    --                         |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
-    --                     , loweredLinkage
-    --                     ]
-    --
-    --             decoder =
-    --                 CG.apply
-    --                     [ CG.fqFun codecMod "decoder"
-    --                     , CG.val (Util.safeCCL responseTypeName ++ "Codec")
-    --                     ]
-    --                     |> CG.parens
-    --         in
-    --         ( responseType, decoder, linkage )
-    --
-    --     _ ->
-    --         let
-    --             linkage =
-    --                 CG.emptyLinkage
-    --                     |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
-    --                     |> CG.addImport decodeImport
-    --
-    --             decoder =
-    --                 CG.apply
-    --                     [ CG.fqVal decodeMod "succeed"
-    --                     , CG.unit
-    --                     ]
-    --
-    --             responseType =
-    --                 CG.unitAnn
-    --         in
-    --         ( responseType, decoder, linkage )
-    ( CG.unitAnn, CG.unit, CG.emptyLinkage )
+requestFnResponse name response =
+    case response of
+        (L1.TNamed _ responseTypeName _) as l1ResponseType ->
+            let
+                ( loweredType, loweredLinkage ) =
+                    Templates.L1.lowerType l1ResponseType
+
+                responseType =
+                    loweredType
+
+                linkage =
+                    CG.combineLinkage
+                        [ CG.emptyLinkage
+                            |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
+                        , loweredLinkage
+                        ]
+
+                decoder =
+                    CG.apply
+                        [ CG.fqFun codecMod "decoder"
+                        , CG.val (Util.safeCCL responseTypeName ++ "Codec")
+                        ]
+                        |> CG.parens
+            in
+            ( responseType, decoder, linkage )
+
+        _ ->
+            let
+                linkage =
+                    CG.emptyLinkage
+                        |> CG.addImport (CG.importStmt coreDecodeMod Nothing Nothing)
+                        |> CG.addImport decodeImport
+
+                decoder =
+                    CG.apply
+                        [ CG.fqVal decodeMod "succeed"
+                        , CG.unit
+                        ]
+
+                responseType =
+                    CG.unitAnn
+            in
+            ( responseType, decoder, linkage )
 
 
 
