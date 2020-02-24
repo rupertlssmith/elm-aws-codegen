@@ -139,9 +139,9 @@ generate propertiesApi model =
                 |> ResultME.map (\moduleSpec -> CG.file moduleSpec imports declarations Nothing)
         )
         (service propertiesApi model)
-        (operations model)
-        (typeDeclarations model)
-        (jsonCodecs model)
+        (operations propertiesApi model)
+        (typeDeclarations propertiesApi model)
+        (jsonCodecs propertiesApi model)
         (propertiesApi.top.getOptionalStringProperty "documentation")
         |> ResultME.flatten
 
@@ -305,8 +305,8 @@ globalService propertiesApi model =
 --== Operations
 
 
-operations : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
-operations model =
+operations : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
+operations propertiesApi model =
     -- Dict.foldl
     --     (\name operation ( declAccum, linkageAccum ) ->
     --         requestFn name operation
@@ -517,8 +517,8 @@ requestFnResponse name props pos request response =
 --== Types and Codecs
 
 
-typeDeclarations : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
-typeDeclarations model =
+typeDeclarations : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
+typeDeclarations propertiesAPI model =
     -- Dict.foldl
     --     (\name decl ( declAccum, linkageAccum ) ->
     --         let
@@ -544,8 +544,8 @@ typeDeclarations model =
     ( [], CG.emptyLinkage ) |> Ok
 
 
-jsonCodecs : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
-jsonCodecs model =
+jsonCodecs : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
+jsonCodecs propertiesAPI model =
     -- Dict.foldl
     --     (\name decl accum -> Templates.L1.codec name decl :: accum)
     --     []
