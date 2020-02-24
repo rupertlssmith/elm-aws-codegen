@@ -519,29 +519,40 @@ requestFnResponse name props pos request response =
 
 typeDeclarations : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 typeDeclarations propertiesAPI model =
-    -- Dict.foldl
-    --     (\name decl ( declAccum, linkageAccum ) ->
-    --         let
-    --             doc =
-    --                 CG.emptyDocComment
-    --                     |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
-    --         in
-    --         L3.getBoolProperty "exclude" model.properties
-    --             |> ResultME.map
-    --                 (\stubGen ->
-    --                     case stubGen of
-    --                         Just "model" ->
-    --                             Templates.L1.typeDecl name doc decl
-    --                                 |> Tuple.mapFirst (List.append declAccum)
-    --                                 |> Tuple.mapSecond (\innerLinkage -> CG.combineLinkage [ linkageAccum, innerLinkage ])
-    --
-    --                         _ ->
-    --                             ( declAccum, linkageAccum )
-    --                 )
-    --     )
-    --     ( [], CG.emptyLinkage )
-    --     model.declarations
-    ( [], CG.emptyLinkage ) |> Ok
+    Dict.foldl
+        (\name decl accum ->
+            case (propertiesAPI.declarable decl).getBoolProperty "exclude" of
+                Ok False ->
+                    let
+                        doc =
+                            CG.emptyDocComment
+                                |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
+                    in
+                    (Templates.L1.typeDecl name doc decl
+                        |> Ok
+                    )
+                        :: accum
+
+                Ok True ->
+                    accum
+
+                Err err ->
+                    Err err :: accum
+        )
+        []
+        model.declarations
+        |> ResultME.combineList
+        |> ResultME.map combineLinkages
+
+
+combineLinkages : List ( List Declaration, Linkage ) -> ( List Declaration, Linkage )
+combineLinkages declList =
+    List.foldl
+        (\( decls, linkage ) ( declAccum, linkageAccum ) ->
+            ( List.append declAccum decls, CG.combineLinkage [ linkageAccum, linkage ] )
+        )
+        ( [], CG.emptyLinkage )
+        declList
 
 
 jsonCodecs : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
