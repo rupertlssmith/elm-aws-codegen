@@ -313,7 +313,9 @@ globalService propertiesApi model =
 operations : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 operations propertiesApi model =
     declarationsSkipExcluded propertiesApi (operation propertiesApi) model
-        |> ResultME.map combineDeclarations
+        --|> ResultME.andThen combineDeclarations
+        --|> ResultME.andThen (\uncombined -> ( [ CG.portDecl "dummy" CG.unitAnn ], CG.emptyLinkage ) |> Ok)
+        |> ResultME.andThen (\uncombined -> ResultME.combineList uncombined |> Ok)
 
 
 operation :
