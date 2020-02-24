@@ -5,7 +5,7 @@ import Dict
 import Elm.CodeGen as CG exposing (Declaration, Expression, File, Import, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
 import Enum exposing (Enum)
 import HttpMethod exposing (HttpMethod)
-import L1 exposing (PropSpec(..), Properties, Property(..))
+import L1 exposing (Declarable(..), PropSpec(..), Properties, Property(..), Type(..))
 import L2 exposing (L2)
 import L3 exposing (DefaultProperties, L3, Processor, PropertiesAPI)
 import Maybe.Extra
@@ -312,15 +312,22 @@ globalService propertiesApi model =
 
 operations : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 operations propertiesApi model =
-    -- Dict.foldl
-    --     (\name operation ( declAccum, linkageAccum ) ->
-    --         requestFn name operation
-    --             |> Tuple.mapFirst (\decl -> decl :: declAccum)
-    --             |> Tuple.mapSecond (\linkage -> CG.combineLinkage [ linkageAccum, linkage ])
-    --     )
-    --     ( [], CG.emptyLinkage )
-    --     model.operations
-    ( [], CG.emptyLinkage ) |> Ok
+    declarationsSkipExcluded propertiesApi (operation propertiesApi) model
+        |> ResultME.map combineDeclarations
+
+
+operation :
+    PropertiesAPI pos
+    -> String
+    -> L1.Declarable pos L2.RefChecked
+    -> ResultME L3.PropCheckError ( List Declaration, Linkage )
+operation propertiesApi name decl =
+    case decl of
+        DAlias pos (TFunction _ request response) _ ->
+            requestFn (propertiesApi.declarable decl) name pos request response
+
+        _ ->
+            ( [], CG.emptyLinkage ) |> Ok
 
 
 requestFn :
@@ -329,7 +336,7 @@ requestFn :
     -> pos
     -> L1.Type pos L2.RefChecked
     -> L1.Type pos L2.RefChecked
-    -> ResultME L3.PropCheckError ( Declaration, Linkage )
+    -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 requestFn propertyGet name pos request response =
     let
         { maybeRequestType, argPatterns, jsonBody, requestLinkage } =
@@ -372,12 +379,13 @@ requestFn propertyGet name pos request response =
                 doc =
                     CG.emptyDocComment
             in
-            ( CG.funDecl
-                (Just doc)
-                (Just requestSig)
-                (Util.safeCCL name)
-                argPatterns
-                requestImpl
+            ( [ CG.funDecl
+                    (Just doc)
+                    (Just requestSig)
+                    (Util.safeCCL name)
+                    argPatterns
+                    requestImpl
+              ]
             , CG.combineLinkage
                 [ requestLinkage
                 , responseLinkage
