@@ -7,7 +7,7 @@ import Enum exposing (Enum)
 import HttpMethod exposing (HttpMethod)
 import L1 exposing (PropSpec(..), Properties, Property(..))
 import L2 exposing (L2)
-import L3 exposing (DefaultProperties, L3, Processor)
+import L3 exposing (DefaultProperties, L3, Processor, PropertiesAPI)
 import Maybe.Extra
 import ResultME exposing (ResultME)
 import Templates.L1
@@ -63,13 +63,17 @@ defaultProperties =
             ]
     , alias =
         L1.defineProperties
-            [ ( "exclude", PBool False ) ]
             []
+            [ ( "exclude", PBool False ) ]
     , sum = L1.defineProperties [] []
     , enum =
         L1.defineProperties
             []
             [ ( "elmEnumStyle", PEnum elmEnumStyleEnum "customType" ) ]
+    , restricted =
+        L1.defineProperties
+            []
+            []
     , fields = L1.defineProperties [] []
     }
 
@@ -101,8 +105,8 @@ check =
 --generate : L3 pos -> ResultME String File
 
 
-generate : L3 pos -> ResultME L3.PropCheckError File
-generate model =
+generate : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError File
+generate propertiesApi model =
     ResultME.combine5
         (\( serviceFn, serviceLinkage ) ( endpoints, operationsLinkage ) ( types, typeDeclLinkage ) ( codecs, codecsLinkage ) documentation ->
             let
@@ -131,14 +135,14 @@ generate model =
                 --         |> CG.docTagsFromExposings (Tuple.second codecsLinkage)
             in
             -- CG.file moduleSpec imports declarations (Just doc)
-            module_ model exposings
+            module_ propertiesApi model exposings
                 |> ResultME.map (\moduleSpec -> CG.file moduleSpec imports declarations Nothing)
         )
-        (service model)
+        (service propertiesApi model)
         (operations model)
         (typeDeclarations model)
         (jsonCodecs model)
-        (L3.getOptionalStringProperty "documentation" model.properties)
+        (propertiesApi.top.getOptionalStringProperty "documentation")
         |> ResultME.flatten
 
 
@@ -146,9 +150,9 @@ generate model =
 --== Module Specification (with exposing).
 
 
-module_ : L3 pos -> List TopLevelExpose -> ResultME L3.PropCheckError Module
-module_ model exposings =
-    L3.getQNameProperty "name" model.properties
+module_ : PropertiesAPI pos -> L3 pos -> List TopLevelExpose -> ResultME L3.PropCheckError Module
+module_ propertiesApi model exposings =
+    propertiesApi.top.getQNameProperty "name"
         |> ResultME.map (\( path, name ) -> CG.normalModule (name :: path) exposings)
 
 
@@ -156,22 +160,22 @@ module_ model exposings =
 --== Service Definition
 
 
-service : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
-service model =
-    L3.getBoolProperty "isRegional" model.properties
+service : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
+service propertiesApi model =
+    propertiesApi.top.getBoolProperty "isRegional"
         |> ResultME.andThen
             (\isRegional ->
                 if isRegional then
-                    regionalService model
+                    regionalService propertiesApi model
 
                 else
-                    globalService model
+                    globalService propertiesApi model
             )
 
 
 {-| optionsFn : L3 pos -> LetDeclaration
 -}
-optionsFn model =
+optionsFn propertiesApi model =
     ResultME.combine4
         (\jsonVersion signingName targetPrefix xmlNamespace ->
             let
@@ -207,14 +211,14 @@ optionsFn model =
             )
                 |> CG.letFunction "optionsFn" []
         )
-        (L3.getOptionalStringProperty "jsonVersion" model.properties)
-        (L3.getOptionalStringProperty "signingName" model.properties)
-        (L3.getOptionalStringProperty "targetPrefix" model.properties)
-        (L3.getOptionalStringProperty "xmlNamespace" model.properties)
+        (propertiesApi.top.getOptionalStringProperty "jsonVersion")
+        (propertiesApi.top.getOptionalStringProperty "signingName")
+        (propertiesApi.top.getOptionalStringProperty "targetPrefix")
+        (propertiesApi.top.getOptionalStringProperty "xmlNamespace")
 
 
-regionalService : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
-regionalService model =
+regionalService : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
+regionalService propertiesApi model =
     ResultME.combine5
         (\endpointPrefix apiVersion protocol signer options ->
             let
@@ -249,15 +253,15 @@ regionalService model =
                 |> CG.addExposing (CG.funExpose "service")
             )
         )
-        (L3.getStringProperty "endpointPrefix" model.properties)
-        (L3.getStringProperty "apiVersion" model.properties)
-        (L3.getEnumProperty protocolEnum "protocol" model.properties)
-        (L3.getEnumProperty signerEnum "signer" model.properties)
-        (optionsFn model)
+        (propertiesApi.top.getStringProperty "endpointPrefix")
+        (propertiesApi.top.getStringProperty "apiVersion")
+        (propertiesApi.top.getEnumProperty protocolEnum "protocol")
+        (propertiesApi.top.getEnumProperty signerEnum "signer")
+        (optionsFn propertiesApi model)
 
 
-globalService : L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
-globalService model =
+globalService : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( Declaration, Linkage )
+globalService propertiesApi model =
     ResultME.combine5
         (\endpointPrefix apiVersion protocol signer options ->
             let
@@ -290,11 +294,11 @@ globalService model =
                 |> CG.addExposing (CG.funExpose "service")
             )
         )
-        (L3.getStringProperty "endpointPrefix" model.properties)
-        (L3.getStringProperty "apiVersion" model.properties)
-        (L3.getEnumProperty protocolEnum "protocol" model.properties)
-        (L3.getEnumProperty signerEnum "signer" model.properties)
-        (optionsFn model)
+        (propertiesApi.top.getStringProperty "endpointPrefix")
+        (propertiesApi.top.getStringProperty "apiVersion")
+        (propertiesApi.top.getEnumProperty protocolEnum "protocol")
+        (propertiesApi.top.getEnumProperty signerEnum "signer")
+        (optionsFn propertiesApi model)
 
 
 
@@ -515,28 +519,29 @@ requestFnResponse name props pos request response =
 
 typeDeclarations : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 typeDeclarations model =
-    Dict.foldl
-        (\name decl ( declAccum, linkageAccum ) ->
-            let
-                doc =
-                    CG.emptyDocComment
-                        |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
-            in
-            L3.getBoolProperty "exclude" model.properties
-                |> ResultME.map
-                    (\stubGen ->
-                        case stubGen of
-                            Just "model" ->
-                                Templates.L1.typeDecl name doc decl
-                                    |> Tuple.mapFirst (List.append declAccum)
-                                    |> Tuple.mapSecond (\innerLinkage -> CG.combineLinkage [ linkageAccum, innerLinkage ])
-
-                            _ ->
-                                ( declAccum, linkageAccum )
-                    )
-        )
-        ( [], CG.emptyLinkage )
-        model.declarations
+    -- Dict.foldl
+    --     (\name decl ( declAccum, linkageAccum ) ->
+    --         let
+    --             doc =
+    --                 CG.emptyDocComment
+    --                     |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
+    --         in
+    --         L3.getBoolProperty "exclude" model.properties
+    --             |> ResultME.map
+    --                 (\stubGen ->
+    --                     case stubGen of
+    --                         Just "model" ->
+    --                             Templates.L1.typeDecl name doc decl
+    --                                 |> Tuple.mapFirst (List.append declAccum)
+    --                                 |> Tuple.mapSecond (\innerLinkage -> CG.combineLinkage [ linkageAccum, innerLinkage ])
+    --
+    --                         _ ->
+    --                             ( declAccum, linkageAccum )
+    --                 )
+    --     )
+    --     ( [], CG.emptyLinkage )
+    --     model.declarations
+    ( [], CG.emptyLinkage ) |> Ok
 
 
 jsonCodecs : L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
