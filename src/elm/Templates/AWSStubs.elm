@@ -519,19 +519,70 @@ requestFnResponse name props pos request response =
 
 typeDeclarations : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 typeDeclarations propertiesAPI model =
+    declarationsSkipExcluded propertiesAPI typeDeclaration model
+        |> ResultME.map combineDeclarations
+
+
+typeDeclaration : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
+typeDeclaration name decl =
+    let
+        doc =
+            CG.emptyDocComment
+                |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
+    in
+    Templates.L1.typeDecl name doc decl
+
+
+jsonCodecs : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
+jsonCodecs propertiesAPI model =
+    declarationsSkipExcluded propertiesAPI Templates.L1.codec model
+        |> ResultME.map combineDeclaration
+
+
+
+-- Helpers
+
+
+{-| Combines linkages from a list of declarations and linkages, into a list of declarations
+and a single combined linkage.
+-}
+combineDeclarations : List ( List Declaration, Linkage ) -> ( List Declaration, Linkage )
+combineDeclarations declList =
+    List.foldl
+        (\( decls, linkage ) ( declAccum, linkageAccum ) ->
+            ( List.append declAccum decls, CG.combineLinkage [ linkageAccum, linkage ] )
+        )
+        ( [], CG.emptyLinkage )
+        declList
+
+
+{-| Combines linkages from a list of single declarations and linkages, into a
+list of declarations and a single combined linkage.
+-}
+combineDeclaration : List ( Declaration, Linkage ) -> ( List Declaration, Linkage )
+combineDeclaration declList =
+    List.foldl
+        (\( decl, linkage ) ( declAccum, linkageAccum ) ->
+            ( decl :: declAccum, CG.combineLinkage [ linkageAccum, linkage ] )
+        )
+        ( [], CG.emptyLinkage )
+        declList
+
+
+{-| Runs a function to generate from all Declarables in a model, skipping any that
+are marked as 'excluded'. Any errors are accumulated.
+-}
+declarationsSkipExcluded :
+    PropertiesAPI pos
+    -> (String -> L1.Declarable pos L2.RefChecked -> a)
+    -> L3 pos
+    -> ResultME L3.PropCheckError (List a)
+declarationsSkipExcluded propertiesAPI declarationsFn model =
     Dict.foldl
         (\name decl accum ->
             case (propertiesAPI.declarable decl).getBoolProperty "exclude" of
                 Ok False ->
-                    let
-                        doc =
-                            CG.emptyDocComment
-                                |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
-                    in
-                    (Templates.L1.typeDecl name doc decl
-                        |> Ok
-                    )
-                        :: accum
+                    (declarationsFn name decl |> Ok) :: accum
 
                 Ok True ->
                     accum
@@ -542,32 +593,9 @@ typeDeclarations propertiesAPI model =
         []
         model.declarations
         |> ResultME.combineList
-        |> ResultME.map combineLinkages
-
-
-combineLinkages : List ( List Declaration, Linkage ) -> ( List Declaration, Linkage )
-combineLinkages declList =
-    List.foldl
-        (\( decls, linkage ) ( declAccum, linkageAccum ) ->
-            ( List.append declAccum decls, CG.combineLinkage [ linkageAccum, linkage ] )
-        )
-        ( [], CG.emptyLinkage )
-        declList
-
-
-jsonCodecs : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
-jsonCodecs propertiesAPI model =
-    -- Dict.foldl
-    --     (\name decl accum -> Templates.L1.codec name decl :: accum)
-    --     []
-    --     model.declarations
-    --     |> List.unzip
-    --     |> Tuple.mapSecond CG.combineLinkage
-    ( [], CG.emptyLinkage ) |> Ok
 
 
 
--- Helpers
 -- signerExpr : Signer -> Expression
 -- signerExpr signer =
 --     case signer of
