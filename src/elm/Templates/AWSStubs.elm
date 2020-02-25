@@ -54,31 +54,40 @@ defaultProperties =
             , ( "targetPrefix", PSOptional PSString )
             , ( "signingName", PSOptional PSString )
             , ( "jsonVersion", PSOptional PSString )
-            , ( "documentation", PSOptional PSString )
             ]
             [ ( "isRegional", PBool False )
             , ( "apiVersion", PString "1.0" )
             , ( "protocol", PEnum protocolEnum "JSON" )
             , ( "signer", PEnum signerEnum "V4" )
+            , ( "documentation", POptional (PSOptional PSString) Nothing )
             ]
     , alias =
         L1.defineProperties
             []
             [ ( "exclude", PBool False )
+            , ( "documentation", POptional (PSOptional PSString) Nothing )
 
             -- , "url"
             -- , "httpMethod"
-            -- , "documentation"
             ]
-    , sum = L1.defineProperties [] []
+    , sum =
+        L1.defineProperties []
+            [ ( "exclude", PBool False )
+            , ( "documentation", POptional (PSOptional PSString) Nothing )
+            ]
     , enum =
         L1.defineProperties
             []
-            [ ( "elmEnumStyle", PEnum elmEnumStyleEnum "customType" ) ]
+            [ ( "exclude", PBool False )
+            , ( "elmEnumStyle", PEnum elmEnumStyleEnum "customType" )
+            , ( "documentation", POptional (PSOptional PSString) Nothing )
+            ]
     , restricted =
         L1.defineProperties
             []
-            []
+            [ ( "exclude", PBool False )
+            , ( "documentation", POptional (PSOptional PSString) Nothing )
+            ]
     , fields = L1.defineProperties [] []
     }
 
