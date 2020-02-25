@@ -1,21 +1,32 @@
 module Transform exposing (transform)
 
-import AWS.Core.Service exposing (Signer(..))
-import AWSApiModel exposing (AWSApiModel, Endpoint)
+import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Checker
 import Console
 import Dict exposing (Dict)
-import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
-import Html.Parser as HP
-import L1 exposing (Basic(..), Container(..), Declarable(..), L1, Restricted(..), Type(..), Unchecked(..))
+import HttpMethod exposing (HttpMethod(..))
+import L1
+    exposing
+        ( Basic(..)
+        , Container(..)
+        , Declarable(..)
+        , L1
+        , PropSpec(..)
+        , Property(..)
+        , Restricted(..)
+        , Type(..)
+        , Unchecked(..)
+        )
 import L2 exposing (L2, RefChecked(..))
+import L3 exposing (L3)
 import List.Nonempty
 import Maybe.Extra
-import ResultME exposing (ResultME)
 import Naming
+import ResultME exposing (ResultME)
 import String.Case as Case
+import Templates.AWSStubs as AWSStubs
 
 
 type TransformError pos
@@ -49,7 +60,7 @@ errorToString err =
             "Unknown not implemented."
 
 
-transform : AWSService -> ResultME String AWSApiModel
+transform : AWSService -> ResultME String (L3 ())
 transform service =
     let
         mappingsResult : ResultME String (L1 ())
@@ -57,49 +68,109 @@ transform service =
             modelShapes service.shapes
                 |> ResultME.mapError errorToString
 
-        l2mappingsResult =
-            mappingsResult
+        operationsResult : ResultME String (L1 ())
+        operationsResult =
+            modelOperations service.operations
+                |> ResultME.mapError errorToString
+
+        l2Result =
+            Result.map2 List.append mappingsResult operationsResult
                 |> ResultME.andThen
                     (Checker.check >> ResultME.mapError Checker.errorToString)
-
-        operationsResult : ResultME String (Dict String Endpoint)
-        operationsResult =
-            l2mappingsResult
-                |> ResultME.andThen
-                    (modelOperations service.operations
-                        >> ResultME.mapError errorToString
-                    )
-
-        mappingsAndOperations =
-            ResultME.combine2
-                Tuple.pair
-                l2mappingsResult
-                operationsResult
     in
     ResultME.map
-        (\( mappings, operations ) ->
-            { declarations = mappings
-            , operations = operations
-            , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
-            , isRegional = Maybe.Extra.isNothing service.metaData.globalEndpoint
-            , endpointPrefix = service.metaData.endpointPrefix
-            , apiVersion = service.metaData.apiVersion
-            , protocol = service.metaData.protocol
-            , signer =
-                case service.metaData.signatureVersion of
-                    Just signer ->
-                        signer
-
-                    _ ->
-                        SignV4
-            , xmlNamespace = service.metaData.xmlNamespace
-            , targetPrefix = service.metaData.targetPrefix
-            , signingName = service.metaData.signingName
-            , jsonVersion = service.metaData.jsonVersion
-            , documentation = Maybe.map htmlToFileComment service.documentation
+        (\l2 ->
+            { properties =
+                Dict.empty
+                    |> Dict.insert "name" (PQName [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ])
+                    |> Dict.insert "isRegional" (PBool (Maybe.Extra.isNothing service.metaData.globalEndpoint))
+                    |> Dict.insert "endpointPrefix" (PString service.metaData.endpointPrefix)
+                    |> Dict.insert "apiVersion" (PString service.metaData.apiVersion)
+                    |> Dict.insert "protocol"
+                        (protocolToString service.metaData.protocol
+                            |> PEnum AWSStubs.protocolEnum
+                        )
+                    |> Dict.insert "signer"
+                        (service.metaData.signatureVersion
+                            |> Maybe.withDefault SignV4
+                            |> signerToString
+                            |> PEnum AWSStubs.signerEnum
+                        )
+                    |> Dict.insert "xmlNamespace"
+                        (Maybe.map PString service.metaData.xmlNamespace
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "targetPrefix"
+                        (Maybe.map PString service.metaData.targetPrefix
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "signingName"
+                        (Maybe.map PString service.metaData.signingName
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "jsonVersion"
+                        (Maybe.map PString service.metaData.jsonVersion
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "documentation"
+                        (Maybe.map PString service.documentation
+                            |> POptional PSString
+                        )
+            , declarations = l2
             }
         )
-        mappingsAndOperations
+        l2Result
+
+
+protocolToString : Protocol -> String
+protocolToString proto =
+    case proto of
+        EC2 ->
+            "EC2"
+
+        JSON ->
+            "JSON"
+
+        QUERY ->
+            "QUERY"
+
+        REST_JSON ->
+            "REST_JSON"
+
+        REST_XML ->
+            "REST_XML"
+
+
+signerToString : Signer -> String
+signerToString signer =
+    case signer of
+        SignV4 ->
+            "SignV4"
+
+        SignS3 ->
+            "SignS3"
+
+
+httpMethodToString : HttpMethod -> String
+httpMethodToString method =
+    case method of
+        DELETE ->
+            "DELETE"
+
+        GET ->
+            "GET"
+
+        HEAD ->
+            "HEAD"
+
+        OPTIONS ->
+            "OPTIONS"
+
+        POST ->
+            "POST"
+
+        PUT ->
+            "PUT"
 
 
 shapeRefToL1Type : ShapeRef -> Type () Unchecked
@@ -110,8 +181,8 @@ shapeRefToL1Type ref =
 
 --=== L1 Model Assembly Pass
 -- A complete L1 model is generated for each shape.
--- Errors in the shape definitions are detected, but checking of the L1 model
--- is handled when it is lowered into L2.
+-- Errors in the shape definitions are detected, but other checking of the L1
+-- model is handled when it is lowered into L2.
 
 
 modelShapes :
@@ -132,22 +203,22 @@ modelShape shape name =
             modelString shape name
 
         ABoolean ->
-            BBool |> TBasic () |> DAlias () |> Ok
+            DAlias () (BBool |> TBasic ()) L1.emptyProperties |> Ok
 
         AInteger ->
             modelInt shape name
 
         ALong ->
-            BInt |> TBasic () |> DAlias () |> Ok
+            DAlias () (BInt |> TBasic ()) L1.emptyProperties |> Ok
 
         AFloat ->
-            BReal |> TBasic () |> DAlias () |> Ok
+            DAlias () (BReal |> TBasic ()) L1.emptyProperties |> Ok
 
         ADouble ->
-            BReal |> TBasic () |> DAlias () |> Ok
+            DAlias () (BReal |> TBasic ()) L1.emptyProperties |> Ok
 
         ABlob ->
-            BString |> TBasic () |> DAlias () |> Ok
+            DAlias () (BString |> TBasic ()) L1.emptyProperties |> Ok
 
         AStructure ->
             modelStructure shape name
@@ -159,7 +230,7 @@ modelShape shape name =
             modelMap shape name
 
         ATimestamp ->
-            BString |> TBasic () |> DAlias () |> Ok
+            DAlias () (BString |> TBasic ()) L1.emptyProperties |> Ok
 
         AUnknown ->
             UnknownNotImplemented () |> ResultME.error
@@ -177,32 +248,34 @@ modelString shape name =
         ( Just enumVals, False ) ->
             case List.Nonempty.fromList enumVals of
                 Just nonemptyEnumVals ->
-                    nonemptyEnumVals
-                        |> DEnum ()
+                    DEnum () nonemptyEnumVals L1.emptyProperties
                         |> Ok
 
                 Nothing ->
                     NoMembers () name |> ResultME.error
 
         ( Nothing, True ) ->
-            RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern }
-                |> DRestricted ()
+            DRestricted
+                ()
+                (RString { minLength = shape.min, maxLength = shape.max, regex = shape.pattern })
+                L1.emptyProperties
                 |> Ok
 
         ( _, _ ) ->
-            BString |> TBasic () |> DAlias () |> Ok
+            DAlias () (TBasic () BString) L1.emptyProperties |> Ok
 
 
 modelInt : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
 modelInt shape name =
     case Maybe.Extra.isJust shape.max || Maybe.Extra.isJust shape.min of
         True ->
-            RInt { min = shape.min, max = shape.max, width = Nothing }
-                |> DRestricted ()
+            DRestricted ()
+                (RInt { min = shape.min, max = shape.max, width = Nothing })
+                L1.emptyProperties
                 |> Ok
 
         _ ->
-            BInt |> TBasic () |> DAlias () |> Ok
+            DAlias () (BInt |> TBasic ()) L1.emptyProperties |> Ok
 
 
 modelStructure : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
@@ -217,18 +290,26 @@ modelStructure shape name =
             case shape.required of
                 Nothing ->
                     ( errAccum
-                    , ( memberName, type_ |> COptional |> TContainer () ) :: fieldAccum
+                    , ( memberName
+                      , type_ |> COptional |> TContainer ()
+                      , L1.emptyProperties
+                      )
+                        :: fieldAccum
                     )
 
                 Just requiredFields ->
                     if List.member memberName requiredFields then
                         ( errAccum
-                        , ( memberName, type_ ) :: fieldAccum
+                        , ( memberName, type_, L1.emptyProperties ) :: fieldAccum
                         )
 
                     else
                         ( errAccum
-                        , ( memberName, type_ |> COptional |> TContainer () ) :: fieldAccum
+                        , ( memberName
+                          , type_ |> COptional |> TContainer ()
+                          , L1.emptyProperties
+                          )
+                            :: fieldAccum
                         )
     in
     case shape.members of
@@ -246,14 +327,16 @@ modelStructure shape name =
                 [] ->
                     case List.Nonempty.fromList fields of
                         Just nonemptyFields ->
-                            nonemptyFields
-                                |> Naming.sortNonemptyNamed
-                                |> TProduct ()
-                                |> DAlias ()
-                                |> Ok
+                            let
+                                product =
+                                    nonemptyFields
+                                        |> Naming.sortNonemptyNamed
+                                        |> TProduct ()
+                            in
+                            DAlias () product L1.emptyProperties |> Ok
 
                         Nothing ->
-                            TEmptyProduct () |> DAlias () |> Ok
+                            DAlias () (TEmptyProduct ()) L1.emptyProperties |> Ok
 
                 err :: errs ->
                     -- ResultME.errors err errs
@@ -267,7 +350,7 @@ modelList shape name =
             ListMemberEmpty () |> ResultME.error
 
         Just ref ->
-            shapeRefToL1Type ref |> CList |> TContainer () |> DAlias () |> Ok
+            DAlias () (shapeRefToL1Type ref |> CList |> TContainer ()) L1.emptyProperties |> Ok
 
 
 modelMap : Shape -> String -> ResultME (TransformError ()) (Declarable () Unchecked)
@@ -290,7 +373,7 @@ modelMap shape name =
                     shapeRefToL1Type valRef |> Ok
     in
     ResultME.combine2
-        (\keyType valType -> CDict keyType valType |> TContainer () |> DAlias ())
+        (\keyType valType -> DAlias () (TContainer () (CDict keyType valType)) L1.emptyProperties)
         keyTypeRes
         valTypeRes
 
@@ -301,18 +384,17 @@ modelMap shape name =
 
 modelOperations :
     Dict String Operation
-    -> Dict String (Declarable () RefChecked)
-    -> ResultME (TransformError ()) (Dict String Endpoint)
-modelOperations operations typeDict =
+    -> ResultME (TransformError ()) (L1 ())
+modelOperations operations =
     Dict.map
-        (\name operation -> modelOperation typeDict name operation)
+        (\name operation -> modelOperation name operation)
         operations
         |> ResultME.combineDict
+        |> Result.map Dict.toList
 
 
-modelOperation : Dict String (Declarable () RefChecked) -> String -> Operation -> ResultME (TransformError ()) Endpoint
-modelOperation typeDict name operation =
-    -- TODO: The ref checking should be done by the L2 checker.
+modelOperation : String -> Operation -> ResultME (TransformError ()) (Declarable () Unchecked)
+modelOperation name operation =
     let
         paramType opShapeRef errHint =
             case opShapeRef of
@@ -320,12 +402,7 @@ modelOperation typeDict name operation =
                     TUnit () |> Ok
 
                 Just shapeRef ->
-                    case Dict.get shapeRef.shape typeDict of
-                        Just decl ->
-                            TNamed () shapeRef.shape RcTUnit |> Ok
-
-                        Nothing ->
-                            UnresolvedRef () "Input" |> ResultME.error
+                    TNamed () shapeRef.shape Unchecked |> Ok
 
         requestRes =
             paramType operation.input "Input"
@@ -335,116 +412,20 @@ modelOperation typeDict name operation =
     in
     ResultME.combine2
         (\request response ->
-            { httpMethod = operation.http.method
-            , url = operation.http.requestUri |> Maybe.withDefault "/"
-            , request = request
-            , response = response
-            , documentation = Maybe.map htmlToDocComment operation.documentation
-            }
+            let
+                funType =
+                    TFunction () request response
+
+                props =
+                    Dict.empty
+                        |> Dict.insert "url" (operation.http.requestUri |> Maybe.withDefault "/" |> PString)
+                        |> Dict.insert "httpMethod" (httpMethodToString operation.http.method |> PString)
+                        |> Dict.insert "documentation"
+                            (Maybe.map PString operation.documentation
+                                |> POptional PSString
+                            )
+            in
+            DAlias () funType props
         )
         requestRes
         responseRes
-
-
-
---== HTML Documentation to Markdown conversion.
-
-
-htmlToFileComment : String -> Comment FileComment
-htmlToFileComment val =
-    let
-        parsedHtmlResult =
-            HP.run val
-
-        empty =
-            CG.emptyFileComment
-    in
-    case parsedHtmlResult of
-        Err _ ->
-            empty
-                |> CG.markdown val
-
-        Ok nodes ->
-            htmlToComment nodes True [] empty
-                |> Tuple.second
-
-
-htmlToDocComment : String -> Comment DocComment
-htmlToDocComment val =
-    let
-        parsedHtmlResult =
-            HP.run val
-
-        empty =
-            CG.emptyDocComment
-    in
-    case parsedHtmlResult of
-        Err _ ->
-            empty
-                |> CG.markdown val
-
-        Ok nodes ->
-            htmlToComment nodes True [] empty
-                |> Tuple.second
-
-
-htmlToComment : List HP.Node -> Bool -> List String -> Comment a -> ( List String, Comment a )
-htmlToComment nodes isTop accum comment =
-    case nodes of
-        [] ->
-            ( accum, comment )
-
-        node :: ns ->
-            let
-                ( innerAccum, innerComment ) =
-                    nodeToComment node isTop accum comment
-            in
-            htmlToComment ns isTop innerAccum innerComment
-
-
-nodeToComment : HP.Node -> Bool -> List String -> Comment a -> ( List String, Comment a )
-nodeToComment node isTop accum comment =
-    case node of
-        HP.Text text ->
-            ( text :: accum, comment )
-
-        HP.Element el attr children ->
-            let
-                ( innerAccum, innerComment ) =
-                    htmlToComment children False accum comment
-
-                ( taggedAccum, taggedInnerComment ) =
-                    case ( el, innerAccum ) of
-                        -- ( "p", _ ) ->
-                        --     ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
-                        ( "fullname", hd :: tl ) ->
-                            ( ("## " ++ hd) :: tl, innerComment )
-
-                        -- ( "ul", _ ) ->
-                        --     ( [], CG.markdown (List.reverse innerAccum |> String.join "") innerComment )
-                        ( "li", _ ) ->
-                            let
-                                _ =
-                                    Debug.log "innerAccum" innerAccum
-                            in
-                            ( [ "\n - " ++ (List.reverse innerAccum |> String.join "") ]
-                            , innerComment
-                            )
-
-                        ( "code", hd :: tl ) ->
-                            ( ("`" ++ hd ++ "`") :: tl, innerComment )
-
-                        ( "a", hd :: tl ) ->
-                            ( ("`" ++ hd ++ "`") :: tl, innerComment )
-
-                        _ ->
-                            ( innerAccum, innerComment )
-            in
-            if isTop then
-                ( [], CG.markdown (List.reverse taggedAccum |> String.join "") taggedInnerComment )
-
-            else
-                ( taggedAccum, taggedInnerComment )
-
-        HP.Comment _ ->
-            ( accum, comment )
