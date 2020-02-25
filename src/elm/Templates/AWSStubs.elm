@@ -97,13 +97,14 @@ type AWSStubsError
 
 
 errorToString : (pos -> String) -> pos -> err -> String
-errorToString =
-    Debug.todo "errorToString"
+errorToString _ _ _ =
+    "errorToString"
 
 
 check : L3 pos -> ResultME err (L3 pos)
-check =
-    Debug.todo "check"
+check l3 =
+    -- Debug.todo "check"
+    l3 |> Ok
 
 
 

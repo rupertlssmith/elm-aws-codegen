@@ -1,7 +1,6 @@
 module Transform exposing (transform)
 
 import AWS.Core.Service exposing (Signer(..))
-import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Checker
 import Console

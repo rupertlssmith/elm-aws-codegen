@@ -1,6 +1,5 @@
 port module Top exposing (main)
 
-import AWSApiModel
 import AWSService exposing (AWSService)
 import Codec
 import Dict exposing (Dict)
