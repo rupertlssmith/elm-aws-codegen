@@ -346,7 +346,7 @@ operation :
     -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 operation propertiesApi name decl =
     case decl of
-        DAlias pos (TFunction _ request response) _ ->
+        DAlias pos _ (TFunction _ request response) ->
             requestFn (propertiesApi.declarable decl) name pos request response
 
         _ ->
@@ -557,7 +557,7 @@ typeDeclarations propertiesAPI model =
 typeDeclaration : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
 typeDeclaration name decl =
     case decl of
-        DAlias _ (TFunction _ _ _) _ ->
+        DAlias _ _ (TFunction _ _ _) ->
             let
                 _ =
                     Debug.log "typeDeclaration" ("Skipped function " ++ name)
@@ -582,7 +582,7 @@ jsonCodecs propertiesAPI model =
 jsonCodec : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
 jsonCodec name decl =
     case decl of
-        DAlias _ (TFunction _ _ _) _ ->
+        DAlias _ _ (TFunction _ _ _) ->
             let
                 _ =
                     Debug.log "typeDeclaration" ("Skipped function " ++ name)
