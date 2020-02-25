@@ -346,7 +346,7 @@ operation :
     -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 operation propertiesApi name decl =
     case decl of
-        DAlias pos _ (TFunction _ request response) ->
+        DAlias pos _ (TFunction _ _ request response) ->
             requestFn (propertiesApi.declarable decl) name pos request response
 
         _ ->
@@ -442,7 +442,7 @@ requestFnRequest :
         }
 requestFnRequest name request =
     case request of
-        (L1.TNamed _ requestTypeName _) as l1RequestType ->
+        (L1.TNamed _ _ requestTypeName _) as l1RequestType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1RequestType
@@ -501,7 +501,7 @@ requestFnResponse :
     -> ( TypeAnnotation, Expression, Linkage )
 requestFnResponse name response =
     case response of
-        (L1.TNamed _ responseTypeName _) as l1ResponseType ->
+        (L1.TNamed _ _ responseTypeName _) as l1ResponseType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1ResponseType
@@ -557,7 +557,7 @@ typeDeclarations propertiesAPI model =
 typeDeclaration : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
 typeDeclaration name decl =
     case decl of
-        DAlias _ _ (TFunction _ _ _) ->
+        DAlias _ _ (TFunction _ _ _ _) ->
             let
                 _ =
                     Debug.log "typeDeclaration" ("Skipped function " ++ name)
@@ -582,7 +582,7 @@ jsonCodecs propertiesAPI model =
 jsonCodec : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
 jsonCodec name decl =
     case decl of
-        DAlias _ _ (TFunction _ _ _) ->
+        DAlias _ _ (TFunction _ _ _ _) ->
             let
                 _ =
                     Debug.log "typeDeclaration" ("Skipped function " ++ name)
