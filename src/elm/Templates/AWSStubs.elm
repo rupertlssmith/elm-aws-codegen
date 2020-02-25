@@ -12,6 +12,7 @@ module Templates.AWSStubs exposing
 
 import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import Dict
+import Documentation
 import Elm.CodeGen as CG exposing (Declaration, Expression, File, Import, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
 import Enum exposing (Enum)
 import HttpMethod exposing (HttpMethod)
@@ -147,21 +148,21 @@ generate propertiesApi model =
                 ( imports, exposings ) =
                     CG.combineLinkage linkages
 
-                -- doc =
-                --     documentation
-                --         |> Maybe.withDefault CG.emptyFileComment
-                --         |> CG.markdown "# Service definition."
-                --         |> CG.docTagsFromExposings (Tuple.second serviceLinkage)
-                --         |> CG.markdown "# Service endpoints."
-                --         |> CG.docTagsFromExposings (Tuple.second operationsLinkage)
-                --         |> CG.markdown "# API data model."
-                --         |> CG.docTagsFromExposings (Tuple.second typeDeclLinkage)
-                --         |> CG.markdown "# Codecs for the data model."
-                --         |> CG.docTagsFromExposings (Tuple.second codecsLinkage)
+                doc =
+                    documentation
+                        |> Maybe.map Documentation.htmlToFileComment
+                        |> Maybe.withDefault CG.emptyFileComment
+                        |> CG.markdown "# Service definition."
+                        |> CG.docTagsFromExposings (Tuple.second serviceLinkage)
+                        |> CG.markdown "# Service endpoints."
+                        |> CG.docTagsFromExposings (Tuple.second operationsLinkage)
+                        |> CG.markdown "# API data model."
+                        |> CG.docTagsFromExposings (Tuple.second typeDeclLinkage)
+                        |> CG.markdown "# Codecs for the data model."
+                        |> CG.docTagsFromExposings (Tuple.second codecsLinkage)
             in
-            -- CG.file moduleSpec imports declarations (Just doc)
             module_ propertiesApi model exposings
-                |> ResultME.map (\moduleSpec -> CG.file moduleSpec imports declarations Nothing)
+                |> ResultME.map (\moduleSpec -> CG.file moduleSpec imports declarations (Just doc))
         )
         (service propertiesApi model)
         (operations propertiesApi model)
@@ -395,11 +396,10 @@ requestFn propertyGet name pos request response =
                             , responseDecoder |> CG.letVal "decoder"
                             ]
 
-                -- doc =
-                --     documentation
-                --         |> Maybe.withDefault CG.emptyDocComment
                 doc =
-                    CG.emptyDocComment
+                    documentation
+                        |> Maybe.map Documentation.htmlToDocComment
+                        |> Maybe.withDefault CG.emptyDocComment
             in
             ( [ CG.funDecl
                     (Just doc)
