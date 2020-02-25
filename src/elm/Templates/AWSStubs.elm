@@ -49,44 +49,44 @@ defaultProperties : DefaultProperties
 defaultProperties =
     { top =
         L1.defineProperties
-            [ ( "name", PSQName )
-            , ( "xmlNamespace", PSOptional PSString )
-            , ( "targetPrefix", PSOptional PSString )
-            , ( "signingName", PSOptional PSString )
-            , ( "jsonVersion", PSOptional PSString )
-            ]
-            [ ( "isRegional", PBool False )
+            []
+            [ ( "name", PQName [ "AWS" ] "Stub" )
+            , ( "isRegional", PBool False )
             , ( "apiVersion", PString "1.0" )
             , ( "protocol", PEnum protocolEnum "JSON" )
             , ( "signer", PEnum signerEnum "V4" )
-            , ( "documentation", POptional (PSOptional PSString) Nothing )
+            , ( "endpointPrefix", PString "/" )
+            , ( "xmlNamespace", POptional PSString Nothing )
+            , ( "targetPrefix", POptional PSString Nothing )
+            , ( "signingName", POptional PSString Nothing )
+            , ( "jsonVersion", POptional PSString Nothing )
+            , ( "documentation", POptional PSString Nothing )
             ]
     , alias =
         L1.defineProperties
             []
             [ ( "exclude", PBool False )
-            , ( "documentation", POptional (PSOptional PSString) Nothing )
-
-            -- , "url"
-            -- , "httpMethod"
+            , ( "documentation", POptional PSString Nothing )
+            , ( "url", POptional PSString Nothing )
+            , ( "httpMethod", POptional PSString Nothing )
             ]
     , sum =
         L1.defineProperties []
             [ ( "exclude", PBool False )
-            , ( "documentation", POptional (PSOptional PSString) Nothing )
+            , ( "documentation", POptional PSString Nothing )
             ]
     , enum =
         L1.defineProperties
             []
             [ ( "exclude", PBool False )
             , ( "elmEnumStyle", PEnum elmEnumStyleEnum "customType" )
-            , ( "documentation", POptional (PSOptional PSString) Nothing )
+            , ( "documentation", POptional PSString Nothing )
             ]
     , restricted =
         L1.defineProperties
             []
             [ ( "exclude", PBool False )
-            , ( "documentation", POptional (PSOptional PSString) Nothing )
+            , ( "documentation", POptional PSString Nothing )
             ]
     , fields = L1.defineProperties [] []
     }
@@ -375,8 +375,8 @@ requestFn propertyGet name pos request response =
                     CG.apply
                         [ CG.fqFun coreHttpMod "request"
                         , CG.string (Util.safeCCU name)
-                        , CG.fqVal coreHttpMod httpMethod
-                        , CG.string url
+                        , CG.fqVal coreHttpMod (httpMethod |> Maybe.withDefault "")
+                        , CG.string (url |> Maybe.withDefault "")
                         , CG.val "jsonBody"
                         , CG.val "decoder"
                         ]
@@ -407,9 +407,9 @@ requestFn propertyGet name pos request response =
                 ]
             )
         )
-        (propertyGet.getStringProperty "url")
-        (propertyGet.getStringProperty "httpMethod")
-        (propertyGet.getStringProperty "documentation")
+        (propertyGet.getOptionalStringProperty "url")
+        (propertyGet.getOptionalStringProperty "httpMethod")
+        (propertyGet.getOptionalStringProperty "documentation")
 
 
 {-| Figures out what the request type for the endpoint will be.
