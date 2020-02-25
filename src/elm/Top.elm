@@ -9,12 +9,12 @@ import Elm.Pretty
 import Elm.Writer
 import Json.Decode as Decode
 import Json.Decode.Generic as Generic
+import L3
 import Pretty
 import Random exposing (Seed)
 import String.Case as Case
 import Task
 import Templates.AWSStubs
-import Templates.Api
 import Time exposing (Posix)
 import Transform
 
@@ -104,14 +104,32 @@ processServiceModel name val seed =
             case Transform.transform service of
                 Ok apiModel ->
                     let
-                        codegen =
+                        generator =
+                            Templates.AWSStubs.generator
+
+                        propsAPI =
+                            L3.makePropertiesAPI generator.defaults apiModel
+
+                        codegenResult =
                             apiModel
-                                |> Templates.Api.serviceFile
-                                |> Elm.Pretty.pretty 120
+                                |> Templates.AWSStubs.generate propsAPI
                     in
-                    ( Seeded { seed = seed }
-                    , ( Case.toCamelCaseUpper service.metaData.serviceId ++ ".elm", codegen, [] ) |> codeOutPort
-                    )
+                    case codegenResult of
+                        Ok file ->
+                            let
+                                codegen =
+                                    Elm.Pretty.pretty 120 file
+                            in
+                            ( Seeded { seed = seed }
+                            , ( Case.toCamelCaseUpper service.metaData.serviceId ++ ".elm", codegen, [] ) |> codeOutPort
+                            )
+
+                        Err errors ->
+                            let
+                                _ =
+                                    Debug.log "Errors" errors
+                            in
+                            ( Seeded { seed = seed }, Cmd.none )
 
                 Err errors ->
                     let

@@ -9,8 +9,19 @@ import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Html.Parser as HP
-import L1 exposing (Basic(..), Container(..), Declarable(..), L1, Restricted(..), Type(..), Unchecked(..))
+import L1
+    exposing
+        ( Basic(..)
+        , Container(..)
+        , Declarable(..)
+        , L1
+        , Property(..)
+        , Restricted(..)
+        , Type(..)
+        , Unchecked(..)
+        )
 import L2 exposing (L2, RefChecked(..))
+import L3 exposing (L3)
 import List.Nonempty
 import Maybe.Extra
 import Naming
@@ -49,7 +60,7 @@ errorToString err =
             "Unknown not implemented."
 
 
-transform : AWSService -> ResultME String AWSApiModel
+transform : AWSService -> ResultME String (L3 ())
 transform service =
     let
         mappingsResult : ResultME String (L1 ())
@@ -57,52 +68,41 @@ transform service =
             modelShapes service.shapes
                 |> ResultME.mapError errorToString
 
-        -- TODO:
-        -- Make operationsResult -> L1 ()
-        -- Turn operations into functions, mark for codegen as endpoints (don't exclude)
-        -- Fill in other endpoint properties.
-        operationsResult : ResultME String (Dict String Endpoint)
+        operationsResult : ResultME String (L1 ())
         operationsResult =
-            l2mappingsResult
-                |> ResultME.andThen
-                    (modelOperations service.operations
-                        >> ResultME.mapError errorToString
-                    )
+            modelOperations service.operations
+                |> ResultME.mapError errorToString
 
-        -- TODO:
-        -- Push the L2 check until after the operations, as those can now be
-        -- checked too.
-        l2mappingsResult =
-            mappingsResult
+        l2Result =
+            Result.map2 List.append mappingsResult operationsResult
                 |> ResultME.andThen
                     (Checker.check >> ResultME.mapError Checker.errorToString)
     in
-    ResultME.combine2
-        (\mappings operations ->
-            -- TODO: Lift all these fields into properties.
-            { declarations = mappings
-            , operations = operations
-            , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
-            , isRegional = Maybe.Extra.isNothing service.metaData.globalEndpoint
-            , endpointPrefix = service.metaData.endpointPrefix
-            , apiVersion = service.metaData.apiVersion
-            , protocol = service.metaData.protocol
-            , signer =
-                case service.metaData.signatureVersion of
-                    Just signer ->
-                        signer
+    ResultME.map
+        (\l2 ->
+            { properties = Dict.empty
 
-                    _ ->
-                        SignV4
-            , xmlNamespace = service.metaData.xmlNamespace
-            , targetPrefix = service.metaData.targetPrefix
-            , signingName = service.metaData.signingName
-            , jsonVersion = service.metaData.jsonVersion
-            , documentation = Maybe.map htmlToFileComment service.documentation
+            -- , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
+            -- , isRegional = Maybe.Extra.isNothing service.metaData.globalEndpoint
+            -- , endpointPrefix = service.metaData.endpointPrefix
+            -- , apiVersion = service.metaData.apiVersion
+            -- , protocol = service.metaData.protocol
+            -- , signer =
+            --     case service.metaData.signatureVersion of
+            --         Just signer ->
+            --             signer
+            --
+            --         _ ->
+            --             SignV4
+            -- , xmlNamespace = service.metaData.xmlNamespace
+            -- , targetPrefix = service.metaData.targetPrefix
+            -- , signingName = service.metaData.signingName
+            -- , jsonVersion = service.metaData.jsonVersion
+            -- , documentation = Maybe.map htmlToFileComment service.documentation
+            , declarations = l2
             }
         )
-        l2mappingsResult
-        operationsResult
+        l2Result
 
 
 shapeRefToL1Type : ShapeRef -> Type () Unchecked
@@ -113,8 +113,8 @@ shapeRefToL1Type ref =
 
 --=== L1 Model Assembly Pass
 -- A complete L1 model is generated for each shape.
--- Errors in the shape definitions are detected, but checking of the L1 model
--- is handled when it is lowered into L2.
+-- Errors in the shape definitions are detected, but other checking of the L1
+-- model is handled when it is lowered into L2.
 
 
 modelShapes :
@@ -316,18 +316,17 @@ modelMap shape name =
 
 modelOperations :
     Dict String Operation
-    -> Dict String (Declarable () RefChecked)
-    -> ResultME (TransformError ()) (Dict String Endpoint)
-modelOperations operations typeDict =
+    -> ResultME (TransformError ()) (L1 ())
+modelOperations operations =
     Dict.map
-        (\name operation -> modelOperation typeDict name operation)
+        (\name operation -> modelOperation name operation)
         operations
         |> ResultME.combineDict
+        |> Result.map Dict.toList
 
 
-modelOperation : Dict String (Declarable () RefChecked) -> String -> Operation -> ResultME (TransformError ()) Endpoint
-modelOperation typeDict name operation =
-    -- TODO: The ref checking should be done by the L2 checker.
+modelOperation : String -> Operation -> ResultME (TransformError ()) (Declarable () Unchecked)
+modelOperation name operation =
     let
         paramType opShapeRef errHint =
             case opShapeRef of
@@ -335,12 +334,7 @@ modelOperation typeDict name operation =
                     TUnit () |> Ok
 
                 Just shapeRef ->
-                    case Dict.get shapeRef.shape typeDict of
-                        Just decl ->
-                            TNamed () shapeRef.shape RcTUnit |> Ok
-
-                        Nothing ->
-                            UnresolvedRef () "Input" |> ResultME.error
+                    TNamed () shapeRef.shape Unchecked |> Ok
 
         requestRes =
             paramType operation.input "Input"
@@ -350,12 +344,17 @@ modelOperation typeDict name operation =
     in
     ResultME.combine2
         (\request response ->
-            { httpMethod = operation.http.method
-            , url = operation.http.requestUri |> Maybe.withDefault "/"
-            , request = request
-            , response = response
-            , documentation = Maybe.map htmlToDocComment operation.documentation
-            }
+            let
+                funType =
+                    TFunction () request response
+
+                props =
+                    Dict.empty
+                        --|> Dict.insert "httpMethod" (PString operation.http.method)
+                        --|> Dict.insert "documentation" (operation.documentation |> PString)
+                        |> Dict.insert "url" (operation.http.requestUri |> Maybe.withDefault "/" |> PString)
+            in
+            DAlias () funType Dict.empty
         )
         requestRes
         responseRes
