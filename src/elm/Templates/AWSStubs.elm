@@ -556,18 +556,42 @@ typeDeclarations propertiesAPI model =
 
 typeDeclaration : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
 typeDeclaration name decl =
-    let
-        doc =
-            CG.emptyDocComment
-                |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
-    in
-    Templates.L1.typeDecl name doc decl
+    case decl of
+        DAlias _ (TFunction _ _ _) _ ->
+            let
+                _ =
+                    Debug.log "typeDeclaration" ("Skipped function " ++ name)
+            in
+            ( [], CG.emptyLinkage )
+
+        _ ->
+            let
+                doc =
+                    CG.emptyDocComment
+                        |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
+            in
+            Templates.L1.typeDecl name doc decl
 
 
 jsonCodecs : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 jsonCodecs propertiesAPI model =
-    declarationsSkipExcluded propertiesAPI Templates.L1.codec model
-        |> ResultME.map combineDeclaration
+    declarationsSkipExcluded propertiesAPI jsonCodec model
+        |> ResultME.map combineDeclarations
+
+
+jsonCodec : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
+jsonCodec name decl =
+    case decl of
+        DAlias _ (TFunction _ _ _) _ ->
+            let
+                _ =
+                    Debug.log "typeDeclaration" ("Skipped function " ++ name)
+            in
+            ( [], CG.emptyLinkage )
+
+        _ ->
+            Templates.L1.codec name decl
+                |> Tuple.mapFirst List.singleton
 
 
 
