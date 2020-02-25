@@ -1,6 +1,6 @@
 module Transform exposing (transform)
 
-import AWS.Core.Service exposing (Signer(..))
+import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Checker
 import Console
@@ -8,12 +8,14 @@ import Dict exposing (Dict)
 import Elm.CodeGen as CG exposing (Comment, DocComment, FileComment)
 import Enum exposing (Enum)
 import Html.Parser as HP
+import HttpMethod exposing (HttpMethod(..))
 import L1
     exposing
         ( Basic(..)
         , Container(..)
         , Declarable(..)
         , L1
+        , PropSpec(..)
         , Property(..)
         , Restricted(..)
         , Type(..)
@@ -26,6 +28,7 @@ import Maybe.Extra
 import Naming
 import ResultME exposing (ResultME)
 import String.Case as Case
+import Templates.AWSStubs as AWSStubs
 
 
 type TransformError pos
@@ -79,29 +82,97 @@ transform service =
     in
     ResultME.map
         (\l2 ->
-            { properties = Dict.empty
-
-            -- , name = [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ]
-            -- , isRegional = Maybe.Extra.isNothing service.metaData.globalEndpoint
-            -- , endpointPrefix = service.metaData.endpointPrefix
-            -- , apiVersion = service.metaData.apiVersion
-            -- , protocol = service.metaData.protocol
-            -- , signer =
-            --     case service.metaData.signatureVersion of
-            --         Just signer ->
-            --             signer
-            --
-            --         _ ->
-            --             SignV4
-            -- , xmlNamespace = service.metaData.xmlNamespace
-            -- , targetPrefix = service.metaData.targetPrefix
-            -- , signingName = service.metaData.signingName
-            -- , jsonVersion = service.metaData.jsonVersion
-            -- , documentation = Maybe.map htmlToFileComment service.documentation
+            { properties =
+                Dict.empty
+                    |> Dict.insert "name" (PQName [ "AWS", Case.toCamelCaseUpper service.metaData.serviceId ])
+                    |> Dict.insert "isRegional" (PBool (Maybe.Extra.isNothing service.metaData.globalEndpoint))
+                    |> Dict.insert "endpointPrefix" (PString service.metaData.endpointPrefix)
+                    |> Dict.insert "apiVersion" (PString service.metaData.apiVersion)
+                    |> Dict.insert "protocol"
+                        (protocolToString service.metaData.protocol
+                            |> PEnum AWSStubs.protocolEnum
+                        )
+                    |> Dict.insert "signer"
+                        (service.metaData.signatureVersion
+                            |> Maybe.withDefault SignV4
+                            |> signerToString
+                            |> PEnum AWSStubs.signerEnum
+                        )
+                    |> Dict.insert "xmlNamespace"
+                        (Maybe.map PString service.metaData.xmlNamespace
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "targetPrefix"
+                        (Maybe.map PString service.metaData.targetPrefix
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "signingName"
+                        (Maybe.map PString service.metaData.signingName
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "jsonVersion"
+                        (Maybe.map PString service.metaData.jsonVersion
+                            |> POptional PSString
+                        )
+                    |> Dict.insert "documentation"
+                        (Maybe.map PString service.documentation
+                            |> POptional PSString
+                        )
             , declarations = l2
             }
         )
         l2Result
+
+
+protocolToString : Protocol -> String
+protocolToString proto =
+    case proto of
+        EC2 ->
+            "EC2"
+
+        JSON ->
+            "JSON"
+
+        QUERY ->
+            "QUERY"
+
+        REST_JSON ->
+            "REST_JSON"
+
+        REST_XML ->
+            "REST_XML"
+
+
+signerToString : Signer -> String
+signerToString signer =
+    case signer of
+        SignV4 ->
+            "SignV4"
+
+        SignS3 ->
+            "SignS3"
+
+
+httpMethodToString : HttpMethod -> String
+httpMethodToString method =
+    case method of
+        DELETE ->
+            "DELETE"
+
+        GET ->
+            "GET"
+
+        HEAD ->
+            "HEAD"
+
+        OPTIONS ->
+            "OPTIONS"
+
+        POST ->
+            "POST"
+
+        PUT ->
+            "PUT"
 
 
 shapeRefToL1Type : ShapeRef -> Type () Unchecked
@@ -349,11 +420,14 @@ modelOperation name operation =
 
                 props =
                     Dict.empty
-                        --|> Dict.insert "httpMethod" (PString operation.http.method)
-                        --|> Dict.insert "documentation" (operation.documentation |> PString)
                         |> Dict.insert "url" (operation.http.requestUri |> Maybe.withDefault "/" |> PString)
+                        |> Dict.insert "httpMethod" (httpMethodToString operation.http.method |> PString)
+                        |> Dict.insert "documentation"
+                            (Maybe.map PString operation.documentation
+                                |> POptional PSString
+                            )
             in
-            DAlias () funType Dict.empty
+            DAlias () funType props
         )
         requestRes
         responseRes

@@ -1,4 +1,14 @@
-module Templates.AWSStubs exposing (AWSStubsError(..), check, defaultProperties, errorToString, generate, generator)
+module Templates.AWSStubs exposing
+    ( AWSStubsError(..)
+    , check
+    , defaultProperties
+    , elmEnumStyleEnum
+    , errorToString
+    , generate
+    , generator
+    , protocolEnum
+    , signerEnum
+    )
 
 import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import Dict
@@ -49,13 +59,13 @@ defaultProperties : DefaultProperties
 defaultProperties =
     { top =
         L1.defineProperties
-            []
-            [ ( "name", PQName [ "AWS" ] "Stub" )
-            , ( "isRegional", PBool False )
-            , ( "apiVersion", PString "1.0" )
-            , ( "protocol", PEnum protocolEnum "JSON" )
-            , ( "signer", PEnum signerEnum "V4" )
-            , ( "endpointPrefix", PString "/" )
+            [ ( "name", PSQName )
+            , ( "endpointPrefix", PSString )
+            , ( "apiVersion", PSString )
+            , ( "protocol", PSEnum protocolEnum )
+            , ( "signer", PSEnum signerEnum )
+            ]
+            [ ( "isRegional", PBool False )
             , ( "xmlNamespace", POptional PSString Nothing )
             , ( "targetPrefix", POptional PSString Nothing )
             , ( "signingName", POptional PSString Nothing )
@@ -64,11 +74,11 @@ defaultProperties =
             ]
     , alias =
         L1.defineProperties
-            []
+            [ ( "url", PSString ) -- TODO: Put these on the function.
+            , ( "httpMethod", PSString ) -- TODO: Put these on the function.
+            ]
             [ ( "exclude", PBool False )
             , ( "documentation", POptional PSString Nothing )
-            , ( "url", POptional PSString Nothing )
-            , ( "httpMethod", POptional PSString Nothing )
             ]
     , sum =
         L1.defineProperties []
@@ -168,7 +178,7 @@ generate propertiesApi model =
 module_ : PropertiesAPI pos -> L3 pos -> List TopLevelExpose -> ResultME L3.PropCheckError Module
 module_ propertiesApi model exposings =
     propertiesApi.top.getQNameProperty "name"
-        |> ResultME.map (\( path, name ) -> CG.normalModule (name :: path) exposings)
+        |> ResultME.map (\path -> CG.normalModule path exposings)
 
 
 
@@ -375,8 +385,8 @@ requestFn propertyGet name pos request response =
                     CG.apply
                         [ CG.fqFun coreHttpMod "request"
                         , CG.string (Util.safeCCU name)
-                        , CG.fqVal coreHttpMod (httpMethod |> Maybe.withDefault "")
-                        , CG.string (url |> Maybe.withDefault "")
+                        , CG.fqVal coreHttpMod httpMethod
+                        , CG.string url
                         , CG.val "jsonBody"
                         , CG.val "decoder"
                         ]
@@ -407,8 +417,8 @@ requestFn propertyGet name pos request response =
                 ]
             )
         )
-        (propertyGet.getOptionalStringProperty "url")
-        (propertyGet.getOptionalStringProperty "httpMethod")
+        (propertyGet.getStringProperty "url")
+        (propertyGet.getStringProperty "httpMethod")
         (propertyGet.getOptionalStringProperty "documentation")
 
 
