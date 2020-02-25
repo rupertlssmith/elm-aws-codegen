@@ -1,6 +1,7 @@
 module Transform exposing (transform)
 
 import AWS.Core.Service exposing (Signer(..))
+import AWSApiModel exposing (AWSApiModel, Endpoint)
 import AWSService exposing (AWSService, AWSType(..), Operation, Shape, ShapeRef)
 import Checker
 import Console
@@ -75,15 +76,9 @@ transform service =
             mappingsResult
                 |> ResultME.andThen
                     (Checker.check >> ResultME.mapError Checker.errorToString)
-
-        mappingsAndOperations =
-            ResultME.combine2
-                Tuple.pair
-                l2mappingsResult
-                operationsResult
     in
-    ResultME.map
-        (\( mappings, operations ) ->
+    ResultME.combine2
+        (\mappings operations ->
             -- TODO: Lift all these fields into properties.
             { declarations = mappings
             , operations = operations
@@ -106,7 +101,8 @@ transform service =
             , documentation = Maybe.map htmlToFileComment service.documentation
             }
         )
-        mappingsAndOperations
+        l2mappingsResult
+        operationsResult
 
 
 shapeRefToL1Type : ShapeRef -> Type () Unchecked
