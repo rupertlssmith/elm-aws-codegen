@@ -20,9 +20,9 @@ import L1 exposing (Declarable(..), PropSpec(..), Properties, Property(..), Type
 import L2 exposing (L2)
 import L3 exposing (DefaultProperties, L3, Processor, PropertiesAPI)
 import Maybe.Extra
+import Naming
 import ResultME exposing (ResultME)
 import Templates.L1
-import Templates.Util as Util
 
 
 protocolEnum : Enum String
@@ -385,7 +385,7 @@ requestFn propertyGet name pos request response =
                 requestImpl =
                     CG.apply
                         [ CG.fqFun coreHttpMod "request"
-                        , CG.string (Util.safeCCU name)
+                        , CG.string (Naming.safeCCU name)
                         , CG.fqVal coreHttpMod httpMethod
                         , CG.string url
                         , CG.val "jsonBody"
@@ -404,7 +404,7 @@ requestFn propertyGet name pos request response =
             ( [ CG.funDecl
                     (Just doc)
                     (Just requestSig)
-                    (Util.safeCCL name)
+                    (Naming.safeCCL name)
                     argPatterns
                     requestImpl
               ]
@@ -413,7 +413,7 @@ requestFn propertyGet name pos request response =
                 , responseLinkage
                 , CG.emptyLinkage
                     |> CG.addImport (CG.importStmt coreHttpMod Nothing Nothing)
-                    |> CG.addExposing (CG.funExpose (Util.safeCCL name))
+                    |> CG.addExposing (CG.funExpose (Naming.safeCCL name))
                 ]
             )
         )
@@ -458,7 +458,7 @@ requestFnRequest name request =
                     CG.pipe (CG.val "req")
                         [ CG.apply
                             [ CG.fqFun codecMod "encoder"
-                            , CG.val (Util.safeCCL requestTypeName ++ "Codec")
+                            , CG.val (Naming.safeCCL requestTypeName ++ "Codec")
                             ]
                         , CG.fqVal coreHttpMod "jsonBody"
                         ]
@@ -519,7 +519,7 @@ requestFnResponse name response =
                 decoder =
                     CG.apply
                         [ CG.fqFun codecMod "decoder"
-                        , CG.val (Util.safeCCL responseTypeName ++ "Codec")
+                        , CG.val (Naming.safeCCL responseTypeName ++ "Codec")
                         ]
                         |> CG.parens
             in
@@ -568,7 +568,7 @@ typeDeclaration name decl =
             let
                 doc =
                     CG.emptyDocComment
-                        |> CG.markdown ("The " ++ Util.safeCCU name ++ " data model.")
+                        |> CG.markdown ("The " ++ Naming.safeCCU name ++ " data model.")
             in
             Templates.L1.typeDecl name doc decl
 
