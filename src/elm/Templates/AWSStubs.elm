@@ -75,9 +75,7 @@ defaultProperties =
             ]
     , alias =
         L1.defineProperties
-            [ ( "url", PSString ) -- TODO: Put these on the function.
-            , ( "httpMethod", PSString ) -- TODO: Put these on the function.
-            ]
+            []
             [ ( "exclude", PBool False )
             , ( "documentation", POptional PSString Nothing )
             ]
@@ -100,6 +98,18 @@ defaultProperties =
             , ( "documentation", POptional PSString Nothing )
             ]
     , fields = L1.defineProperties [] []
+    , unit = L1.defineProperties [] []
+    , basic = L1.defineProperties [] []
+    , named = L1.defineProperties [] []
+    , product = L1.defineProperties [] []
+    , emptyProduct = L1.defineProperties [] []
+    , container = L1.defineProperties [] []
+    , function =
+        L1.defineProperties
+            [ ( "url", PSString )
+            , ( "httpMethod", PSString )
+            ]
+            []
     }
 
 
@@ -346,8 +356,14 @@ operation :
     -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 operation propertiesApi name decl =
     case decl of
-        DAlias pos _ (TFunction _ request response) ->
-            requestFn (propertiesApi.declarable decl) name pos request response
+        DAlias pos _ (TFunction funpos props request response) ->
+            requestFn
+                (propertiesApi.declarable decl)
+                (propertiesApi.type_ (TFunction funpos props request response))
+                name
+                pos
+                request
+                response
 
         _ ->
             ( [], CG.emptyLinkage ) |> Ok
@@ -355,12 +371,13 @@ operation propertiesApi name decl =
 
 requestFn :
     L3.PropertyGet
+    -> L3.PropertyGet
     -> String
     -> pos
     -> L1.Type pos L2.RefChecked
     -> L1.Type pos L2.RefChecked
     -> ResultME L3.PropCheckError ( List Declaration, Linkage )
-requestFn propertyGet name pos request response =
+requestFn declPropertyGet funPropertyGet name pos request response =
     let
         { maybeRequestType, argPatterns, jsonBody, requestLinkage } =
             requestFnRequest name request
@@ -417,9 +434,9 @@ requestFn propertyGet name pos request response =
                 ]
             )
         )
-        (propertyGet.getStringProperty "url")
-        (propertyGet.getStringProperty "httpMethod")
-        (propertyGet.getOptionalStringProperty "documentation")
+        (funPropertyGet.getStringProperty "url")
+        (funPropertyGet.getStringProperty "httpMethod")
+        (declPropertyGet.getOptionalStringProperty "documentation")
 
 
 {-| Figures out what the request type for the endpoint will be.
@@ -442,7 +459,7 @@ requestFnRequest :
         }
 requestFnRequest name request =
     case request of
-        (L1.TNamed _ requestTypeName _) as l1RequestType ->
+        (L1.TNamed _ _ requestTypeName _) as l1RequestType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1RequestType
@@ -501,7 +518,7 @@ requestFnResponse :
     -> ( TypeAnnotation, Expression, Linkage )
 requestFnResponse name response =
     case response of
-        (L1.TNamed _ responseTypeName _) as l1ResponseType ->
+        (L1.TNamed _ _ responseTypeName _) as l1ResponseType ->
             let
                 ( loweredType, loweredLinkage ) =
                     Templates.L1.lowerType l1ResponseType
@@ -557,7 +574,7 @@ typeDeclarations propertiesAPI model =
 typeDeclaration : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
 typeDeclaration name decl =
     case decl of
-        DAlias _ _ (TFunction _ _ _) ->
+        DAlias _ _ (TFunction _ _ _ _) ->
             let
                 _ =
                     Debug.log "typeDeclaration" ("Skipped function " ++ name)
@@ -582,7 +599,7 @@ jsonCodecs propertiesAPI model =
 jsonCodec : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Linkage )
 jsonCodec name decl =
     case decl of
-        DAlias _ _ (TFunction _ _ _) ->
+        DAlias _ _ (TFunction _ _ _ _) ->
             let
                 _ =
                     Debug.log "typeDeclaration" ("Skipped function " ++ name)
