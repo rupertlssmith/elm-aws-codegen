@@ -212,13 +212,13 @@ modelShape shape name =
             (BInt |> TBasic () L1.emptyProperties) |> DAlias () L1.emptyProperties |> Ok
 
         AFloat ->
-            (BInt |> TBasic () L1.emptyProperties) |> DAlias () L1.emptyProperties |> Ok
+            (BReal |> TBasic () L1.emptyProperties) |> DAlias () L1.emptyProperties |> Ok
 
         ADouble ->
-            (BInt |> TBasic () L1.emptyProperties) |> DAlias () L1.emptyProperties |> Ok
+            (BReal |> TBasic () L1.emptyProperties) |> DAlias () L1.emptyProperties |> Ok
 
         ABlob ->
-            (BInt |> TBasic () L1.emptyProperties) |> DAlias () L1.emptyProperties |> Ok
+            (BString |> TBasic () L1.emptyProperties) |> DAlias () L1.emptyProperties |> Ok
 
         AStructure ->
             modelStructure shape name
