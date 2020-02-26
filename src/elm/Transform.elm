@@ -415,19 +415,22 @@ modelOperation name operation =
     ResultME.combine2
         (\request response ->
             let
-                funType =
-                    TFunction () L1.emptyProperties request response
-
-                props =
+                declProps =
                     Dict.empty
-                        |> Dict.insert "url" (operation.http.requestUri |> Maybe.withDefault "/" |> PString)
-                        |> Dict.insert "httpMethod" (httpMethodToString operation.http.method |> PString)
                         |> Dict.insert "documentation"
                             (Maybe.map PString operation.documentation
                                 |> POptional PSString
                             )
+
+                funProps =
+                    Dict.empty
+                        |> Dict.insert "url" (operation.http.requestUri |> Maybe.withDefault "/" |> PString)
+                        |> Dict.insert "httpMethod" (httpMethodToString operation.http.method |> PString)
+
+                funType =
+                    TFunction () funProps request response
             in
-            DAlias () props funType
+            DAlias () declProps funType
         )
         requestRes
         responseRes

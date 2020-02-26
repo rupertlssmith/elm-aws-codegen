@@ -356,8 +356,14 @@ operation :
     -> ResultME L3.PropCheckError ( List Declaration, Linkage )
 operation propertiesApi name decl =
     case decl of
-        DAlias pos _ (TFunction _ _ request response) ->
-            requestFn (propertiesApi.declarable decl) name pos request response
+        DAlias pos _ (TFunction funpos props request response) ->
+            requestFn
+                (propertiesApi.declarable decl)
+                (propertiesApi.type_ (TFunction funpos props request response))
+                name
+                pos
+                request
+                response
 
         _ ->
             ( [], CG.emptyLinkage ) |> Ok
@@ -365,12 +371,13 @@ operation propertiesApi name decl =
 
 requestFn :
     L3.PropertyGet
+    -> L3.PropertyGet
     -> String
     -> pos
     -> L1.Type pos L2.RefChecked
     -> L1.Type pos L2.RefChecked
     -> ResultME L3.PropCheckError ( List Declaration, Linkage )
-requestFn propertyGet name pos request response =
+requestFn declPropertyGet funPropertyGet name pos request response =
     let
         { maybeRequestType, argPatterns, jsonBody, requestLinkage } =
             requestFnRequest name request
@@ -427,9 +434,9 @@ requestFn propertyGet name pos request response =
                 ]
             )
         )
-        (propertyGet.getStringProperty "url")
-        (propertyGet.getStringProperty "httpMethod")
-        (propertyGet.getOptionalStringProperty "documentation")
+        (funPropertyGet.getStringProperty "url")
+        (funPropertyGet.getStringProperty "httpMethod")
+        (declPropertyGet.getOptionalStringProperty "documentation")
 
 
 {-| Figures out what the request type for the endpoint will be.
