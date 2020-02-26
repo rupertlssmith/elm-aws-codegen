@@ -3,7 +3,6 @@ port module Top exposing (main)
 import AWSService exposing (AWSService)
 import Codec
 import Dict exposing (Dict)
-import Diff
 import Elm.Pretty
 import Elm.Writer
 import Json.Decode as Decode
