@@ -13,7 +13,7 @@ module Templates.AWSStubs exposing
 import AWS.Core.Service exposing (Protocol(..), Signer(..))
 import Dict
 import Documentation
-import Elm.CodeGen as CG exposing (Declaration, Expression, File, Import, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
+import Elm.CodeGen as CG exposing (Declaration, Expression, File, Import, LetDeclaration, Linkage, Module, Pattern, TopLevelExpose, TypeAnnotation)
 import Enum exposing (Enum)
 import HttpMethod exposing (HttpMethod)
 import L1 exposing (Declarable(..), PropSpec(..), Properties, Property(..), Type(..))
@@ -209,8 +209,7 @@ service propertiesApi model =
             )
 
 
-{-| optionsFn : L3 pos -> LetDeclaration
--}
+optionsFn : PropertiesAPI pos -> L3 pos -> ResultME L3.PropCheckError LetDeclaration
 optionsFn propertiesApi model =
     ResultME.combine4
         (\jsonVersion signingName targetPrefix xmlNamespace ->
