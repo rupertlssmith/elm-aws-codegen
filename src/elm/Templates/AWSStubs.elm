@@ -575,10 +575,6 @@ typeDeclaration : String -> L1.Declarable pos L2.RefChecked -> ( List Declaratio
 typeDeclaration name decl =
     case decl of
         DAlias _ _ (TFunction _ _ _ _) ->
-            let
-                _ =
-                    Debug.log "typeDeclaration" ("Skipped function " ++ name)
-            in
             ( [], CG.emptyLinkage )
 
         _ ->
@@ -600,10 +596,6 @@ jsonCodec : String -> L1.Declarable pos L2.RefChecked -> ( List Declaration, Lin
 jsonCodec name decl =
     case decl of
         DAlias _ _ (TFunction _ _ _ _) ->
-            let
-                _ =
-                    Debug.log "typeDeclaration" ("Skipped function " ++ name)
-            in
             ( [], CG.emptyLinkage )
 
         _ ->
