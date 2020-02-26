@@ -75,9 +75,7 @@ defaultProperties =
             ]
     , alias =
         L1.defineProperties
-            [ ( "url", PSString ) -- TODO: Put these on the function.
-            , ( "httpMethod", PSString ) -- TODO: Put these on the function.
-            ]
+            []
             [ ( "exclude", PBool False )
             , ( "documentation", POptional PSString Nothing )
             ]
@@ -106,7 +104,12 @@ defaultProperties =
     , product = L1.defineProperties [] []
     , emptyProduct = L1.defineProperties [] []
     , container = L1.defineProperties [] []
-    , function = L1.defineProperties [] []
+    , function =
+        L1.defineProperties
+            [ ( "url", PSString )
+            , ( "httpMethod", PSString )
+            ]
+            []
     }
 
 
